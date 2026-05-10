@@ -45,19 +45,6 @@ document.querySelectorAll('.menu-card, .testimonial, .gallery__item, .about__ima
   observer.observe(el);
 });
 
-document.addEventListener('animationend', () => {}, { once: true });
-
-// Polyfill for IntersectionObserver visible class
-document.querySelectorAll('.menu-card, .testimonial, .gallery__item, .about__image-wrap, .stat').forEach(el => {
-  const style = el.style;
-  const origTransition = 'opacity .5s ease, transform .5s ease';
-  el._observer_cb = () => {
-    style.opacity = '1';
-    style.transform = 'translateY(0)';
-  };
-});
-
-// Attach visible class handler
 document.querySelectorAll('.menu-card, .testimonial, .gallery__item, .about__image-wrap, .stat').forEach(el => {
   const mutObs = new MutationObserver(() => {
     if (el.classList.contains('visible')) {
