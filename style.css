@@ -148,34 +148,32 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
 .catalog__img-wrap {
   position: relative;
   aspect-ratio: 3/4;
-  overflow: visible;
-  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  border-radius: 2px;
 }
 
 .catalog__img {
-  width: 65%;
+  width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center center;
   transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
-  position: relative; z-index: 2;
-  filter: drop-shadow(0 16px 48px rgba(0,0,0,0.10));
+  display: block;
 }
 
 .catalog__zoom-ring {
-  position: absolute; inset: 8% 18%;
+  position: absolute; inset: 0;
   border: 1.5px solid transparent;
   border-radius: 2px;
-  transition: border-color 0.4s, transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
-  z-index: 1;
+  transition: border-color 0.4s;
+  z-index: 2; pointer-events: none;
 }
 
 .catalog__item:hover .catalog__img {
-  transform: scale(1.10) translateY(-6px);
-  filter: drop-shadow(0 28px 60px rgba(0,0,0,0.18));
+  transform: scale(1.08);
 }
 .catalog__item:hover .catalog__zoom-ring {
   border-color: var(--clr-sage);
-  transform: scale(1.06);
 }
 
 .catalog__info { display: flex; flex-direction: column; gap: 10px; }
