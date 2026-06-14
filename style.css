@@ -53,7 +53,7 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
   font-size: clamp(3.5rem, 7vw, 7rem);
   font-weight: 900; line-height: 0.92; letter-spacing: -0.03em;
 }
-.display--hero { font-size: clamp(4.5rem, 9vw, 10rem); font-weight: 900; line-height: 0.88; }
+.display--hero { font-size: clamp(3rem, 5.5vw, 6rem); font-weight: 900; line-height: 0.92; }
 .display--xl { font-size: clamp(4rem, 9vw, 9rem); }
 .display--light { color: #fff; }
 .display em { font-style: normal; color: inherit; }
