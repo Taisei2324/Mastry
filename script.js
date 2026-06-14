@@ -14,18 +14,19 @@ window.addEventListener('orientationchange', () => {
   document.getElementById('burger').classList.remove('open');
 });
 
-// Hero scroll-driven zoom-out (desktop only — CSS handles mobile via !important)
+// Hero scroll-driven zoom-out
+// CSS handles mobile via !important override; JS drives desktop zoom
 const heroImg = document.getElementById('heroImg');
 const heroSection = document.getElementById('hero');
 
-if (heroImg && heroSection && window.innerWidth > 768) {
+if (heroImg && heroSection) {
   let ticking = false;
 
   function updateHeroZoom() {
     const scrollY = window.scrollY;
     const heroH = heroSection.offsetHeight;
     const progress = Math.min(scrollY / heroH, 1);
-    // 1.25 at top (zoomed in) → 1.0 when hero is fully scrolled past
+    // 1.25 at top (zoomed in) → 1.0 when hero fully scrolled past
     const scale = 1.25 - progress * 0.25;
     heroImg.style.transform = `scale(${scale})`;
     ticking = false;
@@ -38,6 +39,7 @@ if (heroImg && heroSection && window.innerWidth > 768) {
     }
   }, { passive: true });
 
+  // Run once immediately to set correct initial state
   updateHeroZoom();
 }
 
@@ -52,11 +54,6 @@ document.querySelectorAll('.nav__links a').forEach(a => {
     document.getElementById('burger').classList.remove('open');
   });
 });
-
-// Bottle showcase label update
-function updateShowcase(name) {
-  document.getElementById('showcaseLabel').textContent = name;
-}
 
 // Cart state
 let cart = [];
