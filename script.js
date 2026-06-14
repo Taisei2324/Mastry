@@ -14,15 +14,17 @@ window.addEventListener('orientationchange', () => {
   document.getElementById('burger').classList.remove('open');
 });
 
-// Hero scroll zoom: starts at 1.25 (zoomed in), scrolling down zooms out to 1.0
-// Locked once hero is scrolled past. CSS !important keeps mobile at 1.0.
+// Hero scroll zoom: 1.6 (zoomed in) → 1.0 (full image)
+// Completes within first 50% of hero height so fast scrollers see it quickly.
+// CSS !important locks mobile at scale(1.0).
 const heroImg = document.getElementById('heroImg');
 const heroSection = document.getElementById('hero');
 
 if (heroImg && heroSection) {
   function updateHeroZoom() {
-    const progress = Math.min(window.scrollY / heroSection.offsetHeight, 1);
-    heroImg.style.transform = `scale(${1.25 - progress * 0.25})`;
+    // progress 0→1 over the first half of hero height, then locked at 1.0
+    const progress = Math.min(window.scrollY / (heroSection.offsetHeight * 0.5), 1);
+    heroImg.style.transform = `scale(${1.6 - progress * 0.6})`;
   }
   window.addEventListener('scroll', updateHeroZoom, { passive: true });
   updateHeroZoom();
