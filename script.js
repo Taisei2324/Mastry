@@ -1,9 +1,29 @@
+// Device + orientation detection
+function updateDeviceClasses() {
+  const isMobile = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isLandscape = window.innerWidth > window.innerHeight;
+  document.body.classList.toggle('is-mobile', isMobile);
+  document.body.classList.toggle('is-landscape', isLandscape);
+  document.body.classList.toggle('is-touch', 'ontouchstart' in window);
+}
+updateDeviceClasses();
+window.addEventListener('resize', updateDeviceClasses);
+window.addEventListener('orientationchange', () => {
+  setTimeout(updateDeviceClasses, 150);
+  document.getElementById('navLinks').classList.remove('open');
+  document.getElementById('burger').classList.remove('open');
+});
+
 // Mobile burger
 document.getElementById('burger').addEventListener('click', () => {
   document.getElementById('navLinks').classList.toggle('open');
+  document.getElementById('burger').classList.toggle('open');
 });
 document.querySelectorAll('.nav__links a').forEach(a => {
-  a.addEventListener('click', () => document.getElementById('navLinks').classList.remove('open'));
+  a.addEventListener('click', () => {
+    document.getElementById('navLinks').classList.remove('open');
+    document.getElementById('burger').classList.remove('open');
+  });
 });
 
 // Bottle showcase label update
