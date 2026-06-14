@@ -13,13 +13,17 @@
   --font:         'Inter', sans-serif;
   --serif:        'Playfair Display', serif;
   --nav-h:        72px;
+  --top-bar-h:    2cm;
 }
 
 html { scroll-behavior: smooth; }
 body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-text); overflow-x: hidden; }
 
+/* 2cm white blank bar pinned to the very top of the page */
+.top-bar { width: 100%; height: var(--top-bar-h); background: #fff; position: relative; z-index: 201; }
+
 .nav {
-  position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h);
+  position: fixed; top: var(--top-bar-h); left: 0; right: 0; height: var(--nav-h);
   display: flex; align-items: center; padding: 0 56px;
   background: rgba(244,240,230,0.94); backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--clr-border); z-index: 200;
@@ -245,12 +249,12 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
 }
 
 @media (max-width: 768px) {
-  :root { --nav-h: 60px; }
+  :root { --nav-h: 60px; --top-bar-h: 1.2cm; }
   .nav { padding: 0 24px; }
   .nav__links {
     display: none;
     position: fixed;
-    top: var(--nav-h);
+    top: calc(var(--top-bar-h) + var(--nav-h));
     left: 0;
     right: 0;
     background: rgba(244,240,230,0.98);
