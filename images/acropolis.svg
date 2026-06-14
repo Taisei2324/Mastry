@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" width="1400" height="900">
+  <defs>
+    <linearGradient id="sunset" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#c87840"/>
+      <stop offset="35%" style="stop-color:#d4944a"/>
+      <stop offset="70%" style="stop-color:#e0b060"/>
+      <stop offset="100%" style="stop-color:#c8a050"/>
+    </linearGradient>
+    <linearGradient id="hill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8a7048"/>
+      <stop offset="100%" style="stop-color:#6a5030"/>
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="900" fill="url(#sunset)"/>
+  <!-- Sun -->
+  <circle cx="700" cy="350" r="80" fill="#f0c040" opacity="0.6"/>
+  <!-- Acropolis hill -->
+  <polygon points="300,700 700,400 1100,700" fill="url(#hill)"/>
+  <rect x="300" y="680" width="800" height="220" fill="#6a5030"/>
+  <!-- Parthenon columns simplified -->
+  <rect x="450" y="440" width="500" height="10" fill="#d4c4a0" opacity="0.9"/>
+  <rect x="450" y="540" width="500" height="12" fill="#d4c4a0" opacity="0.9"/>
+  <g fill="#ccc0a0" opacity="0.85">
+    <rect x="460" y="450" width="20" height="90"/>
+    <rect x="510" y="450" width="20" height="90"/>
+    <rect x="560" y="450" width="20" height="90"/>
+    <rect x="610" y="450" width="20" height="90"/>
+    <rect x="660" y="450" width="20" height="90"/>
+    <rect x="710" y="450" width="20" height="90"/>
+    <rect x="760" y="450" width="20" height="90"/>
+    <rect x="810" y="450" width="20" height="90"/>
+    <rect x="860" y="450" width="20" height="90"/>
+    <rect x="910" y="450" width="20" height="90"/>
+  </g>
+  <!-- Pediment -->
+  <polygon points="440,440 700,400 960,440" fill="#d4c4a0" opacity="0.9"/>
+  <!-- Olive tree -->
+  <rect x="180" y="580" width="16" height="120" fill="#5a4820"/>
+  <ellipse cx="188" cy="550" rx="70" ry="55" fill="#6a7840" opacity="0.8"/>
+  <ellipse cx="160" cy="570" rx="45" ry="35" fill="#5a6830" opacity="0.7"/>
+  <!-- Foreground stone -->
+  <ellipse cx="700" cy="850" rx="700" ry="80" fill="#5a4018" opacity="0.6"/>
+  <text x="700" y="855" font-family="serif" font-size="18" fill="rgba(255,255,255,0.35)" text-anchor="middle" letter-spacing="4">REPLACE WITH images/acropolis.jpg</text>
+</svg>

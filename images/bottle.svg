@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 520" width="200" height="520">
+  <defs>
+    <linearGradient id="glass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#d8d0bc;stop-opacity:0.4"/>
+      <stop offset="30%" style="stop-color:#f0ece0;stop-opacity:0.7"/>
+      <stop offset="60%" style="stop-color:#e8e0cc;stop-opacity:0.5"/>
+      <stop offset="100%" style="stop-color:#c8c0ac;stop-opacity:0.4"/>
+    </linearGradient>
+    <linearGradient id="cap" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#b0b0a8"/>
+      <stop offset="100%" style="stop-color:#787870"/>
+    </linearGradient>
+    <linearGradient id="label" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f5f0e4"/>
+      <stop offset="100%" style="stop-color:#e8e2d0"/>
+    </linearGradient>
+  </defs>
+  <!-- Cap -->
+  <rect x="82" y="18" width="36" height="28" rx="4" fill="url(#cap)"/>
+  <rect x="78" y="42" width="44" height="8" rx="2" fill="#909088"/>
+  <!-- Neck -->
+  <path d="M82 50 Q78 80 72 110 L128 110 Q122 80 118 50 Z" fill="url(#glass)" stroke="#c8c0a8" stroke-width="1"/>
+  <!-- Body -->
+  <path d="M72 110 Q60 130 58 160 L58 400 Q58 430 100 440 Q142 430 142 400 L142 160 Q140 130 128 110 Z" fill="url(#glass)" stroke="#c8c0a8" stroke-width="1"/>
+  <!-- Label -->
+  <rect x="65" y="220" width="70" height="140" rx="2" fill="url(#label)" opacity="0.95"/>
+  <!-- Label illustration lines -->
+  <line x1="72" y1="240" x2="128" y2="240" stroke="#c8c0a8" stroke-width="0.5"/>
+  <!-- MASTRY text -->
+  <text x="100" y="280" font-family="serif" font-size="13" font-weight="600" fill="#1a1814" text-anchor="middle" letter-spacing="3">MASTRY</text>
+  <text x="100" y="296" font-family="sans-serif" font-size="5.5" fill="#7a7060" text-anchor="middle" letter-spacing="1.5">SPARKLING WATER WITH MASTIC</text>
+  <!-- Illustration placeholder lines -->
+  <ellipse cx="100" cy="320" rx="24" ry="14" fill="none" stroke="#c0b89a" stroke-width="0.8"/>
+  <line x1="76" y1="320" x2="124" y2="320" stroke="#c0b89a" stroke-width="0.5"/>
+  <!-- Bottom label text -->
+  <text x="100" y="350" font-family="sans-serif" font-size="4.5" fill="#9a9080" text-anchor="middle" letter-spacing="0.8">MASTIC FROM CHIOS, GREECE</text>
+  <!-- Bubble effect -->
+  <circle cx="80" cy="180" r="3" fill="white" opacity="0.25"/>
+  <circle cx="95" cy="150" r="2" fill="white" opacity="0.2"/>
+  <circle cx="115" cy="200" r="4" fill="white" opacity="0.15"/>
+  <circle cx="88" cy="400" r="2.5" fill="white" opacity="0.18"/>
+  <circle cx="108" cy="370" r="1.8" fill="white" opacity="0.2"/>
+  <!-- Shine -->
+  <path d="M76 160 Q74 200 74 300" stroke="white" stroke-width="3" fill="none" opacity="0.2" stroke-linecap="round"/>
+</svg>
