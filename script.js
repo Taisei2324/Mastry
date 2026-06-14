@@ -1,56 +1,137 @@
 // Nav scroll shadow
-const nav = document.querySelector('.nav');
+const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => {
-  nav.classList.toggle('scrolled', window.scrollY > 40);
+  nav.style.borderBottomColor = window.scrollY > 10 ? 'rgba(255,255,255,0.08)' : '';
 });
 
-// Mobile burger toggle
-const burger = document.querySelector('.nav__burger');
-const navLinks = document.querySelector('.nav__links');
-burger.addEventListener('click', () => {
-  const open = navLinks.style.display === 'flex';
-  navLinks.style.display = open ? '' : 'flex';
-  navLinks.style.flexDirection = 'column';
-  navLinks.style.position = 'absolute';
-  navLinks.style.top = '72px';
-  navLinks.style.left = '0';
-  navLinks.style.right = '0';
-  navLinks.style.background = 'var(--clr-bg)';
-  navLinks.style.padding = '20px 40px';
-  navLinks.style.borderBottom = '1px solid var(--clr-border)';
-  if (open) navLinks.style.cssText = '';
+// Mobile burger
+document.getElementById('burger').addEventListener('click', () => {
+  document.getElementById('navLinks').classList.toggle('open');
 });
 
-// Close mobile nav on link click
-document.querySelectorAll('.nav__links a').forEach(link => {
-  link.addEventListener('click', () => {
-    navLinks.style.cssText = '';
-  });
+document.querySelectorAll('.nav__links a').forEach(a => {
+  a.addEventListener('click', () => document.getElementById('navLinks').classList.remove('open'));
 });
 
-// Fade-in on scroll
+// Bubbles
+(function spawnBubbles() {
+  const container = document.getElementById('bubbles');
+  for (let i = 0; i < 18; i++) {
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    const size = Math.random() * 60 + 10;
+    b.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${Math.random() * 100}%;
+      bottom:${Math.random() * -20}%;
+      animation-duration:${Math.random() * 12 + 8}s;
+      animation-delay:${Math.random() * 10}s;
+    `;
+    container.appendChild(b);
+  }
+})();
+
+// Cart state
+let cart = [];
+
+function addToCart(id, name, price) {
+  const existing = cart.find(i => i.id === id);
+  if (existing) existing.qty++;
+  else cart.push({ id, name, price, qty: 1 });
+  updateCartUI();
+  openCart();
+}
+
+function removeFromCart(id) {
+  cart = cart.filter(i => i.id !== id);
+  updateCartUI();
+}
+
+function changeQty(id, delta) {
+  const item = cart.find(i => i.id === id);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) removeFromCart(id);
+  else updateCartUI();
+}
+
+function updateCartUI() {
+  const total = cart.reduce((s, i) => s + i.qty, 0);
+  document.getElementById('cartBadge').textContent = total;
+
+  const itemsEl = document.getElementById('cartItems');
+  const footerEl = document.getElementById('cartFooter');
+
+  if (cart.length === 0) {
+    itemsEl.innerHTML = '<p class="cart-empty">Your cart is empty.</p>';
+    footerEl.style.display = 'none';
+    return;
+  }
+
+  itemsEl.innerHTML = cart.map(i => `
+    <div class="cart-item">
+      <span class="cart-item__name">${i.name}</span>
+      <div class="cart-item__controls">
+        <button onclick="changeQty(${i.id}, -1)">−</button>
+        <span class="cart-item__qty">${i.qty}</span>
+        <button onclick="changeQty(${i.id}, 1)">+</button>
+      </div>
+      <span class="cart-item__price">$${(i.price * i.qty).toFixed(2)}</span>
+      <button class="cart-item__remove" onclick="removeFromCart(${i.id})">×</button>
+    </div>
+  `).join('');
+
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  document.getElementById('cartSubtotal').textContent = `$${subtotal.toFixed(2)}`;
+  footerEl.style.display = 'block';
+}
+
+function openCart() {
+  document.getElementById('cartDrawer').classList.add('open');
+  document.getElementById('cartOverlay').classList.add('open');
+}
+
+function closeCart() {
+  document.getElementById('cartDrawer').classList.remove('open');
+  document.getElementById('cartOverlay').classList.remove('open');
+}
+
+document.getElementById('cartBtn').addEventListener('click', openCart);
+
+function checkout() {
+  cart = [];
+  updateCartUI();
+  closeCart();
+  document.getElementById('successOverlay').style.display = 'flex';
+}
+
+function closeSuccess() {
+  document.getElementById('successOverlay').style.display = 'none';
+}
+
+document.getElementById('orderForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  document.getElementById('successOverlay').style.display = 'flex';
+  e.target.reset();
+});
+
+// Animated counters on scroll
+const counters = document.querySelectorAll('.stat__num');
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
-      observer.unobserve(entry.target);
-    }
+    if (!entry.isIntersecting) return;
+    const el = entry.target;
+    const target = parseInt(el.dataset.target, 10);
+    if (target === 0) { el.textContent = '0'; return; }
+    const step = target / (1200 / 16);
+    let current = 0;
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = Math.floor(current).toLocaleString();
+      if (current >= target) clearInterval(timer);
+    }, 16);
+    observer.unobserve(el);
   });
-}, { threshold: 0.12 });
+}, { threshold: 0.5 });
 
-document.querySelectorAll('.menu-card, .testimonial, .gallery__item, .about__image-wrap, .stat').forEach(el => {
-  el.style.opacity = '0';
-  el.style.transform = 'translateY(24px)';
-  el.style.transition = 'opacity .5s ease, transform .5s ease';
-  observer.observe(el);
-});
-
-document.querySelectorAll('.menu-card, .testimonial, .gallery__item, .about__image-wrap, .stat').forEach(el => {
-  const mutObs = new MutationObserver(() => {
-    if (el.classList.contains('visible')) {
-      el.style.opacity = '1';
-      el.style.transform = 'translateY(0)';
-    }
-  });
-  mutObs.observe(el, { attributes: true, attributeFilter: ['class'] });
-});
+counters.forEach(c => observer.observe(c));
