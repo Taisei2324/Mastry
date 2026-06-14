@@ -14,33 +14,74 @@ window.addEventListener('orientationchange', () => {
   document.getElementById('burger').classList.remove('open');
 });
 
-// Hero scroll-driven zoom-out
-// CSS handles mobile via !important override; JS drives desktop zoom
+// Hero scroll-driven zoom-out — velocity sensitive, instant response
 const heroImg = document.getElementById('heroImg');
 const heroSection = document.getElementById('hero');
 
 if (heroImg && heroSection) {
-  let ticking = false;
+  let lastScrollY = window.scrollY;
+  let lastScrollTime = performance.now();
+  let velBoost = 0;
+  let springRaf = null;
 
-  function updateHeroZoom() {
+  function applyZoom(scale) {
+    heroImg.style.transform = `scale(${scale})`;
+  }
+
+  function springVelToZero() {
+    velBoost *= 0.82; // decay
+    if (velBoost < 0.001) {
+      velBoost = 0;
+      return;
+    }
+    // Recompute scale with decayed velBoost
     const scrollY = window.scrollY;
     const heroH = heroSection.offsetHeight;
-    const progress = Math.min(scrollY / heroH, 1);
-    // 1.25 at top (zoomed in) → 1.0 when hero fully scrolled past
-    const scale = 1.25 - progress * 0.25;
-    heroImg.style.transform = `scale(${scale})`;
-    ticking = false;
+    const posProgress = Math.min(scrollY / (heroH * 0.45), 1);
+    const scale = Math.max(1.0, 1.25 - posProgress * 0.25 - velBoost);
+    applyZoom(scale);
+    springRaf = requestAnimationFrame(springVelToZero);
   }
 
   window.addEventListener('scroll', () => {
-    if (!ticking) {
-      requestAnimationFrame(updateHeroZoom);
-      ticking = true;
+    const now = performance.now();
+    const scrollY = window.scrollY;
+    const heroH = heroSection.offsetHeight;
+
+    // Only active while hero is in view
+    if (scrollY > heroH) {
+      lastScrollY = scrollY;
+      lastScrollTime = now;
+      return;
     }
+
+    const dy = scrollY - lastScrollY;
+    const dt = Math.max(now - lastScrollTime, 1);
+    const velocity = dy / dt; // px per ms — positive = scrolling down
+
+    // Position baseline: completes zoom within first 45% of hero height
+    const posProgress = Math.min(scrollY / (heroH * 0.45), 1);
+
+    // Velocity boost: fast downward scroll adds extra instant zoom-out
+    if (velocity > 0) {
+      velBoost = Math.min(velBoost + velocity * 0.025, 0.18);
+    } else {
+      velBoost *= 0.6; // damp quickly when scrolling back up
+    }
+
+    const scale = Math.max(1.0, 1.25 - posProgress * 0.25 - velBoost);
+    applyZoom(scale);
+
+    lastScrollY = scrollY;
+    lastScrollTime = now;
+
+    // Spring velBoost back to zero over next few frames
+    cancelAnimationFrame(springRaf);
+    springRaf = requestAnimationFrame(springVelToZero);
   }, { passive: true });
 
-  // Run once immediately to set correct initial state
-  updateHeroZoom();
+  // Set initial state
+  applyZoom(1.25);
 }
 
 // Mobile burger
