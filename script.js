@@ -14,74 +14,18 @@ window.addEventListener('orientationchange', () => {
   document.getElementById('burger').classList.remove('open');
 });
 
-// Hero scroll-driven zoom-out — velocity sensitive, instant response
+// Hero scroll zoom: starts at 1.25 (zoomed in), scrolling down zooms out to 1.0
+// Locked once hero is scrolled past. CSS !important keeps mobile at 1.0.
 const heroImg = document.getElementById('heroImg');
 const heroSection = document.getElementById('hero');
 
 if (heroImg && heroSection) {
-  let lastScrollY = window.scrollY;
-  let lastScrollTime = performance.now();
-  let velBoost = 0;
-  let springRaf = null;
-
-  function applyZoom(scale) {
-    heroImg.style.transform = `scale(${scale})`;
+  function updateHeroZoom() {
+    const progress = Math.min(window.scrollY / heroSection.offsetHeight, 1);
+    heroImg.style.transform = `scale(${1.25 - progress * 0.25})`;
   }
-
-  function springVelToZero() {
-    velBoost *= 0.82; // decay
-    if (velBoost < 0.001) {
-      velBoost = 0;
-      return;
-    }
-    // Recompute scale with decayed velBoost
-    const scrollY = window.scrollY;
-    const heroH = heroSection.offsetHeight;
-    const posProgress = Math.min(scrollY / (heroH * 0.45), 1);
-    const scale = Math.max(1.0, 1.25 - posProgress * 0.25 - velBoost);
-    applyZoom(scale);
-    springRaf = requestAnimationFrame(springVelToZero);
-  }
-
-  window.addEventListener('scroll', () => {
-    const now = performance.now();
-    const scrollY = window.scrollY;
-    const heroH = heroSection.offsetHeight;
-
-    // Only active while hero is in view
-    if (scrollY > heroH) {
-      lastScrollY = scrollY;
-      lastScrollTime = now;
-      return;
-    }
-
-    const dy = scrollY - lastScrollY;
-    const dt = Math.max(now - lastScrollTime, 1);
-    const velocity = dy / dt; // px per ms — positive = scrolling down
-
-    // Position baseline: completes zoom within first 45% of hero height
-    const posProgress = Math.min(scrollY / (heroH * 0.45), 1);
-
-    // Velocity boost: fast downward scroll adds extra instant zoom-out
-    if (velocity > 0) {
-      velBoost = Math.min(velBoost + velocity * 0.025, 0.18);
-    } else {
-      velBoost *= 0.6; // damp quickly when scrolling back up
-    }
-
-    const scale = Math.max(1.0, 1.25 - posProgress * 0.25 - velBoost);
-    applyZoom(scale);
-
-    lastScrollY = scrollY;
-    lastScrollTime = now;
-
-    // Spring velBoost back to zero over next few frames
-    cancelAnimationFrame(springRaf);
-    springRaf = requestAnimationFrame(springVelToZero);
-  }, { passive: true });
-
-  // Set initial state
-  applyZoom(1.25);
+  window.addEventListener('scroll', updateHeroZoom, { passive: true });
+  updateHeroZoom();
 }
 
 // Mobile burger
@@ -123,16 +67,13 @@ function changeQty(id, delta) {
 function updateCartUI() {
   const total = cart.reduce((s, i) => s + i.qty, 0);
   document.getElementById('cartBadge').textContent = total;
-
   const itemsEl = document.getElementById('cartItems');
   const footerEl = document.getElementById('cartFooter');
-
   if (cart.length === 0) {
     itemsEl.innerHTML = '<p class="cart-empty">Your cart is empty.</p>';
     footerEl.style.display = 'none';
     return;
   }
-
   itemsEl.innerHTML = cart.map(i => `
     <div class="cart-item">
       <span class="cart-item__name">${i.name}</span>
@@ -145,7 +86,6 @@ function updateCartUI() {
       <button class="cart-item__remove" onclick="removeFromCart(${i.id})">×</button>
     </div>
   `).join('');
-
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   document.getElementById('cartSubtotal').textContent = `$${subtotal.toFixed(2)}`;
   footerEl.style.display = 'block';
