@@ -186,11 +186,11 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
 .catalog__item:hover .catalog__add { color: var(--clr-text); }
 
 .catalog__item:nth-of-type(1) .catalog__img {
-  transform: scale(1.26);
+  transform: scale(1.35);
 }
 
 .catalog__item:nth-of-type(1):hover .catalog__img {
-  transform: scale(1.35);
+  transform: scale(1.44);
 }
 
 /* ─── BOTTLE HERO ───────────────────────────────────────── */
