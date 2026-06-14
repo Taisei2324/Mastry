@@ -90,8 +90,8 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
 .fullscreen__img--top { object-position: center top; }
 .fullscreen:hover .fullscreen__img { transform: scale(1.04); }
 
-/* Hero: start at scale(1.0), JS zooms in to 1.3 as user scrolls down */
-#hero .fullscreen__img { transform: scale(1.0); transition: none; }
+/* Hero: start slightly zoomed in, JS zooms further in to 1.6 on scroll */
+#hero .fullscreen__img { transform: scale(1.1); transition: none; }
 
 .fullscreen__overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.08) 100%); }
 .fullscreen__overlay--dark { background: linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.32) 60%, rgba(0,0,0,0.08) 100%); }
@@ -121,10 +121,26 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
 .products__header { margin-bottom: 80px; }
 .products__header .display { margin-bottom: 0; }
 
-.catalog { display: grid; grid-template-columns: repeat(4, 1fr); gap: 48px; }
+.catalog { display: grid; grid-template-columns: repeat(4, 1fr); gap: 48px; align-items: start; }
 .catalog__item { cursor: pointer; display: flex; flex-direction: column; gap: 28px; }
-.catalog__img-wrap { position: relative; aspect-ratio: 3/4; overflow: hidden; border-radius: 2px; }
-.catalog__img { width: 100%; height: 100%; object-fit: cover; object-position: center center; transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94); display: block; }
+/* Force all image wrappers to identical height via padding trick */
+.catalog__img-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 133.33%; /* 3:4 ratio */
+  overflow: hidden;
+  border-radius: 2px;
+}
+.catalog__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
+  display: block;
+}
 .catalog__zoom-ring { position: absolute; inset: 0; border: 1.5px solid transparent; border-radius: 2px; transition: border-color 0.4s; z-index: 2; pointer-events: none; }
 .catalog__item:hover .catalog__img { transform: scale(1.08); }
 .catalog__item:hover .catalog__zoom-ring { border-color: var(--clr-sage); }
