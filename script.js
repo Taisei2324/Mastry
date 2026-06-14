@@ -14,19 +14,9 @@ window.addEventListener('orientationchange', () => {
   document.getElementById('burger').classList.remove('open');
 });
 
-// Hero scroll zoom: slightly zoomed (1.15) at top → eases to full image (1.0) as you scroll down.
-// Effect completes over the first 60% of hero height, then locks.
+// Hero fully zoomed out (1.0) — maximum view of the image.
 const heroImg = document.getElementById('heroImg');
-const heroSection = document.getElementById('hero');
-
-if (heroImg && heroSection) {
-  function updateHeroZoom() {
-    const progress = Math.max(0, Math.min(window.scrollY / (heroSection.offsetHeight * 0.6), 1));
-    heroImg.style.transform = 'scale(' + (1.15 - progress * 0.15) + ')';
-  }
-  window.addEventListener('scroll', updateHeroZoom, { passive: true });
-  updateHeroZoom();
-}
+if (heroImg) heroImg.style.transform = 'scale(1.0)';
 
 // Mobile burger
 document.getElementById('burger').addEventListener('click', () => {
