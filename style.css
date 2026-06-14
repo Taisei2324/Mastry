@@ -48,6 +48,16 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
 .display--light { color: #fff; }
 .display em { font-style: normal; color: inherit; }
 
+/* Hero numeral “2” — amber accent, slightly larger, tight tracking */
+.hero-numeral {
+  color: var(--clr-amber);
+  font-size: 1.15em;
+  letter-spacing: -0.05em;
+  display: inline-block;
+  line-height: 1;
+  vertical-align: baseline;
+}
+
 .eyebrow { font-size: 0.82rem; font-weight: 700; letter-spacing: 0.01em; text-transform: none; color: var(--clr-sage); margin-bottom: 16px; display: block; }
 .eyebrow--light { color: rgba(255,255,255,0.75); }
 
