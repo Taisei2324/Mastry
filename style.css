@@ -144,8 +144,8 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
   transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
   display: block;
 }
-/* Nudge the Original (first) bottle down 0.75cm so its cap aligns with the rest */
-.catalog__item:first-child .catalog__img { object-position: center 0.75cm; }
+/* Nudge the Original (first) bottle down so its cap aligns with the rest */
+.catalog__item:first-child .catalog__img { object-position: center 1.5cm; }
 .catalog__zoom-ring { position: absolute; inset: 0; border: 1.5px solid transparent; border-radius: 2px; transition: border-color 0.4s; z-index: 2; pointer-events: none; }
 .catalog__item:hover .catalog__img { transform: scale(1.08); }
 .catalog__item:hover .catalog__zoom-ring { border-color: var(--clr-sage); }
