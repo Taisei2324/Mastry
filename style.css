@@ -69,13 +69,13 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
 .hero-tagline__num {
   grid-column: 2;
   grid-row: 1 / span 2;
-  align-self: end;
+  align-self: center;
   color: inherit;
-  font-size: 1.4em;
+  font-size: 0.8em;
   font-weight: 400;
   line-height: 1;
   letter-spacing: -0.02em;
-  margin-left: -0.1em;
+  margin-left: -0.08em;
 }
 
 /* Hero "Island 2 Island" SVG logo (vector, transparent, white) */
@@ -323,7 +323,7 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
   .display--hero { font-size: clamp(2.4rem, 7vw, 4rem); }
   .display--xl { font-size: clamp(2.8rem, 9vw, 5rem); }
 
-  .hero-tagline__num { font-size: 1.4em; font-weight: 400; }
+  .hero-tagline__num { font-size: 0.8em; font-weight: 400; }
 
   .lead { font-size: 0.95rem; margin-top: 14px; }
   .eyebrow { margin-bottom: 10px; }
@@ -381,7 +381,7 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
   .display { font-size: clamp(2rem, 6vw, 4rem); }
   .display--hero { font-size: clamp(1.8rem, 5vw, 3rem); }
   .display--xl { font-size: clamp(2rem, 7vw, 4rem); }
-  .hero-tagline__num { font-size: 1.4em; font-weight: 400; }
+  .hero-tagline__num { font-size: 0.8em; font-weight: 400; }
 
   .lead { font-size: 0.85rem; margin-top: 8px; max-width: 400px; }
   .lead--wide { max-width: 500px; }
