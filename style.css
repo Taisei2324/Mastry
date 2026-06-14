@@ -148,8 +148,8 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
 }
 .catalog__zoom-ring { position: absolute; inset: 0; border: 1.5px solid transparent; border-radius: 2px; transition: border-color 0.4s; z-index: 2; pointer-events: none; }
 .catalog__item:hover .catalog__img { transform: scale(1.08); }
-.catalog__item:nth-of-type(1) .catalog__img { transform: scale(1.12); }
-.catalog__item:nth-of-type(1):hover .catalog__img { transform: scale(1.2); }
+.catalog__item:nth-of-type(1) .catalog__img { transform: scale(1.07); }
+.catalog__item:nth-of-type(1):hover .catalog__img { transform: scale(1.15); }
 .catalog__item:hover .catalog__zoom-ring { border-color: var(--clr-sage); }
 .catalog__info { display: flex; flex-direction: column; gap: 10px; }
 .catalog__tag { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--clr-amber); }
