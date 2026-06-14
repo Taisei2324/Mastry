@@ -78,10 +78,10 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
   margin-left: -0.08em;
 }
 
-/* Hero "Island 2 Island" SVG logo (vector, transparent, white) */
+/* Hero "Island 2 Island" SVG logo (vector trace from PNG, white, no background) */
 .hero-logo {
-  margin: 0 0 10px;
-  width: min(600px, 80vw);
+  margin: 0 0 12px;
+  width: min(560px, 78vw);
   line-height: 0;
 }
 .hero-logo__svg {
@@ -89,7 +89,7 @@ body { font-family: var(--font); background: var(--clr-bg); color: var(--clr-tex
   width: 100%;
   height: auto;
   color: #fff;
-  filter: drop-shadow(0 6px 28px rgba(0,0,0,0.45));
+  filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5));
 }
 
 .eyebrow { font-size: 0.82rem; font-weight: 700; letter-spacing: 0.01em; text-transform: none; color: var(--clr-sage); margin-bottom: 16px; display: block; }
