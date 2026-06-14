@@ -14,6 +14,33 @@ window.addEventListener('orientationchange', () => {
   document.getElementById('burger').classList.remove('open');
 });
 
+// Hero scroll-driven zoom-out (desktop only — CSS handles mobile via !important)
+const heroImg = document.getElementById('heroImg');
+const heroSection = document.getElementById('hero');
+
+if (heroImg && heroSection && window.innerWidth > 768) {
+  let ticking = false;
+
+  function updateHeroZoom() {
+    const scrollY = window.scrollY;
+    const heroH = heroSection.offsetHeight;
+    const progress = Math.min(scrollY / heroH, 1);
+    // 1.25 at top (zoomed in) → 1.0 when hero is fully scrolled past
+    const scale = 1.25 - progress * 0.25;
+    heroImg.style.transform = `scale(${scale})`;
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(updateHeroZoom);
+      ticking = true;
+    }
+  }, { passive: true });
+
+  updateHeroZoom();
+}
+
 // Mobile burger
 document.getElementById('burger').addEventListener('click', () => {
   document.getElementById('navLinks').classList.toggle('open');
