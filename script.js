@@ -1,3 +1,12 @@
+// Hero zoom out on scroll
+const heroImg = document.querySelector('#hero .fullscreen__img');
+window.addEventListener('scroll', () => {
+  const heroSection = document.getElementById('hero');
+  const rect = heroSection.getBoundingClientRect();
+  const progress = Math.max(0, Math.min(1, 1 - rect.bottom / window.innerHeight));
+  heroImg.style.transform = 'scale(' + (2.0 - progress * 1.0) + ')';
+});
+
 // Mobile burger
 document.getElementById('burger').addEventListener('click', () => {
   document.getElementById('navLinks').classList.toggle('open');
