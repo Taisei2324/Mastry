@@ -3,24 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mastry — Pure Sparkling Water</title>
+  <title>Mastry — Sparkling Water with Mastic</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <!-- NAV -->
   <nav class="nav" id="nav">
-    <a href="#hero" class="nav__logo">Mastry</a>
+    <a href="#hero" class="nav__logo">MASTRY</a>
     <ul class="nav__links" id="navLinks">
       <li><a href="#products">Products</a></li>
       <li><a href="#about">About</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
     <button class="nav__cart" id="cartBtn" aria-label="Open cart">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
       <span class="cart-badge" id="cartBadge">0</span>
     </button>
     <button class="nav__burger" id="burger" aria-label="Toggle menu">
@@ -30,142 +30,184 @@
 
   <!-- HERO -->
   <section class="hero" id="hero">
-    <div class="bubbles" id="bubbles"></div>
+    <div class="hero__bg">
+      <!-- Place your Mt. Fuji / hero image at images/hero-bg.jpg -->
+      <img src="images/hero-bg.jpg" alt="Mastry in nature" class="hero__bg-img" onerror="this.style.display='none'" />
+    </div>
+    <div class="hero__overlay"></div>
     <div class="hero__content">
-      <p class="hero__eyebrow">Chapter one</p>
-      <h1 class="hero__title">The world's<br>first Mastic<br>sparkling water.</h1>
-      <p class="hero__sub">Sourced in Japan. Infused with rare Mastic resin<br>from the island of Chios, Greece.</p>
+      <p class="hero__eyebrow">Chios, Greece × Japan</p>
+      <h1 class="hero__title">Sparkling water<br>with Mastic.</h1>
+      <p class="hero__sub">The ancient resin of Chios meets the purity<br>of Japanese spring water.</p>
       <a href="#products" class="btn btn--primary">Explore Products</a>
     </div>
-    <div class="hero__origin">
-      <div class="origin-tag">Chios, Greece → Japan</div>
+    <div class="hero__bottle">
+      <!-- Place your bottle image at images/bottle.jpg -->
+      <img src="images/bottle.jpg" alt="Mastry bottle" class="hero__bottle-img" onerror="this.parentElement.style.display='none'" />
     </div>
   </section>
+
+  <!-- STRIP -->
+  <div class="strip">
+    <span>Mastic from Chios, Greece</span>
+    <span class="strip__dot">◈</span>
+    <span>Assembled in Japan</span>
+    <span class="strip__dot">◈</span>
+    <span>Zero sugar</span>
+    <span class="strip__dot">◈</span>
+    <span>100% natural</span>
+    <span class="strip__dot">◈</span>
+    <span>mastry.jp</span>
+    <span class="strip__dot">◈</span>
+    <span>Mastic from Chios, Greece</span>
+    <span class="strip__dot">◈</span>
+    <span>Assembled in Japan</span>
+    <span class="strip__dot">◈</span>
+    <span>Zero sugar</span>
+    <span class="strip__dot">◈</span>
+    <span>100% natural</span>
+  </div>
 
   <!-- PRODUCTS -->
   <section class="products" id="products">
     <div class="container">
       <div class="section-header">
         <p class="section-eyebrow">Chapter two</p>
-        <h2 class="section-title">Our<br>products.</h2>
+        <h2 class="section-title">Our products.</h2>
+        <p class="section-sub">Each variety begins with the same foundation — pure Mastic from Chios — then pairs it with a distinct Japanese botanical.</p>
       </div>
-      <div class="products__grid">
 
-        <div class="product-card">
-          <div class="product-card__bg" style="--card-color: #1a2f4e;"></div>
-          <div class="product-card__body">
-            <div class="product-label">Original</div>
-            <h3 class="product-name">Mastry<br>Original</h3>
-            <p class="product-desc">Pure Chios Mastic. Delicate pine and cedar notes with crisp Japanese spring water.</p>
-            <div class="product-footer">
-              <span class="product-price">¥480 / $3.49</span>
-              <button class="btn btn--add" onclick="addToCart(1, 'Mastry Original', 3.49)">Add</button>
-            </div>
+      <div class="products__layout">
+        <!-- Bottle showcase -->
+        <div class="products__bottle-col">
+          <div class="bottle-showcase">
+            <img src="images/bottle.jpg" alt="Mastry Original bottle" id="showcaseImg" onerror="this.parentElement.classList.add('no-img')" />
+            <div class="bottle-showcase__label" id="showcaseLabel">Mastry Original</div>
           </div>
         </div>
 
-        <div class="product-card">
-          <div class="product-card__bg" style="--card-color: #2d3a1e;"></div>
-          <div class="product-card__body">
-            <div class="product-label">Signature</div>
-            <h3 class="product-name">Mastry<br>Yuzu</h3>
-            <p class="product-desc">Mastic meets Japanese yuzu citrus. Floral, tart, and unmistakably Mastry.</p>
-            <div class="product-footer">
-              <span class="product-price">¥520 / $3.79</span>
-              <button class="btn btn--add" onclick="addToCart(2, 'Mastry Yuzu', 3.79)">Add</button>
+        <!-- Product list -->
+        <div class="products__list">
+
+          <div class="product-row" data-color="#4a5e40" onmouseenter="updateShowcase('Mastry Original')">
+            <div class="product-row__num">01</div>
+            <div class="product-row__info">
+              <div class="product-row__tag">Original</div>
+              <h3 class="product-row__name">Mastry Original</h3>
+              <p class="product-row__desc">Pure Chios Mastic. Delicate pine and cedar notes with crisp Japanese spring water.</p>
+            </div>
+            <div class="product-row__right">
+              <span class="product-row__price">¥480 / $3.49</span>
+              <button class="btn btn--outline" onclick="addToCart(1,'Mastry Original',3.49)">Add to cart</button>
             </div>
           </div>
-        </div>
 
-        <div class="product-card">
-          <div class="product-card__bg" style="--card-color: #3a2218;"></div>
-          <div class="product-card__body">
-            <div class="product-label">Limited</div>
-            <h3 class="product-name">Mastry<br>Hinoki</h3>
-            <p class="product-desc">Mastic with Japanese cypress (Hinoki). Earthy, warm, meditative.</p>
-            <div class="product-footer">
-              <span class="product-price">¥560 / $3.99</span>
-              <button class="btn btn--add" onclick="addToCart(3, 'Mastry Hinoki', 3.99)">Add</button>
+          <div class="product-row" onmouseenter="updateShowcase('Mastry Yuzu')">
+            <div class="product-row__num">02</div>
+            <div class="product-row__info">
+              <div class="product-row__tag">Signature</div>
+              <h3 class="product-row__name">Mastry Yuzu</h3>
+              <p class="product-row__desc">Mastic meets Japanese yuzu citrus. Floral, tart, and unmistakably Mastry.</p>
+            </div>
+            <div class="product-row__right">
+              <span class="product-row__price">¥520 / $3.79</span>
+              <button class="btn btn--outline" onclick="addToCart(2,'Mastry Yuzu',3.79)">Add to cart</button>
             </div>
           </div>
-        </div>
 
-        <div class="product-card">
-          <div class="product-card__bg" style="--card-color: #3d1a2e;"></div>
-          <div class="product-card__body">
-            <div class="product-label">Seasonal</div>
-            <h3 class="product-name">Mastry<br>Ume</h3>
-            <p class="product-desc">Mastic and Japanese plum blossom. A gentle floral sweetness, zero sugar.</p>
-            <div class="product-footer">
-              <span class="product-price">¥520 / $3.79</span>
-              <button class="btn btn--add" onclick="addToCart(4, 'Mastry Ume', 3.79)">Add</button>
+          <div class="product-row" onmouseenter="updateShowcase('Mastry Hinoki')">
+            <div class="product-row__num">03</div>
+            <div class="product-row__info">
+              <div class="product-row__tag">Limited</div>
+              <h3 class="product-row__name">Mastry Hinoki</h3>
+              <p class="product-row__desc">Mastic with Japanese cypress (Hinoki). Earthy, warm, meditative.</p>
+            </div>
+            <div class="product-row__right">
+              <span class="product-row__price">¥560 / $3.99</span>
+              <button class="btn btn--outline" onclick="addToCart(3,'Mastry Hinoki',3.99)">Add to cart</button>
             </div>
           </div>
-        </div>
 
+          <div class="product-row" onmouseenter="updateShowcase('Mastry Ume')">
+            <div class="product-row__num">04</div>
+            <div class="product-row__info">
+              <div class="product-row__tag">Seasonal</div>
+              <h3 class="product-row__name">Mastry Ume</h3>
+              <p class="product-row__desc">Mastic and Japanese plum blossom. A gentle floral sweetness, zero sugar.</p>
+            </div>
+            <div class="product-row__right">
+              <span class="product-row__price">¥520 / $3.79</span>
+              <button class="btn btn--outline" onclick="addToCart(4,'Mastry Ume',3.79)">Add to cart</button>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ABOUT -->
-  <section class="about" id="about">
-    <div class="container">
-      <div class="about__split">
-        <div class="about__text">
-          <p class="section-eyebrow">Chapter three</p>
-          <h2 class="section-title">Two worlds.<br>One water.</h2>
-          <p class="about__body">Mastry was born from a single question: what happens when the rarest natural resin on earth meets the world's most refined water culture?</p>
-          <p class="about__body">Mastic — harvested only on the Greek island of Chios — has been prized for 2,500 years for its purity and therapeutic properties. We carry it to Japan, where our water is sourced from pristine mountain springs, carbonated, and bottled with obsessive care.</p>
-          <p class="about__body">The result is something that has never existed before.</p>
+  <!-- MASTIC ORIGIN FEATURE -->
+  <section class="origin">
+    <div class="origin__image-col">
+      <div class="origin__img-stack">
+        <div class="origin__img-box origin__img-box--tall">
+          <img src="images/greece.jpg" alt="Chios Greece" onerror="this.parentElement.classList.add('img-placeholder')" />
+          <span class="img-caption">Chios, Greece</span>
         </div>
-        <div class="about__stats">
-          <div class="stat">
-            <div class="stat__top">
-              <span class="stat__num" data-target="0">0</span>
-              <span class="stat__unit">g</span>
-            </div>
-            <p class="stat__label">Sugar</p>
-          </div>
-          <div class="stat">
-            <div class="stat__top">
-              <span class="stat__num" data-target="100">0</span>
-              <span class="stat__unit">%</span>
-            </div>
-            <p class="stat__label">Natural</p>
-          </div>
-          <div class="stat">
-            <div class="stat__top">
-              <span class="stat__num" data-target="500">0</span>
-              <span class="stat__unit">ml</span>
-            </div>
-            <p class="stat__label">Per bottle</p>
-          </div>
-          <div class="stat">
-            <div class="stat__top">
-              <span class="stat__num" data-target="2500">0</span>
-              <span class="stat__unit">yrs</span>
-            </div>
-            <p class="stat__label">Mastic heritage</p>
-          </div>
+        <div class="origin__img-box origin__img-box--short">
+          <img src="images/japan.jpg" alt="Japan" onerror="this.parentElement.classList.add('img-placeholder')" />
+          <span class="img-caption">Japan</span>
         </div>
       </div>
+    </div>
+    <div class="origin__text-col">
+      <p class="section-eyebrow">Chapter three</p>
+      <h2 class="section-title">Two worlds.<br>One water.</h2>
+      <p class="origin__body">Mastic is a living resin — it weeps from the bark of the Pistacia lentiscus tree, found only on the Greek island of Chios. For over 2,500 years it has been prized as a medicine, a perfume, and a food. Today, it's the soul of Mastry.</p>
+      <p class="origin__body">We carry that resin across the world to Japan, where our water is drawn from mountain springs and bottled with the precision Japan is known for. The result is a sparkling water unlike anything else in existence.</p>
+      <div class="origin__tags">
+        <div class="origin__tag">
+          <span class="origin__tag-label">Mastic resin</span>
+          <span class="origin__tag-sub">Pistacia lentiscus · Chios PDO</span>
+        </div>
+        <div class="origin__tag">
+          <span class="origin__tag-label">Spring water</span>
+          <span class="origin__tag-sub">Mountain source · Japan</span>
+        </div>
+        <div class="origin__tag">
+          <span class="origin__tag-label">Bottled</span>
+          <span class="origin__tag-sub">Assembled in Japan</span>
+        </div>
+      </div>
+    </div>
+  </section>
 
-      <div class="pillars">
-        <div class="pillar">
-          <div class="pillar__icon">◈</div>
-          <h3>Chios Mastic</h3>
-          <p>Wild-harvested resin from century-old mastic trees on the Greek island of Chios. Protected designation of origin.</p>
+  <!-- STATS -->
+  <section class="stats">
+    <div class="container stats__grid">
+      <div class="stat">
+        <div class="stat__top">
+          <span class="stat__num" data-target="0">0</span><span class="stat__unit">g</span>
         </div>
-        <div class="pillar">
-          <div class="pillar__icon">◉</div>
-          <h3>Japanese Water</h3>
-          <p>Sourced from deep mountain springs in Japan. Naturally soft, perfectly balanced mineral profile.</p>
+        <p class="stat__label">Sugar</p>
+      </div>
+      <div class="stat">
+        <div class="stat__top">
+          <span class="stat__num" data-target="100">0</span><span class="stat__unit">%</span>
         </div>
-        <div class="pillar">
-          <div class="pillar__icon">◫</div>
-          <h3>Packaged in Japan</h3>
-          <p>Bottled and carbonated in Japan to Japanese quality standards. Every batch tested for purity.</p>
+        <p class="stat__label">Natural flavours</p>
+      </div>
+      <div class="stat">
+        <div class="stat__top">
+          <span class="stat__num" data-target="500">0</span><span class="stat__unit">ml</span>
         </div>
+        <p class="stat__label">Per bottle</p>
+      </div>
+      <div class="stat">
+        <div class="stat__top">
+          <span class="stat__num" data-target="2500">0</span><span class="stat__unit">yrs</span>
+        </div>
+        <p class="stat__label">Mastic heritage</p>
       </div>
     </div>
   </section>
@@ -175,40 +217,40 @@
     <div class="container">
       <div class="section-header">
         <p class="section-eyebrow">Chapter four</p>
-        <h2 class="section-title">Order<br>Mastry.</h2>
+        <h2 class="section-title">Order Mastry.</h2>
       </div>
       <div class="contact__split">
         <form class="order-form" id="orderForm">
           <div class="form-group">
             <label for="fname">Full Name</label>
-            <input type="text" id="fname" name="name" placeholder="Your name" required />
+            <input type="text" id="fname" placeholder="Your name" required />
           </div>
           <div class="form-group">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" placeholder="your@email.com" required />
+            <input type="email" id="email" placeholder="your@email.com" required />
           </div>
           <div class="form-row">
             <div class="form-group">
               <label for="product">Product</label>
-              <select id="product" name="product" required>
+              <select id="product" required>
                 <option value="">Select a product</option>
-                <option value="original">Mastry Original — $3.49</option>
-                <option value="yuzu">Mastry Yuzu — $3.79</option>
-                <option value="hinoki">Mastry Hinoki — $3.99</option>
-                <option value="ume">Mastry Ume — $3.79</option>
+                <option>Mastry Original — $3.49</option>
+                <option>Mastry Yuzu — $3.79</option>
+                <option>Mastry Hinoki — $3.99</option>
+                <option>Mastry Ume — $3.79</option>
               </select>
             </div>
             <div class="form-group">
               <label for="qty">Quantity</label>
-              <input type="number" id="qty" name="qty" min="1" max="48" value="1" required />
+              <input type="number" id="qty" min="1" max="48" value="1" required />
             </div>
           </div>
           <div class="form-group">
             <label for="address">Delivery Address</label>
-            <textarea id="address" name="address" rows="3" placeholder="Street, City, Country" required></textarea>
+            <textarea id="address" rows="3" placeholder="Street, City, Country" required></textarea>
           </div>
           <button type="submit" class="btn btn--primary btn--full">Place Order</button>
-          <p class="form-note">International shipping available. Orders ship from Japan within 3–5 business days.</p>
+          <p class="form-note">International shipping available. Ships from Japan within 3–5 business days.</p>
         </form>
 
         <div class="contact__info">
@@ -226,7 +268,7 @@
           </div>
           <div class="info-block">
             <p class="info-label">Packaging</p>
-            <p class="info-value">Made &amp; bottled in Japan</p>
+            <p class="info-value">Bottled in Japan</p>
           </div>
         </div>
       </div>
@@ -236,8 +278,8 @@
   <!-- FOOTER -->
   <footer class="footer">
     <div class="container footer__inner">
-      <span class="footer__logo">Mastry</span>
-      <span class="footer__copy">© 2026 Mastry · mastry.jp · Chios Mastic × Japan</span>
+      <span class="footer__logo">MASTRY</span>
+      <span class="footer__copy">© 2026 Mastry · mastry.jp · Sparkling Water with Mastic</span>
       <div class="footer__links">
         <a href="#products">Products</a>
         <a href="#about">About</a>
@@ -265,12 +307,12 @@
     </div>
   </aside>
 
-  <!-- ORDER SUCCESS MODAL -->
+  <!-- SUCCESS MODAL -->
   <div class="modal-overlay" id="successOverlay" style="display:none">
     <div class="modal">
       <p class="modal-icon">◈</p>
       <h3>Order received.</h3>
-      <p>Thank you for choosing Mastry. We'll confirm your order at the email provided within 24 hours.</p>
+      <p>Thank you for choosing Mastry. We'll confirm your order within 24 hours.</p>
       <button class="btn btn--primary" onclick="closeSuccess()">Continue</button>
     </div>
   </div>

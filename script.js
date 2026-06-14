@@ -1,35 +1,15 @@
-// Nav scroll shadow
-const nav = document.getElementById('nav');
-window.addEventListener('scroll', () => {
-  nav.style.borderBottomColor = window.scrollY > 10 ? 'rgba(255,255,255,0.08)' : '';
-});
-
 // Mobile burger
 document.getElementById('burger').addEventListener('click', () => {
   document.getElementById('navLinks').classList.toggle('open');
 });
-
 document.querySelectorAll('.nav__links a').forEach(a => {
   a.addEventListener('click', () => document.getElementById('navLinks').classList.remove('open'));
 });
 
-// Bubbles
-(function spawnBubbles() {
-  const container = document.getElementById('bubbles');
-  for (let i = 0; i < 18; i++) {
-    const b = document.createElement('div');
-    b.className = 'bubble';
-    const size = Math.random() * 60 + 10;
-    b.style.cssText = `
-      width:${size}px; height:${size}px;
-      left:${Math.random() * 100}%;
-      bottom:${Math.random() * -20}%;
-      animation-duration:${Math.random() * 12 + 8}s;
-      animation-delay:${Math.random() * 10}s;
-    `;
-    container.appendChild(b);
-  }
-})();
+// Bottle showcase label update
+function updateShowcase(name) {
+  document.getElementById('showcaseLabel').textContent = name;
+}
 
 // Cart state
 let cart = [];
@@ -72,9 +52,9 @@ function updateCartUI() {
     <div class="cart-item">
       <span class="cart-item__name">${i.name}</span>
       <div class="cart-item__controls">
-        <button onclick="changeQty(${i.id}, -1)">−</button>
+        <button onclick="changeQty(${i.id},-1)">−</button>
         <span class="cart-item__qty">${i.qty}</span>
-        <button onclick="changeQty(${i.id}, 1)">+</button>
+        <button onclick="changeQty(${i.id},1)">+</button>
       </div>
       <span class="cart-item__price">$${(i.price * i.qty).toFixed(2)}</span>
       <button class="cart-item__remove" onclick="removeFromCart(${i.id})">×</button>
@@ -90,12 +70,10 @@ function openCart() {
   document.getElementById('cartDrawer').classList.add('open');
   document.getElementById('cartOverlay').classList.add('open');
 }
-
 function closeCart() {
   document.getElementById('cartDrawer').classList.remove('open');
   document.getElementById('cartOverlay').classList.remove('open');
 }
-
 document.getElementById('cartBtn').addEventListener('click', openCart);
 
 function checkout() {
@@ -104,7 +82,6 @@ function checkout() {
   closeCart();
   document.getElementById('successOverlay').style.display = 'flex';
 }
-
 function closeSuccess() {
   document.getElementById('successOverlay').style.display = 'none';
 }
@@ -115,7 +92,7 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
   e.target.reset();
 });
 
-// Animated counters on scroll
+// Animated counters
 const counters = document.querySelectorAll('.stat__num');
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
@@ -123,7 +100,7 @@ const observer = new IntersectionObserver((entries) => {
     const el = entry.target;
     const target = parseInt(el.dataset.target, 10);
     if (target === 0) { el.textContent = '0'; return; }
-    const step = target / (1200 / 16);
+    const step = target / (1000 / 16);
     let current = 0;
     const timer = setInterval(() => {
       current = Math.min(current + step, target);
@@ -133,5 +110,4 @@ const observer = new IntersectionObserver((entries) => {
     observer.unobserve(el);
   });
 }, { threshold: 0.5 });
-
 counters.forEach(c => observer.observe(c));
