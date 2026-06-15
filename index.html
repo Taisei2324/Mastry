@@ -14,7 +14,7 @@
     .hero-loot-wrap { perspective: 1400px; display: block; }
     .hero-loot {
       transform-style: preserve-3d;
-      animation: lootSpin 13s linear infinite;
+      animation: lootSpin 13s ease-in-out infinite;
       backface-visibility: visible;
       filter:
         drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff)
@@ -23,9 +23,11 @@
         drop-shadow(0 0 16px rgba(255,255,255,0.35));
     }
     @keyframes lootSpin {
-      0%   { transform: translateY(0)    rotateY(0deg); }
-      50%  { transform: translateY(22px) rotateY(180deg); }
-      100% { transform: translateY(0)    rotateY(360deg); }
+      0%   { transform: translateY(0px)  rotateY(-65deg); }
+      25%  { transform: translateY(18px) rotateY(0deg); }
+      50%  { transform: translateY(0px)  rotateY(65deg); }
+      75%  { transform: translateY(18px) rotateY(0deg); }
+      100% { transform: translateY(0px)  rotateY(-65deg); }
     }
     @media (prefers-reduced-motion: reduce) { .hero-loot { animation: none; } }
   </style>
