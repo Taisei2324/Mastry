@@ -79,58 +79,78 @@
         <model-viewer id="heroModel" src="images/island_logo_holes_preserved_puffy_3d.glb" alt="Island 2 Island." camera-controls interaction-prompt="none" shadow-intensity="0" exposure="0.7" tone-mapping="neutral" style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;filter:drop-shadow(0 8px 20px rgba(0,0,0,0.4));"></model-viewer>
         <script>
           (function(){
-            var mv=document.getElementById('heroModel'); if(!mv)return;
-            var userInteracting=false, resumeTimer=null;
+            var mv = document.getElementById('heroModel');
+            if (!mv) return;
 
-            mv.addEventListener('pointerdown',function(){
-              userInteracting=true;
-              if(resumeTimer){clearTimeout(resumeTimer);resumeTimer=null;}
+            var userInteracting = false;
+            var resumeTimer = null;
+            var theta = 0;       // horizontal deg
+            var phiDeg = 90;     // current vertical deg (90 = equator/midline)
+            var origPhiDeg = 90; // home midline — set from initial orbit on load
+            var radius = 1;
+            var last = performance.now();
+            var RAD = 180 / Math.PI;
+
+            mv.addEventListener('pointerdown', function () {
+              userInteracting = true;
+              if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
             });
 
-            function beginResume(){
-              resumeTimer=setTimeout(function(){
-                try{
-                  var o=mv.getCameraOrbit();
-                  theta=o.theta*(180/Math.PI);
-                }catch(e){}
-                last=performance.now();
-                userInteracting=false;
-              },2400);
+            function onRelease() {
+              if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
+              resumeTimer = setTimeout(function () {
+                /* Sync both axes from wherever the user left the model */
+                try {
+                  var o = mv.getCameraOrbit();
+                  theta  = o.theta * RAD;
+                  phiDeg = o.phi   * RAD;
+                } catch (e) {}
+                last = performance.now();
+                userInteracting = false;
+              }, 180); /* short pause then start easing */
             }
-            mv.addEventListener('pointerup', beginResume);
-            mv.addEventListener('pointercancel', beginResume);
+            mv.addEventListener('pointerup',     onRelease);
+            mv.addEventListener('pointercancel', onRelease);
 
-            var theta=0, last=performance.now();
-
-            mv.addEventListener('load',function(){
-              try{
-                (mv.model.materials||[]).forEach(function(m){
-                  m.pbrMetallicRoughness.setBaseColorFactor([0.306,0.373,0.235,1]);
+            mv.addEventListener('load', function () {
+              /* Apply fully matte olive material */
+              try {
+                (mv.model.materials || []).forEach(function (m) {
+                  m.pbrMetallicRoughness.setBaseColorFactor([0.306, 0.373, 0.235, 1]);
                   m.pbrMetallicRoughness.setMetallicFactor(0);
                   m.pbrMetallicRoughness.setRoughnessFactor(1.0);
-                  if(m.setEmissiveFactor)m.setEmissiveFactor([0,0,0]);
-                  if(m.setAlphaMode)m.setAlphaMode('OPAQUE');
-                  if(m.setDoubleSided)m.setDoubleSided(true);
+                  if (m.setEmissiveFactor) m.setEmissiveFactor([0, 0, 0]);
+                  if (m.setAlphaMode)     m.setAlphaMode('OPAQUE');
+                  if (m.setDoubleSided)   m.setDoubleSided(true);
                 });
-              }catch(e){}
+              } catch (e) {}
 
-              var SLOW=5,FAST=18;
-              var orbit=mv.getCameraOrbit();
-              var phiDeg=orbit.phi*(180/Math.PI);
-              var radius=orbit.radius;
-              theta=orbit.theta*(180/Math.PI);
-              last=performance.now();
+              /* Capture initial orbit as home position */
+              var orbit = mv.getCameraOrbit();
+              origPhiDeg = orbit.phi   * RAD;
+              phiDeg     = origPhiDeg;
+              theta      = orbit.theta * RAD;
+              radius     = orbit.radius;
+              last       = performance.now();
 
-              function frame(now){
-                var dt=(now-last)/1000; last=now;
-                if(!userInteracting){
-                  var t=((theta%360)+360)%360;
-                  var distFront=Math.min(t,360-t);
-                  var w=Math.min(1,Math.max(0,(distFront-30)/30));
-                  var ease=w*w*(3-2*w);
-                  var speed=SLOW+(FAST-SLOW)*ease;
-                  theta+=speed*dt;
-                  mv.cameraOrbit=theta.toFixed(2)+'deg '+phiDeg.toFixed(2)+'deg '+radius+'m';
+              var SLOW = 5, FAST = 18;
+
+              function frame(now) {
+                var dt = Math.min((now - last) / 1000, 0.05); /* cap dt to avoid big jumps */
+                last = now;
+
+                if (!userInteracting) {
+                  /* Horizontal auto-spin */
+                  var t = ((theta % 360) + 360) % 360;
+                  var distFront = Math.min(t, 360 - t);
+                  var w    = Math.min(1, Math.max(0, (distFront - 30) / 30));
+                  var ease = w * w * (3 - 2 * w);
+                  theta += (SLOW + (FAST - SLOW) * ease) * dt;
+
+                  /* Smooth phi ease back to midline — exponential decay */
+                  phiDeg += (origPhiDeg - phiDeg) * (1 - Math.exp(-3.5 * dt));
+
+                  mv.cameraOrbit = theta.toFixed(2) + 'deg ' + phiDeg.toFixed(3) + 'deg ' + radius + 'm';
                 }
                 requestAnimationFrame(frame);
               }
