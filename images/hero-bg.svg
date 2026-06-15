@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" width="1400" height="900">
+  <defs>
+    <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#b8ccd8"/>
+      <stop offset="40%" style="stop-color:#d0e0e8"/>
+      <stop offset="100%" style="stop-color:#e8ede8"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#b8c8d0"/>
+      <stop offset="100%" style="stop-color:#8aa0a8"/>
+    </linearGradient>
+    <linearGradient id="mtn" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0f4f0"/>
+      <stop offset="30%" style="stop-color:#d8dcd8"/>
+      <stop offset="100%" style="stop-color:#8899888"/>
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="900" fill="url(#sky)"/>
+  <!-- Mountain (Fuji silhouette) -->
+  <polygon points="700,120 480,560 920,560" fill="url(#mtn)" opacity="0.9"/>
+  <polygon points="700,120 560,380 840,380" fill="white" opacity="0.7"/>
+  <!-- Foothills -->
+  <ellipse cx="400" cy="580" rx="300" ry="80" fill="#6a7a68" opacity="0.5"/>
+  <ellipse cx="1000" cy="590" rx="320" ry="75" fill="#5a6a58" opacity="0.45"/>
+  <!-- Water/lake -->
+  <ellipse cx="700" cy="680" rx="600" ry="100" fill="url(#water)" opacity="0.6"/>
+  <!-- Pine trees -->
+  <g opacity="0.6" fill="#3a4e38">
+    <polygon points="200,560 180,620 220,620"/>
+    <polygon points="240,550 215,625 265,625"/>
+    <polygon points="1160,555 1140,625 1180,625"/>
+    <polygon points="1200,545 1175,620 1225,620"/>
+    <polygon points="1240,560 1220,630 1260,630"/>
+  </g>
+  <!-- Mist layers -->
+  <ellipse cx="700" cy="560" rx="700" ry="40" fill="white" opacity="0.25"/>
+  <ellipse cx="700" cy="610" rx="650" ry="30" fill="white" opacity="0.2"/>
+  <!-- Placeholder text -->
+  <text x="700" y="820" font-family="serif" font-size="18" fill="rgba(255,255,255,0.5)" text-anchor="middle" letter-spacing="4">REPLACE WITH images/hero-bg.jpg</text>
+</svg>
