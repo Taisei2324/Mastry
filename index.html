@@ -1,7 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  
+  <style>
+  .hero-wordmark {
+    display: flex;
+    align-items: center;
+    gap: 0.15em;
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(3.8rem, 8.5vw, 8rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    color: #fff;
+    margin-bottom: 28px;
+  }
+  .wm-words {
+    display: flex;
+    flex-direction: column;
+    line-height: 0.95;
+  }
+  .wm-two {
+    line-height: 1;
+  }
+</style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mastry — Sparkling Water with Mastic</title>
@@ -57,7 +77,7 @@
     <div class="fullscreen__overlay"></div>
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
-<h1 class="hero-wordmark">Island<br>2<br>Island.</h1>
+<h1 class="hero-wordmark"><span class="wm-words"><span>Island</span><span>Island.</span></span><span class="wm-two">2</span></h1>
       <p class="lead lead--light">The ancient resin of Chios meets<br>the purity of Japanese spring water.</p>
       <div class="hero__actions">
         <a href="#products" class="btn btn--primary-light">Explore the range</a>
