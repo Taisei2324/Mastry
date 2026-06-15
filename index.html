@@ -22,7 +22,7 @@
       position: absolute; inset: -4%;
       background: url('images/IMG_0043.jpg') center/cover no-repeat;
       filter: brightness(0.62) saturate(0.85);
-      opacity: 0.6;
+      opacity: 1;
       animation: lsBgDrift 10s ease-in-out infinite alternate;
     }
     @keyframes lsBgDrift {
@@ -35,12 +35,9 @@
     .ls-ref { width: 100%; height: auto; display: block; visibility: hidden; pointer-events: none; }
     .ls-shad { position: absolute; inset: 0; opacity: 0; transition: opacity .4s ease; pointer-events: none; }
     .ls-shad img { width: 100%; height: auto; display: block; }
-    /* Cyan — left */
-    .ls-shad-1 { transform: translate(-8px, 0);  filter: sepia(1) hue-rotate(155deg) saturate(18) brightness(1.4); }
-    /* Magenta — right */
-    .ls-shad-2 { transform: translate(8px, 0);   filter: sepia(1) hue-rotate(295deg) saturate(18) brightness(1.4); }
-    /* Red — behind, offset down */
-    .ls-shad-3 { transform: translate(0px, 7px); filter: sepia(1) hue-rotate(345deg) saturate(20) brightness(1.5); }
+    .ls-shad-1 { transform: translate(-4px, 0);  filter: sepia(1) hue-rotate(155deg) saturate(18) brightness(1.4); }
+    .ls-shad-2 { transform: translate(4px, 0);   filter: sepia(1) hue-rotate(295deg) saturate(18) brightness(1.4); }
+    .ls-shad-3 { transform: translate(0px, 3px); filter: sepia(1) hue-rotate(345deg) saturate(20) brightness(1.5); }
     .ls-slices { position: absolute; inset: 0; display: flex; align-items: center; }
     .ls-sl { position: relative; height: 100%; overflow: visible; transform-origin: center center; will-change: transform, opacity, filter; }
     .ls-clip { position: absolute; inset: 0; overflow: hidden; }
@@ -69,13 +66,8 @@
       <li><a href="#about">About</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
-    <button class="nav__cart" id="cartBtn" aria-label="Open cart">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-      <span class="cart-badge" id="cartBadge">0</span>
-    </button>
-    <button class="nav__burger" id="burger" aria-label="Toggle menu">
-      <span></span><span></span><span></span>
-    </button>
+    <button class="nav__cart" id="cartBtn" aria-label="Open cart"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><span class="cart-badge" id="cartBadge">0</span></button>
+    <button class="nav__burger" id="burger" aria-label="Toggle menu"><span></span><span></span><span></span></button>
   </nav>
 
   <section class="fullscreen" id="hero">
@@ -86,21 +78,11 @@
       <div class="hero-loot-wrap" style="margin-top:1345px;margin-bottom:32px;transform:translate(-76px,114px);">
         <model-viewer id="heroModel" src="images/island_logo_holes_preserved_puffy_3d.glb" alt="Island 2 Island." interaction-prompt="none" shadow-intensity="0.5" exposure="1.3" style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;filter:drop-shadow(0 8px 20px rgba(0,0,0,0.4));"></model-viewer>
         <script>
-          (function () {
-            var mv = document.getElementById('heroModel');
-            if (!mv) return;
-            mv.addEventListener('load', function () {
-              try {
-                (mv.model.materials || []).forEach(function (m) {
-                  m.pbrMetallicRoughness.setBaseColorFactor([1,1,1,1]);
-                  m.pbrMetallicRoughness.setMetallicFactor(0);
-                  m.pbrMetallicRoughness.setRoughnessFactor(1.0);
-                  if (m.setEmissiveFactor) m.setEmissiveFactor([0,0,0]);
-                  if (m.setAlphaMode) m.setAlphaMode('OPAQUE');
-                  if (m.setDoubleSided) m.setDoubleSided(true);
-                });
-              } catch (e) {}
-              var SLOW=5, FAST=18, orbit=mv.getCameraOrbit(), phiDeg=orbit.phi*180/Math.PI, radius=orbit.radius, theta=0, last=performance.now();
+          (function(){
+            var mv=document.getElementById('heroModel'); if(!mv)return;
+            mv.addEventListener('load',function(){
+              try{(mv.model.materials||[]).forEach(function(m){m.pbrMetallicRoughness.setBaseColorFactor([1,1,1,1]);m.pbrMetallicRoughness.setMetallicFactor(0);m.pbrMetallicRoughness.setRoughnessFactor(1.0);if(m.setEmissiveFactor)m.setEmissiveFactor([0,0,0]);if(m.setAlphaMode)m.setAlphaMode('OPAQUE');if(m.setDoubleSided)m.setDoubleSided(true);});}catch(e){}
+              var SLOW=5,FAST=18,orbit=mv.getCameraOrbit(),phiDeg=orbit.phi*180/Math.PI,radius=orbit.radius,theta=0,last=performance.now();
               function frame(now){var dt=(now-last)/1000;last=now;var t=((theta%360)+360)%360,distFront=Math.min(t,360-t),w=Math.min(1,Math.max(0,(distFront-30)/30)),ease=w*w*(3-2*w),speed=SLOW+(FAST-SLOW)*ease;theta+=speed*dt;mv.cameraOrbit=theta.toFixed(2)+'deg '+phiDeg.toFixed(2)+'deg '+radius+'m';requestAnimationFrame(frame);}
               requestAnimationFrame(frame);
             });
@@ -108,10 +90,7 @@
         </script>
       </div>
       <p class="lead lead--light">The ancient resin of Chios meets<br>the purity of Japanese spring water.</p>
-      <div class="hero__actions">
-        <a href="#products" class="btn btn--primary-light">Explore the range</a>
-        <a href="#about" class="btn btn--ghost-light">Our story</a>
-      </div>
+      <div class="hero__actions"><a href="#products" class="btn btn--primary-light">Explore the range</a><a href="#about" class="btn btn--ghost-light">Our story</a></div>
     </div>
     <div class="fullscreen__scroll-hint">Scroll ↓</div>
   </section>
@@ -129,27 +108,19 @@
   </section>
 
   <section class="fullscreen" id="japan"><div class="fullscreen__media"><img src="images/ad 5.png" alt="Mastry in Japan" class="fullscreen__img" /></div><div class="fullscreen__overlay fullscreen__overlay--dark"></div><div class="fullscreen__content fullscreen__content--center"><p class="eyebrow eyebrow--light">Chapter one · Assembled in Japan</p><h2 class="display display--light display--xl">Born in<br><em>Japan.</em></h2><p class="lead lead--light lead--wide">Sourced from pristine mountain springs. Carbonated and bottled to Japanese quality standards. Every batch tested for purity before it leaves our facility.</p></div><div class="fullscreen__caption">Mt. Fuji · Yamanashi, Japan</div></section>
-
   <section class="bottle-hero"><div class="bottle-hero__img-wrap"><img src="images/mastry ad.png" alt="Mastry bottle" /></div><div class="bottle-hero__text"><p class="eyebrow eyebrow--light">The bottle</p><h2 class="display display--light">Crafted to<br>be held.</h2><p class="lead lead--light">Glass bottle. Aluminium cap. Illustrated label depicting the journey from Chios to Japan. Designed to belong on any table.</p><div class="bottle-hero__features"><div class="bottle-feature"><span class="bottle-feature__label">Material</span><span class="bottle-feature__val">Borosilicate glass</span></div><div class="bottle-feature"><span class="bottle-feature__label">Volume</span><span class="bottle-feature__val">500 ml</span></div><div class="bottle-feature"><span class="bottle-feature__label">Carbonation</span><span class="bottle-feature__val">Medium fine bubble</span></div></div><a href="#contact" class="btn btn--ghost-light">Order Mastry</a></div></section>
-
   <section class="fullscreen" id="greece-life"><div class="fullscreen__media"><img src="images/ad 3.png" alt="Mastry — Greece" class="fullscreen__img fullscreen__img--top" /></div><div class="fullscreen__overlay fullscreen__overlay--subtle"></div><div class="fullscreen__content fullscreen__content--bottom-left"><p class="eyebrow eyebrow--light">Chapter three · Chios, Greece</p><h2 class="display display--light display--xl">Ancient<br>resin.</h2><p class="lead lead--light">Pistacia lentiscus trees weep a tear of resin every morning. Harvested by hand. The same ritual for 2,500 years.</p></div><div class="fullscreen__caption">Chios, Greece · Mastic harvest</div></section>
-
   <section class="fullscreen" id="greece"><div class="fullscreen__media"><img src="images/ad 4.png" alt="Mastry — Acropolis" class="fullscreen__img" /></div><div class="fullscreen__overlay fullscreen__overlay--warm"></div><div class="fullscreen__content fullscreen__content--bottom-right"><p class="eyebrow eyebrow--light">Rooted in Greece</p><h2 class="display display--light display--xl">Rooted in<br>Greece.</h2><p class="lead lead--light lead--wide">Mastic has been harvested on the island of Chios for over 2,500 years. The resin weeps from ancient Pistacia lentiscus trees — it can only grow here, nowhere else on earth.</p></div><div class="fullscreen__caption">Acropolis · Athens, Greece</div></section>
-
   <section class="about" id="about"><div class="about__left"><p class="eyebrow">Chapter four</p><h2 class="display">Two worlds.<br>One water.</h2><p class="body-text">Mastry was born from a single question: what happens when the rarest natural resin on earth meets the world's most refined water culture?</p><p class="body-text">We carry Chios Mastic across the world to Japan, where our water is drawn from mountain springs and bottled with obsessive precision. The result is something that has never existed before.</p><a href="#contact" class="btn btn--primary">Order now</a></div><div class="about__stats"><div class="stat"><div class="stat__top"><span class="stat__num" data-target="0">0</span><span class="stat__unit">g</span></div><p class="stat__label">Sugar</p></div><div class="stat"><div class="stat__top"><span class="stat__num" data-target="100">0</span><span class="stat__unit">%</span></div><p class="stat__label">Natural flavours</p></div><div class="stat"><div class="stat__top"><span class="stat__num" data-target="500">0</span><span class="stat__unit">ml</span></div><p class="stat__label">Per bottle</p></div><div class="stat"><div class="stat__top"><span class="stat__num" data-target="2500">0</span><span class="stat__unit">yrs</span></div><p class="stat__label">Mastic heritage</p></div><div class="pillars"><div class="pillar"><span class="pillar__icon">◈</span><h4>Chios Mastic</h4><p>Wild-harvested resin. Protected designation of origin.</p></div><div class="pillar"><span class="pillar__icon">◉</span><h4>Japanese Spring Water</h4><p>Mountain-sourced. Naturally soft mineral profile.</p></div><div class="pillar"><span class="pillar__icon">◫</span><h4>Bottled in Japan</h4><p>Every batch tested. Japanese quality standards.</p></div></div></div></section>
-
   <section class="contact" id="contact"><div class="contact__left"><p class="eyebrow">Chapter five</p><h2 class="display">Order<br>Mastry.</h2><div class="contact__info"><div class="info-block"><p class="info-label">Website</p><p class="info-value">mastry.jp</p></div><div class="info-block"><p class="info-label">Email</p><p class="info-value">hello@mastry.jp</p></div><div class="info-block"><p class="info-label">Origin</p><p class="info-value">Chios, Greece × Japan</p></div><div class="info-block"><p class="info-label">Ships from</p><p class="info-value">Japan · 3–5 business days</p></div></div></div><form class="order-form" id="orderForm"><div class="form-group"><label for="fname">Full Name</label><input type="text" id="fname" placeholder="Your name" required /></div><div class="form-group"><label for="femail">Email</label><input type="email" id="femail" placeholder="your@email.com" required /></div><div class="form-row"><div class="form-group"><label for="fproduct">Product</label><select id="fproduct" required><option value="">Select</option><option>Mastry Original — $2.62</option><option>Mastry Yuzu — $2.84</option><option>Mastry Hinoki — $2.62</option><option>Mastry Ume — $2.84</option></select></div><div class="form-group"><label for="fqty">Quantity</label><input type="number" id="fqty" min="1" max="48" value="1" required /></div></div><div class="form-group"><label for="faddress">Delivery Address</label><textarea id="faddress" rows="3" placeholder="Street, City, Country" required></textarea></div><button type="submit" class="btn btn--primary btn--full">Place Order</button><p class="form-note">International shipping available worldwide.</p></form></section>
 
   <footer class="footer"><div class="footer__inner"><span class="footer__logo">MASTRY</span><span class="footer__copy">© 2026 Mastry · mastry.jp · Chios × Japan</span><div class="footer__links"><a href="#products">Products</a><a href="merch.html">Merch</a><a href="#greece">Greece</a><a href="#contact">Order</a></div></div></footer>
-
   <div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
   <aside class="cart-drawer" id="cartDrawer"><div class="cart-drawer__header"><h2>Your Cart</h2><button onclick="closeCart()" class="cart-close">&times;</button></div><div class="cart-items" id="cartItems"><p class="cart-empty">Your cart is empty.</p></div><div class="cart-drawer__footer" id="cartFooter" style="display:none"><div class="cart-subtotal"><span>Subtotal</span><span id="cartSubtotal">$0.00</span></div><button class="btn btn--primary btn--full" onclick="checkout()">Checkout</button></div></aside>
-
   <div class="modal-overlay" id="successOverlay" style="display:none"><div class="modal"><p class="modal-icon">◈</p><h3>Order received.</h3><p>Thank you for choosing Mastry. We'll confirm within 24 hours.</p><button class="btn btn--primary" onclick="closeSuccess()">Continue</button></div></div>
 
   <script src="script.js?v=9"></script>
 
-  <!-- Loading screen -->
   <div id="loadingScreen" aria-hidden="true">
     <div class="ls-bg"></div>
     <div class="ls-vignette"></div>
@@ -162,81 +133,30 @@
       <div class="ls-slices" id="lsSlices"></div>
       <img src="images/loading screen.png" class="ls-final" id="lsFinal" alt="" />
     </div>
-    <div id="lsBottom">
-      <span>Loading assets. Please do not close this page.</span>
-      <span id="lsIcon">◈</span>
-    </div>
+    <div id="lsBottom"><span>Loading assets. Please do not close this page.</span><span id="lsIcon">◈</span></div>
   </div>
   <script>
   (function(){
-    var ls       = document.getElementById('loadingScreen');
-    var slicesEl = document.getElementById('lsSlices');
-    var N        = 6;
-    var DURATION = 1900;
-    var HOLD     = 520;
-
-    function clamp(v,mn,mx){ return Math.max(mn,Math.min(mx,v)); }
-    function easeInOut(t){ return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
-
-    function buildSlices(){
-      slicesEl.innerHTML = '';
-      for(var i=0;i<N;i++){
-        var sl=document.createElement('div'); sl.className='ls-sl'; sl.style.flex='0 0 calc(100% / '+N+')';
-        var clip=document.createElement('div'); clip.className='ls-clip';
-        var img=document.createElement('img'); img.src='images/loading screen.png'; img.alt='';
-        img.style.left=(i*-100)+'%'; img.style.width=(N*100)+'%';
-        clip.appendChild(img); sl.appendChild(clip); slicesEl.appendChild(sl);
-      }
-    }
-
-    var raf=null, startTime=null, shadShown=false, animDone=false;
-
+    var ls=document.getElementById('loadingScreen'),slicesEl=document.getElementById('lsSlices'),N=6,DURATION=1900,HOLD=520;
+    function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
+    function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
+    function buildSlices(){slicesEl.innerHTML='';for(var i=0;i<N;i++){var sl=document.createElement('div');sl.className='ls-sl';sl.style.flex='0 0 calc(100% / '+N+')';var clip=document.createElement('div');clip.className='ls-clip';var img=document.createElement('img');img.src='images/loading screen.png';img.alt='';img.style.left=(i*-100)+'%';img.style.width=(N*100)+'%';clip.appendChild(img);sl.appendChild(clip);slicesEl.appendChild(sl);}}
+    var raf=null,startTime=null,shadShown=false,animDone=false;
     function renderFrame(now){
-      if(!startTime) startTime=now;
+      if(!startTime)startTime=now;
       var t=clamp((now-startTime)/DURATION,0,1);
-      var wave=t*(N-1), spread=1-easeInOut(clamp((t-.20)/.62,0,1));
-
-      if(!shadShown && t>.12){
-        shadShown=true;
-        document.getElementById('lsShad1').style.opacity='0.85';
-        document.getElementById('lsShad2').style.opacity='0.85';
-        document.getElementById('lsShad3').style.opacity='0.80';
-      }
-
+      var wave=t*(N-1),spread=1-easeInOut(clamp((t-.20)/.62,0,1));
+      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShad1').style.opacity='0.85';document.getElementById('lsShad2').style.opacity='0.85';document.getElementById('lsShad3').style.opacity='0.80';}
       var slices=slicesEl.querySelectorAll('.ls-sl');
-      for(var i=0;i<slices.length;i++){
-        var sl=slices[i], dist=Math.abs(i-wave), peak=Math.exp(-(dist*dist)/2.0);
-        var scale=1+peak*0.55;
-        var pull=i-wave, xSpread=pull*3*spread, rise=-peak*8;
-        sl.style.opacity=clamp(t*5-i*.04,0,1);
-        sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';
-        sl.style.zIndex=String(Math.round(peak*1000));
-        sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';
-      }
-
-      if(t<1){ raf=requestAnimationFrame(renderFrame); }
-      else {
-        var settled=slicesEl.querySelectorAll('.ls-sl');
-        for(var j=0;j<settled.length;j++){
-          settled[j].style.transition='transform 240ms ease-out, filter 240ms ease-out';
-          settled[j].style.transform='translateX(0) translateY(0) scale(1)';
-          settled[j].style.filter='blur(0px)';
-        }
-        setTimeout(function(){
-          slicesEl.style.transition='opacity 220ms ease';
-          slicesEl.style.opacity='0';
-          document.getElementById('lsFinal').style.opacity='1';
-          setTimeout(function(){ animDone=true; hide(); }, HOLD);
-        }, 260);
-      }
+      for(var i=0;i<slices.length;i++){var sl=slices[i],dist=Math.abs(i-wave),peak=Math.exp(-(dist*dist)/2.0),scale=1+peak*0.55,pull=i-wave,xSpread=pull*3*spread,rise=-peak*8;sl.style.opacity=clamp(t*5-i*.04,0,1);sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';sl.style.zIndex=String(Math.round(peak*1000));sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';}
+      if(t<1){raf=requestAnimationFrame(renderFrame);}
+      else{var settled=slicesEl.querySelectorAll('.ls-sl');for(var j=0;j<settled.length;j++){settled[j].style.transition='transform 240ms ease-out, filter 240ms ease-out';settled[j].style.transform='translateX(0) translateY(0) scale(1)';settled[j].style.filter='blur(0px)';}setTimeout(function(){slicesEl.style.transition='opacity 220ms ease';slicesEl.style.opacity='0';document.getElementById('lsFinal').style.opacity='1';setTimeout(function(){animDone=true;hide();},HOLD);},260);}
     }
-
-    function hide(){ if(!animDone) return; ls.classList.add('hidden'); setTimeout(function(){ ls.remove(); },800); }
-
+    function hide(){if(!animDone)return;ls.classList.add('hidden');setTimeout(function(){ls.remove();},800);}
     buildSlices();
-    setTimeout(function(){ raf=requestAnimationFrame(renderFrame); }, 80);
-    window.addEventListener('load', function(){ setTimeout(hide, 3400); });
-    setTimeout(hide, 8000);
+    setTimeout(function(){raf=requestAnimationFrame(renderFrame);},80);
+    window.addEventListener('load',function(){setTimeout(hide,3400);});
+    setTimeout(hide,8000);
   })();
   </script>
 </body>
