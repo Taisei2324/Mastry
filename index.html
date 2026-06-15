@@ -12,7 +12,6 @@
   <link rel="stylesheet" href="style.css?v=16" />
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
-    /* Loading screen – Shredders-style alpine reveal */
     #loadingScreen {
       position: fixed; inset: 0; z-index: 9999;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -391,6 +390,7 @@
     }
 
     var raf=null, startTime=null, shadShown=false, animDone=false;
+    var HUE_STOPS = [200, 160, 60, 30, 280, 320];
 
     function renderFrame(now){
       if(!startTime) startTime=now;
@@ -411,7 +411,14 @@
         sl.style.opacity=clamp(t*5-i*.04,0,1);
         sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';
         sl.style.zIndex=String(Math.round(peak*1000));
-        sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';
+        var blurVal=((1-peak)*spread*0.8).toFixed(2);
+        if(peak>0.05){
+          var hue=HUE_STOPS[i];
+          var sat=(1+peak*3.5).toFixed(2);
+          sl.style.filter='blur('+blurVal+'px) sepia(1) hue-rotate('+hue+'deg) saturate('+sat+')';
+        } else {
+          sl.style.filter='blur('+blurVal+'px)';
+        }
       }
 
       if(t<1){ raf=requestAnimationFrame(renderFrame); }

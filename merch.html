@@ -11,7 +11,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=16" />
   <style>
-    /* Loading screen – Shredders-style alpine reveal */
     #loadingScreen {
       position: fixed; inset: 0; z-index: 9999;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -40,8 +39,6 @@
     .merch-hero { padding: calc(var(--nav-h) + 90px) 56px 40px; background: var(--clr-cream); }
     .merch-hero .display { margin-bottom: 8px; }
     @media (max-width: 760px) { .merch-hero { padding: calc(var(--nav-h) + 56px) 20px 24px; } }
-
-    /* Product viewer modal */
     .pv-overlay {
       position: fixed; inset: 0; z-index: 200;
       background: rgba(20,18,15,0.72); backdrop-filter: blur(6px);
@@ -65,13 +62,8 @@
     }
     .pv-img-wrap { flex: 1; min-height: 0; overflow: auto; background: #fff; }
     .pv-img-wrap img { width: 100%; height: auto; display: block; }
-    /* Two-up layout for dual-image modals */
-    .pv-img-wrap--duo {
-      display: flex; flex-direction: row;
-    }
-    .pv-img-wrap--duo img {
-      width: 50%; height: auto; display: block; flex-shrink: 0;
-    }
+    .pv-img-wrap--duo { display: flex; flex-direction: row; }
+    .pv-img-wrap--duo img { width: 50%; flex-shrink: 0; }
     @media (max-width: 600px) {
       .pv-img-wrap--duo { flex-direction: column; }
       .pv-img-wrap--duo img { width: 100%; }
@@ -121,7 +113,6 @@
   <section class="products" id="merch" style="padding-top:40px;">
     <div class="catalog">
 
-      <!-- Tee -->
       <div class="catalog__item" onclick="openProductView('pvTee')">
         <div class="catalog__img-wrap"><img src="images/island_front_left_chest_mockup.png" alt="Island 2 Island Tee" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
         <div class="catalog__info">
@@ -132,9 +123,8 @@
         </div>
       </div>
 
-      <!-- Hat -->
       <div class="catalog__item" onclick="openProductView('pvHat')">
-        <div class="catalog__img-wrap"><img src="images/hat merch.png" alt="Mastry Hat" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
+        <div class="catalog__img-wrap"><img src="images/side merch hat.png" alt="Mastry Hat" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
         <div class="catalog__info">
           <span class="catalog__tag">Hat</span>
           <h3 class="catalog__name">Island 2 Island<br>Hat</h3>
@@ -143,7 +133,6 @@
         </div>
       </div>
 
-      <!-- Hoodie -->
       <div class="catalog__item" onclick="openProductView('pvHoodie')">
         <div class="catalog__img-wrap"><img src="images/hoodie mastry.png" alt="Mastry Hoodie" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
         <div class="catalog__info">
@@ -184,7 +173,7 @@
     </div>
   </div>
 
-  <!-- Tee modal (single image) -->
+  <!-- Tee modal -->
   <div class="pv-overlay" id="pvTee" onclick="if(event.target===this)closeProductView('pvTee')">
     <div class="pv-modal">
       <button class="pv-close" onclick="closeProductView('pvTee')" aria-label="Close">&times;</button>
@@ -201,25 +190,25 @@
     </div>
   </div>
 
-  <!-- Hat modal (two images side by side) -->
+  <!-- Hat modal (side logo first, front second) -->
   <div class="pv-overlay" id="pvHat" onclick="if(event.target===this)closeProductView('pvHat')">
     <div class="pv-modal">
       <button class="pv-close" onclick="closeProductView('pvHat')" aria-label="Close">&times;</button>
       <div class="pv-img-wrap pv-img-wrap--duo">
-        <img src="images/hat merch.png" alt="Island 2 Island Hat — front" />
         <img src="images/side merch hat.png" alt="Island 2 Island Hat — side" />
+        <img src="images/hat merch.png" alt="Island 2 Island Hat — front" />
       </div>
       <div class="pv-bar">
         <div class="pv-bar__info">
           <span class="pv-bar__name">Island 2 Island Hat</span>
-          <span class="pv-bar__price">$28 · Front &amp; side view</span>
+          <span class="pv-bar__price">$28 · Side &amp; front view</span>
         </div>
         <button class="btn btn--primary" onclick="addToCart(102,'Island 2 Island Hat',28); closeProductView('pvHat');">Add to cart</button>
       </div>
     </div>
   </div>
 
-  <!-- Hoodie modal (two images side by side) -->
+  <!-- Hoodie modal -->
   <div class="pv-overlay" id="pvHoodie" onclick="if(event.target===this)closeProductView('pvHoodie')">
     <div class="pv-modal">
       <button class="pv-close" onclick="closeProductView('pvHoodie')" aria-label="Close">&times;</button>
@@ -279,6 +268,7 @@
     }
 
     var raf=null, startTime=null, shadShown=false, animDone=false;
+    var HUE_STOPS = [200, 160, 60, 30, 280, 320];
 
     function renderFrame(now){
       if(!startTime) startTime=now;
@@ -299,7 +289,14 @@
         sl.style.opacity=clamp(t*5-i*.04,0,1);
         sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';
         sl.style.zIndex=String(Math.round(peak*1000));
-        sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';
+        var blurVal=((1-peak)*spread*0.8).toFixed(2);
+        if(peak>0.05){
+          var hue=HUE_STOPS[i];
+          var sat=(1+peak*3.5).toFixed(2);
+          sl.style.filter='blur('+blurVal+'px) sepia(1) hue-rotate('+hue+'deg) saturate('+sat+')';
+        } else {
+          sl.style.filter='blur('+blurVal+'px)';
+        }
       }
 
       if(t<1){ raf=requestAnimationFrame(renderFrame); }
@@ -339,9 +336,7 @@
     }
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
-        ['pvTee','pvHat','pvHoodie'].forEach(function(id){
-          closeProductView(id);
-        });
+        ['pvTee','pvHat','pvHoodie'].forEach(function(id){ closeProductView(id); });
       }
     });
   </script>
