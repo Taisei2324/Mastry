@@ -14,6 +14,43 @@
     .merch-hero { padding: calc(var(--nav-h) + 90px) 56px 40px; background: var(--clr-cream); }
     .merch-hero .display { margin-bottom: 8px; }
     @media (max-width: 760px) { .merch-hero { padding: calc(var(--nav-h) + 56px) 20px 24px; } }
+
+    /* Product viewer modal */
+    .pv-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(20,18,15,0.72); backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center;
+      padding: 24px; opacity: 0; transition: opacity .25s ease;
+    }
+    .pv-overlay.open { display: flex; opacity: 1; }
+    .pv-modal {
+      background: var(--clr-cream, #f4efe7); border-radius: 16px;
+      max-width: 760px; width: 100%; max-height: 90vh;
+      display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+      transform: translateY(16px) scale(.98); transition: transform .25s ease;
+    }
+    .pv-overlay.open .pv-modal { transform: translateY(0) scale(1); }
+    .pv-close {
+      position: absolute; top: 16px; right: 20px; z-index: 2;
+      background: rgba(255,255,255,0.85); border: none; cursor: pointer;
+      width: 38px; height: 38px; border-radius: 50%;
+      font-size: 22px; line-height: 1; color: #222;
+    }
+    .pv-img-wrap { flex: 1; min-height: 0; overflow: auto; background: #fff; }
+    .pv-img-wrap img { width: 100%; height: auto; display: block; }
+    .pv-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; padding: 18px 24px; border-top: 1px solid rgba(0,0,0,0.08);
+      background: var(--clr-cream, #f4efe7);
+    }
+    .pv-bar__info { display: flex; flex-direction: column; }
+    .pv-bar__name { font-weight: 600; font-size: 1.05rem; }
+    .pv-bar__price { opacity: .7; font-size: .95rem; }
+    @media (max-width: 760px) {
+      .pv-bar { flex-direction: column; align-items: stretch; }
+      .pv-bar .btn { width: 100%; }
+    }
   </style>
   <script>if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}</script>
 </head>
@@ -46,13 +83,13 @@
 
   <section class="products" id="merch" style="padding-top:40px;">
     <div class="catalog">
-      <div class="catalog__item" onclick="addToCart(101,'Island 2 Island Tee',32)">
+      <div class="catalog__item" onclick="openProductView()">
         <div class="catalog__img-wrap"><img src="images/island_front_left_chest_mockup.png" alt="Island 2 Island Tee" class="catalog__img" /><div class="catalog__zoom-ring"></div></div>
         <div class="catalog__info">
           <span class="catalog__tag">Tee</span>
           <h3 class="catalog__name">Island 2 Island<br>Tee</h3>
           <p class="catalog__desc">Heavyweight cotton tee with the Island 2 Island. left-chest mark.</p>
-          <div class="catalog__footer"><span class="catalog__price">$32</span><span class="catalog__add">+ Add</span></div>
+          <div class="catalog__footer"><span class="catalog__price">$32</span><span class="catalog__add">View</span></div>
         </div>
       </div>
       <div class="catalog__item" onclick="addToCart(102,'Island 2 Island Tee — Front & Back',36)">
@@ -94,6 +131,36 @@
     </div>
   </div>
 
+  <!-- Product viewer modal -->
+  <div class="pv-overlay" id="pvOverlay" onclick="if(event.target===this)closeProductView()">
+    <div class="pv-modal">
+      <button class="pv-close" onclick="closeProductView()" aria-label="Close">&times;</button>
+      <div class="pv-img-wrap">
+        <img src="images/island_front_back_combined_landscape.jpg" alt="Island 2 Island Tee — front & back" />
+      </div>
+      <div class="pv-bar">
+        <div class="pv-bar__info">
+          <span class="pv-bar__name">Island 2 Island Tee</span>
+          <span class="pv-bar__price">$32 · Front & back print</span>
+        </div>
+        <button class="btn btn--primary" onclick="addToCart(101,'Island 2 Island Tee',32); closeProductView();">Add to cart</button>
+      </div>
+    </div>
+  </div>
+
   <script src="script.js?v=8"></script>
+  <script>
+    function openProductView() {
+      document.getElementById('pvOverlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeProductView() {
+      document.getElementById('pvOverlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeProductView();
+    });
+  </script>
 </body>
 </html>
