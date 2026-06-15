@@ -371,7 +371,7 @@
   (function(){
     var ls       = document.getElementById('loadingScreen');
     var slicesEl = document.getElementById('lsSlices');
-    var N        = 14;
+    var N        = 7;
     var DURATION = 1900;
     var HOLD     = 520;
 
@@ -407,7 +407,7 @@
       for(var i=0;i<slices.length;i++){
         var sl=slices[i], dist=Math.abs(i-wave), peak=Math.exp(-(dist*dist)/3.2);
         var scale=(0.28+peak*1.45+clamp((t-.45)/.38,0,1)*(i/(N-1))*.85)*(0.72+easeOutBack(clamp(t/.78,0,1))*.30);
-        var pull=i-wave, xSpread=pull*18*spread, yDrop=Math.abs(pull)*4.8*spread, rise=-peak*24;
+        var pull=i-wave, xSpread=pull*9*spread, yDrop=Math.abs(pull)*2.4*spread, rise=-peak*14;
         sl.style.opacity=clamp(t*4-i*.035,0,1);
         sl.style.transform='translateX('+xSpread+'px) translateY('+(yDrop+rise)+'px) scale('+scale+')';
         sl.style.zIndex=String(Math.round(peak*1000));
