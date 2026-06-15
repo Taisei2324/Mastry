@@ -62,6 +62,7 @@
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
       <div class="hero-loot-wrap" style="margin-top:1345px;margin-bottom:32px;transform:translate(-76px,114px);">
         <model-viewer
+          id="heroModel"
           src="images/island_logo_holes_preserved_puffy_3d.glb"
           alt="Island 2 Island."
           auto-rotate
@@ -71,9 +72,25 @@
           disable-zoom
           interaction-prompt="none"
           shadow-intensity="0.5"
-          exposure="1.15"
+          exposure="1.2"
           style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;">
         </model-viewer>
+        <script>
+          (function () {
+            var mv = document.getElementById('heroModel');
+            if (!mv) return;
+            mv.addEventListener('load', function () {
+              try {
+                (mv.model.materials || []).forEach(function (m) {
+                  m.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
+                  m.pbrMetallicRoughness.setMetallicFactor(0);
+                  m.pbrMetallicRoughness.setRoughnessFactor(0.55);
+                  if (m.setEmissiveFactor) m.setEmissiveFactor([0.05, 0.05, 0.05]);
+                });
+              } catch (e) {}
+            });
+          })();
+        </script>
       </div>
       <p class="lead lead--light">The ancient resin of Chios meets<br>the purity of Japanese spring water.</p>
       <div class="hero__actions">
