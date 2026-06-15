@@ -51,7 +51,7 @@
     .pv-overlay.open { display: flex; opacity: 1; }
     .pv-modal {
       background: var(--clr-cream, #f4efe7); border-radius: 16px;
-      max-width: 760px; width: 100%; max-height: 90vh;
+      max-width: 900px; width: 100%; max-height: 90vh;
       display: flex; flex-direction: column; overflow: hidden;
       box-shadow: 0 30px 80px rgba(0,0,0,0.45);
       transform: translateY(16px) scale(.98); transition: transform .25s ease;
@@ -65,6 +65,17 @@
     }
     .pv-img-wrap { flex: 1; min-height: 0; overflow: auto; background: #fff; }
     .pv-img-wrap img { width: 100%; height: auto; display: block; }
+    /* Two-up layout for dual-image modals */
+    .pv-img-wrap--duo {
+      display: flex; flex-direction: row;
+    }
+    .pv-img-wrap--duo img {
+      width: 50%; height: auto; display: block; flex-shrink: 0;
+    }
+    @media (max-width: 600px) {
+      .pv-img-wrap--duo { flex-direction: column; }
+      .pv-img-wrap--duo img { width: 100%; }
+    }
     .pv-bar {
       display: flex; align-items: center; justify-content: space-between;
       gap: 16px; padding: 18px 24px; border-top: 1px solid rgba(0,0,0,0.08);
@@ -109,7 +120,9 @@
 
   <section class="products" id="merch" style="padding-top:40px;">
     <div class="catalog">
-      <div class="catalog__item" onclick="openProductView()">
+
+      <!-- Tee -->
+      <div class="catalog__item" onclick="openProductView('pvTee')">
         <div class="catalog__img-wrap"><img src="images/island_front_left_chest_mockup.png" alt="Island 2 Island Tee" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
         <div class="catalog__info">
           <span class="catalog__tag">Tee</span>
@@ -118,6 +131,29 @@
           <div class="catalog__footer"><span class="catalog__price">$32</span><span class="catalog__add">View</span></div>
         </div>
       </div>
+
+      <!-- Hat -->
+      <div class="catalog__item" onclick="openProductView('pvHat')">
+        <div class="catalog__img-wrap"><img src="images/hat merch.png" alt="Mastry Hat" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
+        <div class="catalog__info">
+          <span class="catalog__tag">Hat</span>
+          <h3 class="catalog__name">Island 2 Island<br>Hat</h3>
+          <p class="catalog__desc">Structured cap with the Island 2 Island. side logo. One size.</p>
+          <div class="catalog__footer"><span class="catalog__price">$28</span><span class="catalog__add">View</span></div>
+        </div>
+      </div>
+
+      <!-- Hoodie -->
+      <div class="catalog__item" onclick="openProductView('pvHoodie')">
+        <div class="catalog__img-wrap"><img src="images/hoodie mastry.png" alt="Mastry Hoodie" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
+        <div class="catalog__info">
+          <span class="catalog__tag">Hoodie</span>
+          <h3 class="catalog__name">Island 2 Island<br>Hoodie</h3>
+          <p class="catalog__desc">Heavyweight fleece hoodie. Island 2 Island. front and back graphics.</p>
+          <div class="catalog__footer"><span class="catalog__price">$58</span><span class="catalog__add">View</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -143,15 +179,15 @@
     <div class="modal">
       <p class="modal-icon">◈</p>
       <h3>Order received.</h3>
-      <p>Thank you for choosing Mastry. We'll confirm within 24 hours.</p>
+      <p>Thank you for choosing Mastry. We’ll confirm within 24 hours.</p>
       <button class="btn btn--primary" onclick="closeSuccess()">Continue</button>
     </div>
   </div>
 
-  <!-- Product viewer modal -->
-  <div class="pv-overlay" id="pvOverlay" onclick="if(event.target===this)closeProductView()">
+  <!-- Tee modal (single image) -->
+  <div class="pv-overlay" id="pvTee" onclick="if(event.target===this)closeProductView('pvTee')">
     <div class="pv-modal">
-      <button class="pv-close" onclick="closeProductView()" aria-label="Close">&times;</button>
+      <button class="pv-close" onclick="closeProductView('pvTee')" aria-label="Close">&times;</button>
       <div class="pv-img-wrap">
         <img src="images/island_front_back_combined_landscape.jpg" alt="Island 2 Island Tee — front &amp; back" />
       </div>
@@ -160,7 +196,43 @@
           <span class="pv-bar__name">Island 2 Island Tee</span>
           <span class="pv-bar__price">$32 · Front &amp; back print</span>
         </div>
-        <button class="btn btn--primary" onclick="addToCart(101,'Island 2 Island Tee',32); closeProductView();">Add to cart</button>
+        <button class="btn btn--primary" onclick="addToCart(101,'Island 2 Island Tee',32); closeProductView('pvTee');">Add to cart</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hat modal (two images side by side) -->
+  <div class="pv-overlay" id="pvHat" onclick="if(event.target===this)closeProductView('pvHat')">
+    <div class="pv-modal">
+      <button class="pv-close" onclick="closeProductView('pvHat')" aria-label="Close">&times;</button>
+      <div class="pv-img-wrap pv-img-wrap--duo">
+        <img src="images/hat merch.png" alt="Island 2 Island Hat — front" />
+        <img src="images/side merch hat.png" alt="Island 2 Island Hat — side" />
+      </div>
+      <div class="pv-bar">
+        <div class="pv-bar__info">
+          <span class="pv-bar__name">Island 2 Island Hat</span>
+          <span class="pv-bar__price">$28 · Front &amp; side view</span>
+        </div>
+        <button class="btn btn--primary" onclick="addToCart(102,'Island 2 Island Hat',28); closeProductView('pvHat');">Add to cart</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hoodie modal (two images side by side) -->
+  <div class="pv-overlay" id="pvHoodie" onclick="if(event.target===this)closeProductView('pvHoodie')">
+    <div class="pv-modal">
+      <button class="pv-close" onclick="closeProductView('pvHoodie')" aria-label="Close">&times;</button>
+      <div class="pv-img-wrap pv-img-wrap--duo">
+        <img src="images/hoodie mastry.png" alt="Island 2 Island Hoodie — front" />
+        <img src="images/hoodie back real .png" alt="Island 2 Island Hoodie — back" />
+      </div>
+      <div class="pv-bar">
+        <div class="pv-bar__info">
+          <span class="pv-bar__name">Island 2 Island Hoodie</span>
+          <span class="pv-bar__price">$58 · Front &amp; back view</span>
+        </div>
+        <button class="btn btn--primary" onclick="addToCart(103,'Island 2 Island Hoodie',58); closeProductView('pvHoodie');">Add to cart</button>
       </div>
     </div>
   </div>
@@ -257,16 +329,20 @@
   </script>
 
   <script>
-    function openProductView() {
-      document.getElementById('pvOverlay').classList.add('open');
+    function openProductView(id) {
+      document.getElementById(id).classList.add('open');
       document.body.style.overflow = 'hidden';
     }
-    function closeProductView() {
-      document.getElementById('pvOverlay').classList.remove('open');
+    function closeProductView(id) {
+      document.getElementById(id).classList.remove('open');
       document.body.style.overflow = '';
     }
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeProductView();
+      if (e.key === 'Escape') {
+        ['pvTee','pvHat','pvHoodie'].forEach(function(id){
+          closeProductView(id);
+        });
+      }
     });
   </script>
 </body>
