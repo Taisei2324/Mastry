@@ -11,75 +11,46 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=16" />
   <style>
-    #loadingScreen {
-      position: fixed; inset: 0; z-index: 9999;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      transition: opacity .7s ease; overflow: hidden;
-    }
-    #loadingScreen.hidden { opacity: 0; pointer-events: none; }
-    .ls-bg { position:absolute; inset:-4%; background:url('images/IMG_0043.jpg') center/cover no-repeat; filter:brightness(0.62) saturate(0.85); opacity:0.6; animation:lsBgDrift 10s ease-in-out infinite alternate; }
-    @keyframes lsBgDrift { from{transform:translateX(0) scale(1);} to{transform:translateX(-2%) scale(1.04);} }
-    .ls-vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.65) 100%); }
-    .ls-haze { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(180,210,240,.18) 0%, rgba(140,180,220,.08) 25%, transparent 50%, rgba(0,0,0,.5) 100%); }
-    .ls-center { position:relative; z-index:2; width:min(680px,86vw); overflow:visible; }
-    .ls-ref { width:100%; height:auto; display:block; visibility:hidden; pointer-events:none; }
-    .ls-shad { position:absolute; inset:0; opacity:0; transition:opacity .4s ease; pointer-events:none; }
-    .ls-shad img { width:100%; height:auto; display:block; }
+    #loadingScreen { position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .7s ease;overflow:hidden; }
+    #loadingScreen.hidden { opacity:0;pointer-events:none; }
+    .ls-bg { position:absolute;inset:-4%;background:url('images/IMG_0043.jpg') center/cover no-repeat;filter:brightness(0.62) saturate(0.85);opacity:0.6;animation:lsBgDrift 10s ease-in-out infinite alternate; }
+    @keyframes lsBgDrift { from{transform:translateX(0) scale(1);}to{transform:translateX(-2%) scale(1.04);} }
+    .ls-vignette { position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 20%,rgba(0,0,0,0.65) 100%); }
+    .ls-haze { position:absolute;inset:0;background:linear-gradient(to bottom,rgba(180,210,240,.18) 0%,rgba(140,180,220,.08) 25%,transparent 50%,rgba(0,0,0,.5) 100%); }
+    .ls-center { position:relative;z-index:2;width:min(680px,86vw);overflow:visible; }
+    .ls-ref { width:100%;height:auto;display:block;visibility:hidden;pointer-events:none; }
+    .ls-shad { position:absolute;inset:0;opacity:0;transition:opacity .4s ease;pointer-events:none; }
+    .ls-shad img { width:100%;height:auto;display:block; }
     .ls-shad-1 { transform:translate(-8px,0); filter:sepia(1) hue-rotate(155deg) saturate(18) brightness(1.4); }
     .ls-shad-2 { transform:translate(8px,0);  filter:sepia(1) hue-rotate(295deg) saturate(18) brightness(1.4); }
-    .ls-slices { position:absolute; inset:0; display:flex; align-items:center; }
-    .ls-sl { position:relative; height:100%; overflow:visible; transform-origin:center center; will-change:transform,opacity,filter; }
-    .ls-clip { position:absolute; inset:0; overflow:hidden; }
-    .ls-clip img { position:absolute; top:0; display:block; height:auto; filter:invert(1); }
-    .ls-final { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; filter:invert(1); transition:opacity 200ms ease; }
-    #lsBottom { position:absolute; bottom:26px; left:0; right:0; z-index:3; display:flex; align-items:center; justify-content:center; gap:16px; }
-    #lsBottom span { font-family:'Inter',sans-serif; font-size:10px; font-weight:300; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.38); }
+    .ls-shad-3 { transform:translate(0px,7px);filter:sepia(1) hue-rotate(345deg) saturate(20) brightness(1.5); }
+    .ls-slices { position:absolute;inset:0;display:flex;align-items:center; }
+    .ls-sl { position:relative;height:100%;overflow:visible;transform-origin:center center;will-change:transform,opacity,filter; }
+    .ls-clip { position:absolute;inset:0;overflow:hidden; }
+    .ls-clip img { position:absolute;top:0;display:block;height:auto;filter:invert(1); }
+    .ls-final { position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;filter:invert(1);transition:opacity 200ms ease; }
+    #lsBottom { position:absolute;bottom:26px;left:0;right:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:16px; }
+    #lsBottom span { font-family:'Inter',sans-serif;font-size:10px;font-weight:300;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.38); }
     #lsIcon { animation:lsPulse 1.4s ease-in-out infinite; }
-    @keyframes lsPulse { 0%,100%{opacity:.18;} 50%{opacity:.72;} }
-    .merch-hero { padding: calc(var(--nav-h) + 90px) 56px 40px; background: var(--clr-cream); }
-    .merch-hero .display { margin-bottom: 8px; }
-    @media (max-width: 760px) { .merch-hero { padding: calc(var(--nav-h) + 56px) 20px 24px; } }
-    .pv-overlay {
-      position: fixed; inset: 0; z-index: 200;
-      background: rgba(20,18,15,0.72); backdrop-filter: blur(6px);
-      display: none; align-items: center; justify-content: center;
-      padding: 24px; opacity: 0; transition: opacity .25s ease;
-    }
-    .pv-overlay.open { display: flex; opacity: 1; }
-    .pv-modal {
-      background: var(--clr-cream, #f4efe7); border-radius: 16px;
-      max-width: 900px; width: 100%; max-height: 90vh;
-      display: flex; flex-direction: column; overflow: hidden;
-      box-shadow: 0 30px 80px rgba(0,0,0,0.45);
-      transform: translateY(16px) scale(.98); transition: transform .25s ease;
-    }
-    .pv-overlay.open .pv-modal { transform: translateY(0) scale(1); }
-    .pv-close {
-      position: absolute; top: 16px; right: 20px; z-index: 2;
-      background: rgba(255,255,255,0.85); border: none; cursor: pointer;
-      width: 38px; height: 38px; border-radius: 50%;
-      font-size: 22px; line-height: 1; color: #222;
-    }
-    .pv-img-wrap { flex: 1; min-height: 0; overflow: auto; background: #fff; }
-    .pv-img-wrap img { width: 100%; height: auto; display: block; }
-    .pv-img-wrap--duo { display: flex; flex-direction: row; }
-    .pv-img-wrap--duo img { width: 50%; flex-shrink: 0; }
-    @media (max-width: 600px) {
-      .pv-img-wrap--duo { flex-direction: column; }
-      .pv-img-wrap--duo img { width: 100%; }
-    }
-    .pv-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 16px; padding: 18px 24px; border-top: 1px solid rgba(0,0,0,0.08);
-      background: var(--clr-cream, #f4efe7);
-    }
-    .pv-bar__info { display: flex; flex-direction: column; }
-    .pv-bar__name { font-weight: 600; font-size: 1.05rem; }
-    .pv-bar__price { opacity: .7; font-size: .95rem; }
-    @media (max-width: 760px) {
-      .pv-bar { flex-direction: column; align-items: stretch; }
-      .pv-bar .btn { width: 100%; }
-    }
+    @keyframes lsPulse { 0%,100%{opacity:.18;}50%{opacity:.72;} }
+    .merch-hero { padding:calc(var(--nav-h) + 90px) 56px 40px;background:var(--clr-cream); }
+    .merch-hero .display { margin-bottom:8px; }
+    @media (max-width:760px){.merch-hero{padding:calc(var(--nav-h) + 56px) 20px 24px;}}
+    .pv-overlay { position:fixed;inset:0;z-index:200;background:rgba(20,18,15,0.72);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:24px;opacity:0;transition:opacity .25s ease; }
+    .pv-overlay.open { display:flex;opacity:1; }
+    .pv-modal { background:var(--clr-cream,#f4efe7);border-radius:16px;max-width:900px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.45);transform:translateY(16px) scale(.98);transition:transform .25s ease; }
+    .pv-overlay.open .pv-modal { transform:translateY(0) scale(1); }
+    .pv-close { position:absolute;top:16px;right:20px;z-index:2;background:rgba(255,255,255,0.85);border:none;cursor:pointer;width:38px;height:38px;border-radius:50%;font-size:22px;line-height:1;color:#222; }
+    .pv-img-wrap { flex:1;min-height:0;overflow:auto;background:#fff; }
+    .pv-img-wrap img { width:100%;height:auto;display:block; }
+    .pv-img-wrap--duo { display:flex;flex-direction:row; }
+    .pv-img-wrap--duo img { width:50%;flex-shrink:0; }
+    @media (max-width:600px){.pv-img-wrap--duo{flex-direction:column;}.pv-img-wrap--duo img{width:100%;}}
+    .pv-bar { display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px;border-top:1px solid rgba(0,0,0,0.08);background:var(--clr-cream,#f4efe7); }
+    .pv-bar__info { display:flex;flex-direction:column; }
+    .pv-bar__name { font-weight:600;font-size:1.05rem; }
+    .pv-bar__price { opacity:.7;font-size:.95rem; }
+    @media (max-width:760px){.pv-bar{flex-direction:column;align-items:stretch;}.pv-bar .btn{width:100%;}}
   </style>
   <script>if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}</script>
 </head>
@@ -88,234 +59,84 @@
   <nav class="nav" id="nav">
     <a href="index.html#hero" class="nav__logo">MASTRY</a>
     <ul class="nav__links" id="navLinks">
-      <li><a href="index.html#products">Products</a></li>
-      <li><a href="merch.html">Merch</a></li>
-      <li><a href="index.html#japan">Japan</a></li>
-      <li><a href="index.html#greece">Greece</a></li>
-      <li><a href="index.html#about">About</a></li>
-      <li><a href="index.html#contact">Contact</a></li>
+      <li><a href="index.html#products">Products</a></li><li><a href="merch.html">Merch</a></li><li><a href="index.html#japan">Japan</a></li><li><a href="index.html#greece">Greece</a></li><li><a href="index.html#about">About</a></li><li><a href="index.html#contact">Contact</a></li>
     </ul>
-    <button class="nav__cart" id="cartBtn" aria-label="Open cart">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-      <span class="cart-badge" id="cartBadge">0</span>
-    </button>
-    <button class="nav__burger" id="burger" aria-label="Toggle menu">
-      <span></span><span></span><span></span>
-    </button>
+    <button class="nav__cart" id="cartBtn" aria-label="Open cart"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><span class="cart-badge" id="cartBadge">0</span></button>
+    <button class="nav__burger" id="burger" aria-label="Toggle menu"><span></span><span></span><span></span></button>
   </nav>
 
-  <section class="merch-hero">
-    <p class="eyebrow">Wear it</p>
-    <h2 class="display">Mastry merch.</h2>
-    <p class="lead">Island 2 Island. — on your back.</p>
-  </section>
+  <section class="merch-hero"><p class="eyebrow">Wear it</p><h2 class="display">Mastry merch.</h2><p class="lead">Island 2 Island. — on your back.</p></section>
 
   <section class="products" id="merch" style="padding-top:40px;">
     <div class="catalog">
-      <div class="catalog__item" onclick="openProductView('pvTee')">
-        <div class="catalog__img-wrap"><img src="images/island_front_left_chest_mockup.png" alt="Island 2 Island Tee" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
-        <div class="catalog__info">
-          <span class="catalog__tag">Tee</span>
-          <h3 class="catalog__name">Island 2 Island<br>Tee</h3>
-          <p class="catalog__desc">Heavyweight cotton tee with the Island 2 Island. left-chest mark.</p>
-          <div class="catalog__footer"><span class="catalog__price">$32</span><span class="catalog__add">View</span></div>
-        </div>
-      </div>
-      <div class="catalog__item" onclick="openProductView('pvHat')">
-        <div class="catalog__img-wrap"><img src="images/side merch hat.png" alt="Mastry Hat" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
-        <div class="catalog__info">
-          <span class="catalog__tag">Hat</span>
-          <h3 class="catalog__name">Island 2 Island<br>Hat</h3>
-          <p class="catalog__desc">Structured cap with the Island 2 Island. side logo. One size.</p>
-          <div class="catalog__footer"><span class="catalog__price">$28</span><span class="catalog__add">View</span></div>
-        </div>
-      </div>
-      <div class="catalog__item" onclick="openProductView('pvHoodie')">
-        <div class="catalog__img-wrap"><img src="images/hoodie mastry.png" alt="Mastry Hoodie" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
-        <div class="catalog__info">
-          <span class="catalog__tag">Hoodie</span>
-          <h3 class="catalog__name">Island 2 Island<br>Hoodie</h3>
-          <p class="catalog__desc">Heavyweight fleece hoodie. Island 2 Island. front and back graphics.</p>
-          <div class="catalog__footer"><span class="catalog__price">$58</span><span class="catalog__add">View</span></div>
-        </div>
-      </div>
+      <div class="catalog__item" onclick="openProductView('pvTee')"><div class="catalog__img-wrap"><img src="images/island_front_left_chest_mockup.png" alt="Island 2 Island Tee" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div><div class="catalog__info"><span class="catalog__tag">Tee</span><h3 class="catalog__name">Island 2 Island<br>Tee</h3><p class="catalog__desc">Heavyweight cotton tee with the Island 2 Island. left-chest mark.</p><div class="catalog__footer"><span class="catalog__price">$32</span><span class="catalog__add">View</span></div></div></div>
+      <div class="catalog__item" onclick="openProductView('pvHat')"><div class="catalog__img-wrap"><img src="images/side merch hat.png" alt="Mastry Hat" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div><div class="catalog__info"><span class="catalog__tag">Hat</span><h3 class="catalog__name">Island 2 Island<br>Hat</h3><p class="catalog__desc">Structured cap with the Island 2 Island. side logo. One size.</p><div class="catalog__footer"><span class="catalog__price">$28</span><span class="catalog__add">View</span></div></div></div>
+      <div class="catalog__item" onclick="openProductView('pvHoodie')"><div class="catalog__img-wrap"><img src="images/hoodie mastry.png" alt="Mastry Hoodie" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div><div class="catalog__info"><span class="catalog__tag">Hoodie</span><h3 class="catalog__name">Island 2 Island<br>Hoodie</h3><p class="catalog__desc">Heavyweight fleece hoodie. Island 2 Island. front and back graphics.</p><div class="catalog__footer"><span class="catalog__price">$58</span><span class="catalog__add">View</span></div></div></div>
     </div>
   </section>
 
-  <footer class="footer">
-    <div class="footer__inner">
-      <span class="footer__logo">MASTRY</span>
-      <span class="footer__copy">© 2026 Mastry · mastry.jp · Chios × Japan</span>
-      <div class="footer__links"><a href="index.html#products">Products</a><a href="merch.html">Merch</a><a href="index.html#greece">Greece</a><a href="index.html#contact">Order</a></div>
-    </div>
-  </footer>
+  <footer class="footer"><div class="footer__inner"><span class="footer__logo">MASTRY</span><span class="footer__copy">© 2026 Mastry · mastry.jp · Chios × Japan</span><div class="footer__links"><a href="index.html#products">Products</a><a href="merch.html">Merch</a><a href="index.html#greece">Greece</a><a href="index.html#contact">Order</a></div></div></footer>
 
   <div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
-  <aside class="cart-drawer" id="cartDrawer">
-    <div class="cart-drawer__header"><h2>Your Cart</h2><button onclick="closeCart()" class="cart-close">&times;</button></div>
-    <div class="cart-items" id="cartItems"><p class="cart-empty">Your cart is empty.</p></div>
-    <div class="cart-drawer__footer" id="cartFooter" style="display:none">
-      <div class="cart-subtotal"><span>Subtotal</span><span id="cartSubtotal">$0.00</span></div>
-      <button class="btn btn--primary btn--full" onclick="checkout()">Checkout</button>
-    </div>
-  </aside>
+  <aside class="cart-drawer" id="cartDrawer"><div class="cart-drawer__header"><h2>Your Cart</h2><button onclick="closeCart()" class="cart-close">&times;</button></div><div class="cart-items" id="cartItems"><p class="cart-empty">Your cart is empty.</p></div><div class="cart-drawer__footer" id="cartFooter" style="display:none"><div class="cart-subtotal"><span>Subtotal</span><span id="cartSubtotal">$0.00</span></div><button class="btn btn--primary btn--full" onclick="checkout()">Checkout</button></div></aside>
 
-  <div class="modal-overlay" id="successOverlay" style="display:none">
-    <div class="modal">
-      <p class="modal-icon">◈</p>
-      <h3>Order received.</h3>
-      <p>Thank you for choosing Mastry. We’ll confirm within 24 hours.</p>
-      <button class="btn btn--primary" onclick="closeSuccess()">Continue</button>
-    </div>
-  </div>
+  <div class="modal-overlay" id="successOverlay" style="display:none"><div class="modal"><p class="modal-icon">◈</p><h3>Order received.</h3><p>Thank you for choosing Mastry. We’ll confirm within 24 hours.</p><button class="btn btn--primary" onclick="closeSuccess()">Continue</button></div></div>
 
-  <!-- Tee modal -->
-  <div class="pv-overlay" id="pvTee" onclick="if(event.target===this)closeProductView('pvTee')">
-    <div class="pv-modal">
-      <button class="pv-close" onclick="closeProductView('pvTee')" aria-label="Close">&times;</button>
-      <div class="pv-img-wrap"><img src="images/island_front_back_combined_landscape.jpg" alt="Island 2 Island Tee" /></div>
-      <div class="pv-bar">
-        <div class="pv-bar__info"><span class="pv-bar__name">Island 2 Island Tee</span><span class="pv-bar__price">$32 · Front &amp; back print</span></div>
-        <button class="btn btn--primary" onclick="addToCart(101,'Island 2 Island Tee',32); closeProductView('pvTee');">Add to cart</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Hat modal -->
-  <div class="pv-overlay" id="pvHat" onclick="if(event.target===this)closeProductView('pvHat')">
-    <div class="pv-modal">
-      <button class="pv-close" onclick="closeProductView('pvHat')" aria-label="Close">&times;</button>
-      <div class="pv-img-wrap pv-img-wrap--duo">
-        <img src="images/side merch hat.png" alt="Island 2 Island Hat — side" />
-        <img src="images/hat merch.png" alt="Island 2 Island Hat — front" />
-      </div>
-      <div class="pv-bar">
-        <div class="pv-bar__info"><span class="pv-bar__name">Island 2 Island Hat</span><span class="pv-bar__price">$28 · Side &amp; front view</span></div>
-        <button class="btn btn--primary" onclick="addToCart(102,'Island 2 Island Hat',28); closeProductView('pvHat');">Add to cart</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Hoodie modal -->
-  <div class="pv-overlay" id="pvHoodie" onclick="if(event.target===this)closeProductView('pvHoodie')">
-    <div class="pv-modal">
-      <button class="pv-close" onclick="closeProductView('pvHoodie')" aria-label="Close">&times;</button>
-      <div class="pv-img-wrap pv-img-wrap--duo">
-        <img src="images/hoodie mastry.png" alt="Island 2 Island Hoodie — front" />
-        <img src="images/hoodie back real .png" alt="Island 2 Island Hoodie — back" />
-      </div>
-      <div class="pv-bar">
-        <div class="pv-bar__info"><span class="pv-bar__name">Island 2 Island Hoodie</span><span class="pv-bar__price">$58 · Front &amp; back view</span></div>
-        <button class="btn btn--primary" onclick="addToCart(103,'Island 2 Island Hoodie',58); closeProductView('pvHoodie');">Add to cart</button>
-      </div>
-    </div>
-  </div>
+  <div class="pv-overlay" id="pvTee" onclick="if(event.target===this)closeProductView('pvTee')"><div class="pv-modal"><button class="pv-close" onclick="closeProductView('pvTee')" aria-label="Close">&times;</button><div class="pv-img-wrap"><img src="images/island_front_back_combined_landscape.jpg" alt="Island 2 Island Tee" /></div><div class="pv-bar"><div class="pv-bar__info"><span class="pv-bar__name">Island 2 Island Tee</span><span class="pv-bar__price">$32 · Front &amp; back print</span></div><button class="btn btn--primary" onclick="addToCart(101,'Island 2 Island Tee',32);closeProductView('pvTee');">Add to cart</button></div></div></div>
+  <div class="pv-overlay" id="pvHat" onclick="if(event.target===this)closeProductView('pvHat')"><div class="pv-modal"><button class="pv-close" onclick="closeProductView('pvHat')" aria-label="Close">&times;</button><div class="pv-img-wrap pv-img-wrap--duo"><img src="images/side merch hat.png" alt="Hat — side" /><img src="images/hat merch.png" alt="Hat — front" /></div><div class="pv-bar"><div class="pv-bar__info"><span class="pv-bar__name">Island 2 Island Hat</span><span class="pv-bar__price">$28 · Side &amp; front view</span></div><button class="btn btn--primary" onclick="addToCart(102,'Island 2 Island Hat',28);closeProductView('pvHat');">Add to cart</button></div></div></div>
+  <div class="pv-overlay" id="pvHoodie" onclick="if(event.target===this)closeProductView('pvHoodie')"><div class="pv-modal"><button class="pv-close" onclick="closeProductView('pvHoodie')" aria-label="Close">&times;</button><div class="pv-img-wrap pv-img-wrap--duo"><img src="images/hoodie mastry.png" alt="Hoodie — front" /><img src="images/hoodie back real .png" alt="Hoodie — back" /></div><div class="pv-bar"><div class="pv-bar__info"><span class="pv-bar__name">Island 2 Island Hoodie</span><span class="pv-bar__price">$58 · Front &amp; back view</span></div><button class="btn btn--primary" onclick="addToCart(103,'Island 2 Island Hoodie',58);closeProductView('pvHoodie');">Add to cart</button></div></div></div>
 
   <script src="script.js?v=9"></script>
 
-  <!-- Loading screen -->
   <div id="loadingScreen" aria-hidden="true">
     <div class="ls-bg"></div>
     <div class="ls-vignette"></div>
     <div class="ls-haze"></div>
     <div class="ls-center" id="lsCenter">
       <img src="images/loading screen.png" class="ls-ref" alt="" />
+      <div class="ls-shad ls-shad-3" id="lsShad3"><img src="images/loading screen.png" alt="" style="filter:invert(1);" /></div>
       <div class="ls-shad ls-shad-1" id="lsShad1"><img src="images/loading screen.png" alt="" style="filter:invert(1);" /></div>
       <div class="ls-shad ls-shad-2" id="lsShad2"><img src="images/loading screen.png" alt="" style="filter:invert(1);" /></div>
       <div class="ls-slices" id="lsSlices"></div>
       <img src="images/loading screen.png" class="ls-final" id="lsFinal" alt="" />
     </div>
-    <div id="lsBottom">
-      <span>Loading assets. Please do not close this page.</span>
-      <span id="lsIcon">◈</span>
-    </div>
+    <div id="lsBottom"><span>Loading assets. Please do not close this page.</span><span id="lsIcon">◈</span></div>
   </div>
   <script>
   (function(){
-    var ls       = document.getElementById('loadingScreen');
-    var slicesEl = document.getElementById('lsSlices');
-    var N        = 6;
-    var DURATION = 1900;
-    var HOLD     = 520;
-
-    function clamp(v,mn,mx){ return Math.max(mn,Math.min(mx,v)); }
-    function easeInOut(t){ return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
-
+    var ls=document.getElementById('loadingScreen'),slicesEl=document.getElementById('lsSlices'),N=6,DURATION=1900,HOLD=520;
+    function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
+    function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
     function buildSlices(){
-      slicesEl.innerHTML = '';
-      for(var i=0;i<N;i++){
-        var sl=document.createElement('div'); sl.className='ls-sl'; sl.style.flex='0 0 calc(100% / '+N+')';
-        var clip=document.createElement('div'); clip.className='ls-clip';
-        var img=document.createElement('img'); img.src='images/loading screen.png'; img.alt='';
-        img.style.left=(i*-100)+'%'; img.style.width=(N*100)+'%';
-        clip.appendChild(img); sl.appendChild(clip); slicesEl.appendChild(sl);
-      }
+      slicesEl.innerHTML='';
+      for(var i=0;i<N;i++){var sl=document.createElement('div');sl.className='ls-sl';sl.style.flex='0 0 calc(100% / '+N+')';var clip=document.createElement('div');clip.className='ls-clip';var img=document.createElement('img');img.src='images/loading screen.png';img.alt='';img.style.left=(i*-100)+'%';img.style.width=(N*100)+'%';clip.appendChild(img);sl.appendChild(clip);slicesEl.appendChild(sl);}
     }
-
-    var raf=null, startTime=null, shadShown=false, animDone=false;
-
+    var raf=null,startTime=null,shadShown=false,animDone=false;
     function renderFrame(now){
-      if(!startTime) startTime=now;
+      if(!startTime)startTime=now;
       var t=clamp((now-startTime)/DURATION,0,1);
-      var wave=t*(N-1), spread=1-easeInOut(clamp((t-.20)/.62,0,1));
-
-      if(!shadShown && t>.12){
-        shadShown=true;
-        document.getElementById('lsShad1').style.opacity='0.85';
-        document.getElementById('lsShad2').style.opacity='0.85';
-      }
-
+      var wave=t*(N-1),spread=1-easeInOut(clamp((t-.20)/.62,0,1));
+      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShad1').style.opacity='0.85';document.getElementById('lsShad2').style.opacity='0.85';document.getElementById('lsShad3').style.opacity='0.80';}
       var slices=slicesEl.querySelectorAll('.ls-sl');
-      for(var i=0;i<slices.length;i++){
-        var sl=slices[i], dist=Math.abs(i-wave), peak=Math.exp(-(dist*dist)/2.0);
-        var scale=1+peak*0.55;
-        var pull=i-wave, xSpread=pull*3*spread, rise=-peak*8;
-        sl.style.opacity=clamp(t*5-i*.04,0,1);
-        sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';
-        sl.style.zIndex=String(Math.round(peak*1000));
-        sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';
-      }
-
-      if(t<1){ raf=requestAnimationFrame(renderFrame); }
-      else {
+      for(var i=0;i<slices.length;i++){var sl=slices[i],dist=Math.abs(i-wave),peak=Math.exp(-(dist*dist)/2.0),scale=1+peak*0.55,pull=i-wave,xSpread=pull*3*spread,rise=-peak*8;sl.style.opacity=clamp(t*5-i*.04,0,1);sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';sl.style.zIndex=String(Math.round(peak*1000));sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';}
+      if(t<1){raf=requestAnimationFrame(renderFrame);}
+      else{
         var settled=slicesEl.querySelectorAll('.ls-sl');
-        for(var j=0;j<settled.length;j++){
-          settled[j].style.transition='transform 240ms ease-out, filter 240ms ease-out';
-          settled[j].style.transform='translateX(0) translateY(0) scale(1)';
-          settled[j].style.filter='blur(0px)';
-        }
-        setTimeout(function(){
-          slicesEl.style.transition='opacity 220ms ease';
-          slicesEl.style.opacity='0';
-          document.getElementById('lsFinal').style.opacity='1';
-          setTimeout(function(){ animDone=true; hide(); }, HOLD);
-        }, 260);
+        for(var j=0;j<settled.length;j++){settled[j].style.transition='transform 240ms ease-out, filter 240ms ease-out';settled[j].style.transform='translateX(0) translateY(0) scale(1)';settled[j].style.filter='blur(0px)';}
+        setTimeout(function(){slicesEl.style.transition='opacity 220ms ease';slicesEl.style.opacity='0';document.getElementById('lsFinal').style.opacity='1';setTimeout(function(){animDone=true;hide();},HOLD);},260);
       }
     }
-
-    function hide(){ if(!animDone) return; ls.classList.add('hidden'); setTimeout(function(){ ls.remove(); },800); }
-
+    function hide(){if(!animDone)return;ls.classList.add('hidden');setTimeout(function(){ls.remove();},800);}
     buildSlices();
-    setTimeout(function(){ raf=requestAnimationFrame(renderFrame); }, 80);
-    window.addEventListener('load', function(){ setTimeout(hide, 3400); });
-    setTimeout(hide, 8000);
+    setTimeout(function(){raf=requestAnimationFrame(renderFrame);},80);
+    window.addEventListener('load',function(){setTimeout(hide,3400);});
+    setTimeout(hide,8000);
   })();
   </script>
-
   <script>
-    function openProductView(id) {
-      document.getElementById(id).classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }
-    function closeProductView(id) {
-      document.getElementById(id).classList.remove('open');
-      document.body.style.overflow = '';
-    }
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') {
-        ['pvTee','pvHat','pvHoodie'].forEach(function(id){ closeProductView(id); });
-      }
-    });
+    function openProductView(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
+    function closeProductView(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
+    document.addEventListener('keydown',function(e){if(e.key==='Escape'){['pvTee','pvHat','pvHoodie'].forEach(function(id){closeProductView(id);});}});
   </script>
 </body>
 </html>

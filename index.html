@@ -29,57 +29,30 @@
       from { transform: translateX(0) scale(1); }
       to   { transform: translateX(-2%) scale(1.04); }
     }
-    .ls-vignette {
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.65) 100%);
-    }
-    .ls-haze {
-      position: absolute; inset: 0;
-      background: linear-gradient(to bottom,
-        rgba(180,210,240,0.18) 0%, rgba(140,180,220,0.08) 25%,
-        transparent 50%, rgba(0,0,0,0.5) 100%);
-    }
+    .ls-vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.65) 100%); }
+    .ls-haze { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(180,210,240,0.18) 0%, rgba(140,180,220,0.08) 25%, transparent 50%, rgba(0,0,0,0.5) 100%); }
     .ls-center { position: relative; z-index: 2; width: min(680px, 86vw); overflow: visible; }
     .ls-ref { width: 100%; height: auto; display: block; visibility: hidden; pointer-events: none; }
     .ls-shad { position: absolute; inset: 0; opacity: 0; transition: opacity .4s ease; pointer-events: none; }
     .ls-shad img { width: 100%; height: auto; display: block; }
-    /* Chromatic aberration: cyan left, magenta right */
-    .ls-shad-1 {
-      transform: translate(-8px, 0);
-      filter: sepia(1) hue-rotate(155deg) saturate(18) brightness(1.4);
-    }
-    .ls-shad-2 {
-      transform: translate(8px, 0);
-      filter: sepia(1) hue-rotate(295deg) saturate(18) brightness(1.4);
-    }
+    /* Cyan — left */
+    .ls-shad-1 { transform: translate(-8px, 0);  filter: sepia(1) hue-rotate(155deg) saturate(18) brightness(1.4); }
+    /* Magenta — right */
+    .ls-shad-2 { transform: translate(8px, 0);   filter: sepia(1) hue-rotate(295deg) saturate(18) brightness(1.4); }
+    /* Red — behind, offset down */
+    .ls-shad-3 { transform: translate(0px, 7px); filter: sepia(1) hue-rotate(345deg) saturate(20) brightness(1.5); }
     .ls-slices { position: absolute; inset: 0; display: flex; align-items: center; }
     .ls-sl { position: relative; height: 100%; overflow: visible; transform-origin: center center; will-change: transform, opacity, filter; }
     .ls-clip { position: absolute; inset: 0; overflow: hidden; }
     .ls-clip img { position: absolute; top: 0; display: block; height: auto; filter: invert(1); }
     .ls-final { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; filter: invert(1); transition: opacity 200ms ease; }
-    #lsBottom {
-      position: absolute; bottom: 26px; left: 0; right: 0; z-index: 3;
-      display: flex; align-items: center; justify-content: center; gap: 16px;
-    }
+    #lsBottom { position: absolute; bottom: 26px; left: 0; right: 0; z-index: 3; display: flex; align-items: center; justify-content: center; gap: 16px; }
     #lsBottom span { font-family:'Inter',sans-serif; font-size:10px; font-weight:300; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.38); }
     #lsIcon { animation: lsPulse 1.4s ease-in-out infinite; }
     @keyframes lsPulse { 0%,100%{opacity:.18;} 50%{opacity:.72;} }
     .hero-loot-wrap { perspective: 1400px; display: block; }
-    .hero-loot {
-      transform-style: preserve-3d;
-      animation: lootSpin 13s linear infinite;
-      backface-visibility: visible;
-      filter:
-        drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff)
-        drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
-        drop-shadow(0 6px 10px rgba(0,0,0,0.45))
-        drop-shadow(0 0 16px rgba(255,255,255,0.35));
-    }
-    @keyframes lootSpin {
-      0%   { transform: translateY(0)    rotateY(0deg); }
-      50%  { transform: translateY(22px) rotateY(180deg); }
-      100% { transform: translateY(0)    rotateY(360deg); }
-    }
+    .hero-loot { transform-style: preserve-3d; animation: lootSpin 13s linear infinite; backface-visibility: visible; filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff) drop-shadow(0 6px 10px rgba(0,0,0,0.45)) drop-shadow(0 0 16px rgba(255,255,255,0.35)); }
+    @keyframes lootSpin { 0%{transform:translateY(0) rotateY(0deg);} 50%{transform:translateY(22px) rotateY(180deg);} 100%{transform:translateY(0) rotateY(360deg);} }
     @media (prefers-reduced-motion: reduce) { .hero-loot { animation: none; } }
   </style>
   <script>if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}</script>
@@ -106,22 +79,12 @@
   </nav>
 
   <section class="fullscreen" id="hero">
-    <div class="fullscreen__media">
-      <img src="images/wider and newer web hero.png" alt="Mastry" class="fullscreen__img" id="heroImg" />
-    </div>
+    <div class="fullscreen__media"><img src="images/wider and newer web hero.png" alt="Mastry" class="fullscreen__img" id="heroImg" /></div>
     <div class="fullscreen__overlay"></div>
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
       <div class="hero-loot-wrap" style="margin-top:1345px;margin-bottom:32px;transform:translate(-76px,114px);">
-        <model-viewer
-          id="heroModel"
-          src="images/island_logo_holes_preserved_puffy_3d.glb"
-          alt="Island 2 Island."
-          interaction-prompt="none"
-          shadow-intensity="0.5"
-          exposure="1.3"
-          style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;filter:drop-shadow(0 8px 20px rgba(0,0,0,0.4));">
-        </model-viewer>
+        <model-viewer id="heroModel" src="images/island_logo_holes_preserved_puffy_3d.glb" alt="Island 2 Island." interaction-prompt="none" shadow-intensity="0.5" exposure="1.3" style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;filter:drop-shadow(0 8px 20px rgba(0,0,0,0.4));"></model-viewer>
         <script>
           (function () {
             var mv = document.getElementById('heroModel');
@@ -129,30 +92,16 @@
             mv.addEventListener('load', function () {
               try {
                 (mv.model.materials || []).forEach(function (m) {
-                  m.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
+                  m.pbrMetallicRoughness.setBaseColorFactor([1,1,1,1]);
                   m.pbrMetallicRoughness.setMetallicFactor(0);
                   m.pbrMetallicRoughness.setRoughnessFactor(1.0);
-                  if (m.setEmissiveFactor) m.setEmissiveFactor([0, 0, 0]);
+                  if (m.setEmissiveFactor) m.setEmissiveFactor([0,0,0]);
                   if (m.setAlphaMode) m.setAlphaMode('OPAQUE');
                   if (m.setDoubleSided) m.setDoubleSided(true);
                 });
               } catch (e) {}
-              var SLOW = 5; var FAST = 18;
-              var orbit = mv.getCameraOrbit();
-              var phiDeg = orbit.phi * 180 / Math.PI;
-              var radius = orbit.radius;
-              var theta = 0; var last = performance.now();
-              function frame(now) {
-                var dt = (now - last) / 1000; last = now;
-                var t = ((theta % 360) + 360) % 360;
-                var distFront = Math.min(t, 360 - t);
-                var w = Math.min(1, Math.max(0, (distFront - 30) / 30));
-                var ease = w * w * (3 - 2 * w);
-                var speed = SLOW + (FAST - SLOW) * ease;
-                theta += speed * dt;
-                mv.cameraOrbit = theta.toFixed(2) + 'deg ' + phiDeg.toFixed(2) + 'deg ' + radius + 'm';
-                requestAnimationFrame(frame);
-              }
+              var SLOW=5, FAST=18, orbit=mv.getCameraOrbit(), phiDeg=orbit.phi*180/Math.PI, radius=orbit.radius, theta=0, last=performance.now();
+              function frame(now){var dt=(now-last)/1000;last=now;var t=((theta%360)+360)%360,distFront=Math.min(t,360-t),w=Math.min(1,Math.max(0,(distFront-30)/30)),ease=w*w*(3-2*w),speed=SLOW+(FAST-SLOW)*ease;theta+=speed*dt;mv.cameraOrbit=theta.toFixed(2)+'deg '+phiDeg.toFixed(2)+'deg '+radius+'m';requestAnimationFrame(frame);}
               requestAnimationFrame(frame);
             });
           })();
@@ -167,190 +116,36 @@
     <div class="fullscreen__scroll-hint">Scroll ↓</div>
   </section>
 
-  <div class="strip">
-    <div class="strip__track">
-      <span>Mastic from Chios, Greece</span><span class="strip__dot">◈</span>
-      <span>Assembled in Japan</span><span class="strip__dot">◈</span>
-      <span>Zero sugar</span><span class="strip__dot">◈</span>
-      <span>100% natural flavours</span><span class="strip__dot">◈</span>
-      <span>mastry.jp</span><span class="strip__dot">◈</span>
-      <span>Protected designation of origin</span><span class="strip__dot">◈</span>
-      <span>2,500 years of heritage</span><span class="strip__dot">◈</span>
-      <span>Mastic from Chios, Greece</span><span class="strip__dot">◈</span>
-      <span>Assembled in Japan</span><span class="strip__dot">◈</span>
-      <span>Zero sugar</span><span class="strip__dot">◈</span>
-      <span>100% natural flavours</span><span class="strip__dot">◈</span>
-      <span>mastry.jp</span><span class="strip__dot">◈</span>
-      <span>Protected designation of origin</span><span class="strip__dot">◈</span>
-      <span>2,500 years of heritage</span><span class="strip__dot">◈</span>
-    </div>
-  </div>
+  <div class="strip"><div class="strip__track"><span>Mastic from Chios, Greece</span><span class="strip__dot">◈</span><span>Assembled in Japan</span><span class="strip__dot">◈</span><span>Zero sugar</span><span class="strip__dot">◈</span><span>100% natural flavours</span><span class="strip__dot">◈</span><span>mastry.jp</span><span class="strip__dot">◈</span><span>Protected designation of origin</span><span class="strip__dot">◈</span><span>2,500 years of heritage</span><span class="strip__dot">◈</span><span>Mastic from Chios, Greece</span><span class="strip__dot">◈</span><span>Assembled in Japan</span><span class="strip__dot">◈</span><span>Zero sugar</span><span class="strip__dot">◈</span><span>100% natural flavours</span><span class="strip__dot">◈</span><span>mastry.jp</span><span class="strip__dot">◈</span><span>Protected designation of origin</span><span class="strip__dot">◈</span><span>2,500 years of heritage</span><span class="strip__dot">◈</span></div></div>
 
   <section class="products" id="products">
-    <div class="products__header">
-      <p class="eyebrow">Chapter two</p>
-      <h2 class="display">The range.</h2>
-      <p class="lead">Four expressions. One rare ingredient.</p>
-    </div>
+    <div class="products__header"><p class="eyebrow">Chapter two</p><h2 class="display">The range.</h2><p class="lead">Four expressions. One rare ingredient.</p></div>
     <div class="catalog">
-      <div class="catalog__item" onclick="addToCart(1,'Mastry Original',2.62)">
-        <div class="catalog__img-wrap"><img src="images/brand new original catalog.png" alt="Mastry Original" class="catalog__img" /><div class="catalog__zoom-ring"></div></div>
-        <div class="catalog__info">
-          <span class="catalog__tag">Original</span>
-          <h3 class="catalog__name">Mastry<br>Original</h3>
-          <p class="catalog__desc">Pure Chios Mastic. Delicate pine and cedar notes with crisp Japanese spring water.</p>
-          <div class="catalog__footer"><span class="catalog__price">¥360 / $2.62</span><span class="catalog__add">+ Add</span></div>
-        </div>
-      </div>
-      <div class="catalog__item" onclick="addToCart(2,'Mastry Yuzu',2.84)">
-        <div class="catalog__img-wrap"><img src="images/Mastry ad yuzu.png" alt="Mastry Yuzu" class="catalog__img" /><div class="catalog__zoom-ring"></div></div>
-        <div class="catalog__info">
-          <span class="catalog__tag">Signature</span>
-          <h3 class="catalog__name">Mastry<br>Yuzu</h3>
-          <p class="catalog__desc">Mastic meets Japanese yuzu citrus. Floral, tart, and unmistakably Mastry.</p>
-          <div class="catalog__footer"><span class="catalog__price">¥360 / $2.84</span><span class="catalog__add">+ Add</span></div>
-        </div>
-      </div>
-      <div class="catalog__item" onclick="addToCart(3,'Mastry Hinoki',2.62)">
-        <div class="catalog__img-wrap"><img src="images/hinoki mastry ad.png" alt="Mastry Hinoki" class="catalog__img" /><div class="catalog__zoom-ring"></div></div>
-        <div class="catalog__info">
-          <span class="catalog__tag">Limited</span>
-          <h3 class="catalog__name">Mastry<br>Hinoki</h3>
-          <p class="catalog__desc">Mastic with Japanese cypress. Earthy, warm, meditative.</p>
-          <div class="catalog__footer"><span class="catalog__price">¥360 / $2.62</span><span class="catalog__add">+ Add</span></div>
-        </div>
-      </div>
-      <div class="catalog__item" onclick="addToCart(4,'Mastry Ume',2.84)">
-        <div class="catalog__img-wrap"><img src="images/Ume mastry Ad.png" alt="Mastry Ume" class="catalog__img" /><div class="catalog__zoom-ring"></div></div>
-        <div class="catalog__info">
-          <span class="catalog__tag">Seasonal</span>
-          <h3 class="catalog__name">Mastry<br>Ume</h3>
-          <p class="catalog__desc">Mastic and Japanese plum blossom. A gentle floral sweetness.</p>
-          <div class="catalog__footer"><span class="catalog__price">¥360 / $2.84</span><span class="catalog__add">+ Add</span></div>
-        </div>
-      </div>
+      <div class="catalog__item" onclick="addToCart(1,'Mastry Original',2.62)"><div class="catalog__img-wrap"><img src="images/brand new original catalog.png" alt="Mastry Original" class="catalog__img" /><div class="catalog__zoom-ring"></div></div><div class="catalog__info"><span class="catalog__tag">Original</span><h3 class="catalog__name">Mastry<br>Original</h3><p class="catalog__desc">Pure Chios Mastic. Delicate pine and cedar notes with crisp Japanese spring water.</p><div class="catalog__footer"><span class="catalog__price">¥360 / $2.62</span><span class="catalog__add">+ Add</span></div></div></div>
+      <div class="catalog__item" onclick="addToCart(2,'Mastry Yuzu',2.84)"><div class="catalog__img-wrap"><img src="images/Mastry ad yuzu.png" alt="Mastry Yuzu" class="catalog__img" /><div class="catalog__zoom-ring"></div></div><div class="catalog__info"><span class="catalog__tag">Signature</span><h3 class="catalog__name">Mastry<br>Yuzu</h3><p class="catalog__desc">Mastic meets Japanese yuzu citrus. Floral, tart, and unmistakably Mastry.</p><div class="catalog__footer"><span class="catalog__price">¥360 / $2.84</span><span class="catalog__add">+ Add</span></div></div></div>
+      <div class="catalog__item" onclick="addToCart(3,'Mastry Hinoki',2.62)"><div class="catalog__img-wrap"><img src="images/hinoki mastry ad.png" alt="Mastry Hinoki" class="catalog__img" /><div class="catalog__zoom-ring"></div></div><div class="catalog__info"><span class="catalog__tag">Limited</span><h3 class="catalog__name">Mastry<br>Hinoki</h3><p class="catalog__desc">Mastic with Japanese cypress. Earthy, warm, meditative.</p><div class="catalog__footer"><span class="catalog__price">¥360 / $2.62</span><span class="catalog__add">+ Add</span></div></div></div>
+      <div class="catalog__item" onclick="addToCart(4,'Mastry Ume',2.84)"><div class="catalog__img-wrap"><img src="images/Ume mastry Ad.png" alt="Mastry Ume" class="catalog__img" /><div class="catalog__zoom-ring"></div></div><div class="catalog__info"><span class="catalog__tag">Seasonal</span><h3 class="catalog__name">Mastry<br>Ume</h3><p class="catalog__desc">Mastic and Japanese plum blossom. A gentle floral sweetness.</p><div class="catalog__footer"><span class="catalog__price">¥360 / $2.84</span><span class="catalog__add">+ Add</span></div></div></div>
     </div>
   </section>
 
-  <section class="fullscreen" id="japan">
-    <div class="fullscreen__media"><img src="images/ad 5.png" alt="Mastry in Japan" class="fullscreen__img" /></div>
-    <div class="fullscreen__overlay fullscreen__overlay--dark"></div>
-    <div class="fullscreen__content fullscreen__content--center">
-      <p class="eyebrow eyebrow--light">Chapter one · Assembled in Japan</p>
-      <h2 class="display display--light display--xl">Born in<br><em>Japan.</em></h2>
-      <p class="lead lead--light lead--wide">Sourced from pristine mountain springs. Carbonated and bottled to Japanese quality standards. Every batch tested for purity before it leaves our facility.</p>
-    </div>
-    <div class="fullscreen__caption">Mt. Fuji · Yamanashi, Japan</div>
-  </section>
+  <section class="fullscreen" id="japan"><div class="fullscreen__media"><img src="images/ad 5.png" alt="Mastry in Japan" class="fullscreen__img" /></div><div class="fullscreen__overlay fullscreen__overlay--dark"></div><div class="fullscreen__content fullscreen__content--center"><p class="eyebrow eyebrow--light">Chapter one · Assembled in Japan</p><h2 class="display display--light display--xl">Born in<br><em>Japan.</em></h2><p class="lead lead--light lead--wide">Sourced from pristine mountain springs. Carbonated and bottled to Japanese quality standards. Every batch tested for purity before it leaves our facility.</p></div><div class="fullscreen__caption">Mt. Fuji · Yamanashi, Japan</div></section>
 
-  <section class="bottle-hero">
-    <div class="bottle-hero__img-wrap"><img src="images/mastry ad.png" alt="Mastry bottle" /></div>
-    <div class="bottle-hero__text">
-      <p class="eyebrow eyebrow--light">The bottle</p>
-      <h2 class="display display--light">Crafted to<br>be held.</h2>
-      <p class="lead lead--light">Glass bottle. Aluminium cap. Illustrated label depicting the journey from Chios to Japan. Designed to belong on any table.</p>
-      <div class="bottle-hero__features">
-        <div class="bottle-feature"><span class="bottle-feature__label">Material</span><span class="bottle-feature__val">Borosilicate glass</span></div>
-        <div class="bottle-feature"><span class="bottle-feature__label">Volume</span><span class="bottle-feature__val">500 ml</span></div>
-        <div class="bottle-feature"><span class="bottle-feature__label">Carbonation</span><span class="bottle-feature__val">Medium fine bubble</span></div>
-      </div>
-      <a href="#contact" class="btn btn--ghost-light">Order Mastry</a>
-    </div>
-  </section>
+  <section class="bottle-hero"><div class="bottle-hero__img-wrap"><img src="images/mastry ad.png" alt="Mastry bottle" /></div><div class="bottle-hero__text"><p class="eyebrow eyebrow--light">The bottle</p><h2 class="display display--light">Crafted to<br>be held.</h2><p class="lead lead--light">Glass bottle. Aluminium cap. Illustrated label depicting the journey from Chios to Japan. Designed to belong on any table.</p><div class="bottle-hero__features"><div class="bottle-feature"><span class="bottle-feature__label">Material</span><span class="bottle-feature__val">Borosilicate glass</span></div><div class="bottle-feature"><span class="bottle-feature__label">Volume</span><span class="bottle-feature__val">500 ml</span></div><div class="bottle-feature"><span class="bottle-feature__label">Carbonation</span><span class="bottle-feature__val">Medium fine bubble</span></div></div><a href="#contact" class="btn btn--ghost-light">Order Mastry</a></div></section>
 
-  <section class="fullscreen" id="greece-life">
-    <div class="fullscreen__media"><img src="images/ad 3.png" alt="Mastry — Greece" class="fullscreen__img fullscreen__img--top" /></div>
-    <div class="fullscreen__overlay fullscreen__overlay--subtle"></div>
-    <div class="fullscreen__content fullscreen__content--bottom-left">
-      <p class="eyebrow eyebrow--light">Chapter three · Chios, Greece</p>
-      <h2 class="display display--light display--xl">Ancient<br>resin.</h2>
-      <p class="lead lead--light">Pistacia lentiscus trees weep a tear of resin every morning. Harvested by hand. The same ritual for 2,500 years.</p>
-    </div>
-    <div class="fullscreen__caption">Chios, Greece · Mastic harvest</div>
-  </section>
+  <section class="fullscreen" id="greece-life"><div class="fullscreen__media"><img src="images/ad 3.png" alt="Mastry — Greece" class="fullscreen__img fullscreen__img--top" /></div><div class="fullscreen__overlay fullscreen__overlay--subtle"></div><div class="fullscreen__content fullscreen__content--bottom-left"><p class="eyebrow eyebrow--light">Chapter three · Chios, Greece</p><h2 class="display display--light display--xl">Ancient<br>resin.</h2><p class="lead lead--light">Pistacia lentiscus trees weep a tear of resin every morning. Harvested by hand. The same ritual for 2,500 years.</p></div><div class="fullscreen__caption">Chios, Greece · Mastic harvest</div></section>
 
-  <section class="fullscreen" id="greece">
-    <div class="fullscreen__media"><img src="images/ad 4.png" alt="Mastry — Acropolis" class="fullscreen__img" /></div>
-    <div class="fullscreen__overlay fullscreen__overlay--warm"></div>
-    <div class="fullscreen__content fullscreen__content--bottom-right">
-      <p class="eyebrow eyebrow--light">Rooted in Greece</p>
-      <h2 class="display display--light display--xl">Rooted in<br>Greece.</h2>
-      <p class="lead lead--light lead--wide">Mastic has been harvested on the island of Chios for over 2,500 years. The resin weeps from ancient Pistacia lentiscus trees — it can only grow here, nowhere else on earth.</p>
-    </div>
-    <div class="fullscreen__caption">Acropolis · Athens, Greece</div>
-  </section>
+  <section class="fullscreen" id="greece"><div class="fullscreen__media"><img src="images/ad 4.png" alt="Mastry — Acropolis" class="fullscreen__img" /></div><div class="fullscreen__overlay fullscreen__overlay--warm"></div><div class="fullscreen__content fullscreen__content--bottom-right"><p class="eyebrow eyebrow--light">Rooted in Greece</p><h2 class="display display--light display--xl">Rooted in<br>Greece.</h2><p class="lead lead--light lead--wide">Mastic has been harvested on the island of Chios for over 2,500 years. The resin weeps from ancient Pistacia lentiscus trees — it can only grow here, nowhere else on earth.</p></div><div class="fullscreen__caption">Acropolis · Athens, Greece</div></section>
 
-  <section class="about" id="about">
-    <div class="about__left">
-      <p class="eyebrow">Chapter four</p>
-      <h2 class="display">Two worlds.<br>One water.</h2>
-      <p class="body-text">Mastry was born from a single question: what happens when the rarest natural resin on earth meets the world's most refined water culture?</p>
-      <p class="body-text">We carry Chios Mastic across the world to Japan, where our water is drawn from mountain springs and bottled with obsessive precision. The result is something that has never existed before.</p>
-      <a href="#contact" class="btn btn--primary">Order now</a>
-    </div>
-    <div class="about__stats">
-      <div class="stat"><div class="stat__top"><span class="stat__num" data-target="0">0</span><span class="stat__unit">g</span></div><p class="stat__label">Sugar</p></div>
-      <div class="stat"><div class="stat__top"><span class="stat__num" data-target="100">0</span><span class="stat__unit">%</span></div><p class="stat__label">Natural flavours</p></div>
-      <div class="stat"><div class="stat__top"><span class="stat__num" data-target="500">0</span><span class="stat__unit">ml</span></div><p class="stat__label">Per bottle</p></div>
-      <div class="stat"><div class="stat__top"><span class="stat__num" data-target="2500">0</span><span class="stat__unit">yrs</span></div><p class="stat__label">Mastic heritage</p></div>
-      <div class="pillars">
-        <div class="pillar"><span class="pillar__icon">◈</span><h4>Chios Mastic</h4><p>Wild-harvested resin. Protected designation of origin.</p></div>
-        <div class="pillar"><span class="pillar__icon">◉</span><h4>Japanese Spring Water</h4><p>Mountain-sourced. Naturally soft mineral profile.</p></div>
-        <div class="pillar"><span class="pillar__icon">◫</span><h4>Bottled in Japan</h4><p>Every batch tested. Japanese quality standards.</p></div>
-      </div>
-    </div>
-  </section>
+  <section class="about" id="about"><div class="about__left"><p class="eyebrow">Chapter four</p><h2 class="display">Two worlds.<br>One water.</h2><p class="body-text">Mastry was born from a single question: what happens when the rarest natural resin on earth meets the world's most refined water culture?</p><p class="body-text">We carry Chios Mastic across the world to Japan, where our water is drawn from mountain springs and bottled with obsessive precision. The result is something that has never existed before.</p><a href="#contact" class="btn btn--primary">Order now</a></div><div class="about__stats"><div class="stat"><div class="stat__top"><span class="stat__num" data-target="0">0</span><span class="stat__unit">g</span></div><p class="stat__label">Sugar</p></div><div class="stat"><div class="stat__top"><span class="stat__num" data-target="100">0</span><span class="stat__unit">%</span></div><p class="stat__label">Natural flavours</p></div><div class="stat"><div class="stat__top"><span class="stat__num" data-target="500">0</span><span class="stat__unit">ml</span></div><p class="stat__label">Per bottle</p></div><div class="stat"><div class="stat__top"><span class="stat__num" data-target="2500">0</span><span class="stat__unit">yrs</span></div><p class="stat__label">Mastic heritage</p></div><div class="pillars"><div class="pillar"><span class="pillar__icon">◈</span><h4>Chios Mastic</h4><p>Wild-harvested resin. Protected designation of origin.</p></div><div class="pillar"><span class="pillar__icon">◉</span><h4>Japanese Spring Water</h4><p>Mountain-sourced. Naturally soft mineral profile.</p></div><div class="pillar"><span class="pillar__icon">◫</span><h4>Bottled in Japan</h4><p>Every batch tested. Japanese quality standards.</p></div></div></div></section>
 
-  <section class="contact" id="contact">
-    <div class="contact__left">
-      <p class="eyebrow">Chapter five</p>
-      <h2 class="display">Order<br>Mastry.</h2>
-      <div class="contact__info">
-        <div class="info-block"><p class="info-label">Website</p><p class="info-value">mastry.jp</p></div>
-        <div class="info-block"><p class="info-label">Email</p><p class="info-value">hello@mastry.jp</p></div>
-        <div class="info-block"><p class="info-label">Origin</p><p class="info-value">Chios, Greece × Japan</p></div>
-        <div class="info-block"><p class="info-label">Ships from</p><p class="info-value">Japan · 3–5 business days</p></div>
-      </div>
-    </div>
-    <form class="order-form" id="orderForm">
-      <div class="form-group"><label for="fname">Full Name</label><input type="text" id="fname" placeholder="Your name" required /></div>
-      <div class="form-group"><label for="femail">Email</label><input type="email" id="femail" placeholder="your@email.com" required /></div>
-      <div class="form-row">
-        <div class="form-group"><label for="fproduct">Product</label><select id="fproduct" required><option value="">Select</option><option>Mastry Original — $2.62</option><option>Mastry Yuzu — $2.84</option><option>Mastry Hinoki — $2.62</option><option>Mastry Ume — $2.84</option></select></div>
-        <div class="form-group"><label for="fqty">Quantity</label><input type="number" id="fqty" min="1" max="48" value="1" required /></div>
-      </div>
-      <div class="form-group"><label for="faddress">Delivery Address</label><textarea id="faddress" rows="3" placeholder="Street, City, Country" required></textarea></div>
-      <button type="submit" class="btn btn--primary btn--full">Place Order</button>
-      <p class="form-note">International shipping available worldwide.</p>
-    </form>
-  </section>
+  <section class="contact" id="contact"><div class="contact__left"><p class="eyebrow">Chapter five</p><h2 class="display">Order<br>Mastry.</h2><div class="contact__info"><div class="info-block"><p class="info-label">Website</p><p class="info-value">mastry.jp</p></div><div class="info-block"><p class="info-label">Email</p><p class="info-value">hello@mastry.jp</p></div><div class="info-block"><p class="info-label">Origin</p><p class="info-value">Chios, Greece × Japan</p></div><div class="info-block"><p class="info-label">Ships from</p><p class="info-value">Japan · 3–5 business days</p></div></div></div><form class="order-form" id="orderForm"><div class="form-group"><label for="fname">Full Name</label><input type="text" id="fname" placeholder="Your name" required /></div><div class="form-group"><label for="femail">Email</label><input type="email" id="femail" placeholder="your@email.com" required /></div><div class="form-row"><div class="form-group"><label for="fproduct">Product</label><select id="fproduct" required><option value="">Select</option><option>Mastry Original — $2.62</option><option>Mastry Yuzu — $2.84</option><option>Mastry Hinoki — $2.62</option><option>Mastry Ume — $2.84</option></select></div><div class="form-group"><label for="fqty">Quantity</label><input type="number" id="fqty" min="1" max="48" value="1" required /></div></div><div class="form-group"><label for="faddress">Delivery Address</label><textarea id="faddress" rows="3" placeholder="Street, City, Country" required></textarea></div><button type="submit" class="btn btn--primary btn--full">Place Order</button><p class="form-note">International shipping available worldwide.</p></form></section>
 
-  <footer class="footer">
-    <div class="footer__inner">
-      <span class="footer__logo">MASTRY</span>
-      <span class="footer__copy">© 2026 Mastry · mastry.jp · Chios × Japan</span>
-      <div class="footer__links"><a href="#products">Products</a><a href="merch.html">Merch</a><a href="#greece">Greece</a><a href="#contact">Order</a></div>
-    </div>
-  </footer>
+  <footer class="footer"><div class="footer__inner"><span class="footer__logo">MASTRY</span><span class="footer__copy">© 2026 Mastry · mastry.jp · Chios × Japan</span><div class="footer__links"><a href="#products">Products</a><a href="merch.html">Merch</a><a href="#greece">Greece</a><a href="#contact">Order</a></div></div></footer>
 
   <div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
-  <aside class="cart-drawer" id="cartDrawer">
-    <div class="cart-drawer__header"><h2>Your Cart</h2><button onclick="closeCart()" class="cart-close">&times;</button></div>
-    <div class="cart-items" id="cartItems"><p class="cart-empty">Your cart is empty.</p></div>
-    <div class="cart-drawer__footer" id="cartFooter" style="display:none">
-      <div class="cart-subtotal"><span>Subtotal</span><span id="cartSubtotal">$0.00</span></div>
-      <button class="btn btn--primary btn--full" onclick="checkout()">Checkout</button>
-    </div>
-  </aside>
+  <aside class="cart-drawer" id="cartDrawer"><div class="cart-drawer__header"><h2>Your Cart</h2><button onclick="closeCart()" class="cart-close">&times;</button></div><div class="cart-items" id="cartItems"><p class="cart-empty">Your cart is empty.</p></div><div class="cart-drawer__footer" id="cartFooter" style="display:none"><div class="cart-subtotal"><span>Subtotal</span><span id="cartSubtotal">$0.00</span></div><button class="btn btn--primary btn--full" onclick="checkout()">Checkout</button></div></aside>
 
-  <div class="modal-overlay" id="successOverlay" style="display:none">
-    <div class="modal">
-      <p class="modal-icon">◈</p>
-      <h3>Order received.</h3>
-      <p>Thank you for choosing Mastry. We'll confirm within 24 hours.</p>
-      <button class="btn btn--primary" onclick="closeSuccess()">Continue</button>
-    </div>
-  </div>
+  <div class="modal-overlay" id="successOverlay" style="display:none"><div class="modal"><p class="modal-icon">◈</p><h3>Order received.</h3><p>Thank you for choosing Mastry. We'll confirm within 24 hours.</p><button class="btn btn--primary" onclick="closeSuccess()">Continue</button></div></div>
 
   <script src="script.js?v=9"></script>
 
@@ -361,6 +156,7 @@
     <div class="ls-haze"></div>
     <div class="ls-center" id="lsCenter">
       <img src="images/loading screen.png" class="ls-ref" alt="" />
+      <div class="ls-shad ls-shad-3" id="lsShad3"><img src="images/loading screen.png" alt="" style="filter:invert(1);" /></div>
       <div class="ls-shad ls-shad-1" id="lsShad1"><img src="images/loading screen.png" alt="" style="filter:invert(1);" /></div>
       <div class="ls-shad ls-shad-2" id="lsShad2"><img src="images/loading screen.png" alt="" style="filter:invert(1);" /></div>
       <div class="ls-slices" id="lsSlices"></div>
@@ -402,9 +198,9 @@
 
       if(!shadShown && t>.12){
         shadShown=true;
-        /* Chromatic aberration layers — cyan and magenta at high opacity */
         document.getElementById('lsShad1').style.opacity='0.85';
         document.getElementById('lsShad2').style.opacity='0.85';
+        document.getElementById('lsShad3').style.opacity='0.80';
       }
 
       var slices=slicesEl.querySelectorAll('.ls-sl');
