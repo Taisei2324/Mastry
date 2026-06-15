@@ -2,45 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mastry — Sparkling Water with Mastic</title>
+  <link rel="icon" href="images/better web logo.png" type="image/png" />
+  <link rel="apple-touch-icon" href="images/better web logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=16" />
+  <script>if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}</script>
   <style>
-    .hero-wordmark { display: flex; ... }
-    .wm-words { ... }
-    .wm-two { ... }
-  </style>
-  <meta name="viewport" ...
-  ...rest of head...
-</head>
-<style>
     .hero-wordmark {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 0.15em;
       font-family: 'Inter', sans-serif;
-      font-size: clamp(4rem, 9vw, 8.5rem);
+      font-size: clamp(3.8rem, 8.5vw, 8rem);
       font-weight: 900;
-      line-height: 0.92;
       letter-spacing: -0.03em;
       color: #fff;
       margin-bottom: 28px;
     }
-    .hero-wordmark sup {
-      font-size: 0.5em;
-      vertical-align: super;
-      letter-spacing: 0;
+    .wm-words {
+      display: flex;
+      flex-direction: column;
+      line-height: 0.95;
     }
-  </style>
-    .hero-wordmark {
-      display: block;
-      font-family: 'Inter', sans-serif;
-      font-size: clamp(4rem, 9vw, 8.5rem);
-      font-weight: 900;
-      line-height: 0.92;
-      letter-spacing: -0.03em;
-      color: #fff;
-      margin-bottom: 28px;
-    }
-    .hero-wordmark sup {
-      font-size: 0.5em;
-      vertical-align: super;
-      letter-spacing: 0;
+    .wm-two {
+      line-height: 1;
     }
   </style>
 </head>
@@ -71,7 +60,7 @@
     <div class="fullscreen__overlay"></div>
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
-<h1 class="hero-wordmark"><span class="wm-words"><span>Island</span><span>Island.</span></span><span class="wm-two">2</span></h1>
+      <h1 class="hero-wordmark"><span class="wm-words"><span>Island</span><span>Island.</span></span><span class="wm-two">2</span></h1>
       <p class="lead lead--light">The ancient resin of Chios meets<br>the purity of Japanese spring water.</p>
       <div class="hero__actions">
         <a href="#products" class="btn btn--primary-light">Explore the range</a>
@@ -242,7 +231,7 @@
   <footer class="footer">
     <div class="footer__inner">
       <span class="footer__logo">MASTRY</span>
-      <span class="footer__wordmark" aria-label="Island squared">Island<sup>2</sup>.</span>
+      <span class="footer__wordmark" aria-label="Island 2 Island">Island<sup>2</sup>Island.</span>
       <span class="footer__copy">© 2026 Mastry · mastry.jp · Chios × Japan</span>
       <div class="footer__links"><a href="#products">Products</a><a href="#japan">Japan</a><a href="#greece">Greece</a><a href="#contact">Order</a></div>
     </div>
