@@ -16,33 +16,55 @@
     #loadingScreen {
       position: fixed; inset: 0; z-index: 9999;
       background: #faf7f0;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 32px;
-      transition: opacity .6s ease;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+      transition: opacity .5s ease;
     }
     #loadingScreen.hidden { opacity: 0; pointer-events: none; }
-    .ls-logo { width: 220px; height: auto; display: flex; gap: 0; align-items: center; justify-content: center; }
-    .ls-slice {
-      display: block; width: 55px; height: 55px; overflow: hidden;
-      opacity: 0; transform: scale(.15) translateY(12px);
-      animation: lsZoom 600ms cubic-bezier(.18,.88,.24,1) forwards;
+    .ls-logo-img {
+      width: 200px; height: 200px; object-fit: contain;
+      animation: lsLogoFade 1.6s ease forwards;
     }
-    .ls-slice img {
-      width: 220px; height: 220px; object-fit: contain;
-      transform: translateX(calc(var(--i) * -55px));
+    @keyframes lsLogoFade {
+      0%   { opacity: 0; transform: scale(.88); }
+      40%  { opacity: 1; transform: scale(1.04); }
+      70%  { transform: scale(.98); }
+      100% { opacity: 1; transform: scale(1); }
     }
-    .ls-slice:nth-child(1) { animation-delay: 0ms; }
-    .ls-slice:nth-child(2) { animation-delay: 80ms; }
-    .ls-slice:nth-child(3) { animation-delay: 160ms; }
-    .ls-slice:nth-child(4) { animation-delay: 240ms; }
-    @keyframes lsZoom {
-      0%   { opacity: 0; transform: scale(.15) translateY(12px); }
-      40%  { opacity: 1; transform: scale(1.12) translateY(-2px); }
-      70%  { transform: scale(.96) translateY(0); }
-      100% { opacity: 1; transform: scale(1) translateY(0); }
+    .ls-dots {
+      display: flex; gap: 10px; align-items: center;
     }
-    .ls-label { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; opacity: .4; font-family: inherit; }
+    .ls-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #2a2a2a; opacity: 0;
+      animation: miniSequentialZoom 900ms cubic-bezier(.18,.88,.24,1) infinite;
+    }
+    .ls-dot:nth-child(1) { animation-delay: 0ms; }
+    .ls-dot:nth-child(2) { animation-delay: 160ms; }
+    .ls-dot:nth-child(3) { animation-delay: 320ms; }
+    .ls-dot:nth-child(4) { animation-delay: 480ms; }
+    @keyframes miniSequentialZoom {
+      0%   { transform: scale(.1);  opacity: 0; }
+      35%  { transform: scale(1.45); opacity: 1; }
+      70%  { transform: scale(.92); opacity: 1; }
+      100% { transform: scale(1);   opacity: 0; }
+    }
     .hero-loot-wrap { perspective: 1400px; display: block; }
-    @media (prefers-reduced-motion: reduce) { .ls-slice { animation: none; opacity: 1; } }
+    .hero-loot {
+      transform-style: preserve-3d;
+      animation: lootSpin 13s linear infinite;
+      backface-visibility: visible;
+      filter:
+        drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff)
+        drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+        drop-shadow(0 6px 10px rgba(0,0,0,0.45))
+        drop-shadow(0 0 16px rgba(255,255,255,0.35));
+    }
+    @keyframes lootSpin {
+      0%   { transform: translateY(0)    rotateY(0deg); }
+      50%  { transform: translateY(22px) rotateY(180deg); }
+      100% { transform: translateY(0)    rotateY(360deg); }
+    }
+    @media (prefers-reduced-motion: reduce) { .hero-loot { animation: none; } }
   </style>
   <script>if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}</script>
 </head>
@@ -99,18 +121,23 @@
                   if (m.setDoubleSided) m.setDoubleSided(true);
                 });
               } catch (e) {}
-              var SLOW = 6, FAST = 55;
+
+              // Variable-speed turntable: slow while facing the viewer, fast through the back/edges.
+              var SLOW = 5;    // deg/sec when the face is toward the user
+              var FAST = 18;   // deg/sec at 90/180/270 (turned away)
               var orbit = mv.getCameraOrbit();
               var phiDeg = orbit.phi * 180 / Math.PI;
               var radius = orbit.radius;
-              var theta = 0, last = performance.now();
+              var theta = 0;
+              var last = performance.now();
               function frame(now) {
                 var dt = (now - last) / 1000; last = now;
                 var t = ((theta % 360) + 360) % 360;
-                var distFront = Math.min(t, 360 - t);
-                var w = Math.min(1, Math.max(0, (distFront - 30) / 30));
+                var distFront = Math.min(t, 360 - t);          // 0 = facing user
+                var w = Math.min(1, Math.max(0, (distFront - 30) / 30)); // slow within 30deg, ramp to fast by 60deg
                 var ease = w * w * (3 - 2 * w);
-                theta += (SLOW + (FAST - SLOW) * ease) * dt;
+                var speed = SLOW + (FAST - SLOW) * ease;
+                theta += speed * dt;
                 mv.cameraOrbit = theta.toFixed(2) + 'deg ' + phiDeg.toFixed(2) + 'deg ' + radius + 'm';
                 requestAnimationFrame(frame);
               }
@@ -317,13 +344,13 @@
 
   <!-- Loading screen -->
   <div id="loadingScreen" aria-hidden="true">
-    <div class="ls-logo">
-      <span class="ls-slice" style="--i:0"><img src="images/scripts for the loading effect/island-logo.png" alt=""></span>
-      <span class="ls-slice" style="--i:1"><img src="images/scripts for the loading effect/island-logo.png" alt=""></span>
-      <span class="ls-slice" style="--i:2"><img src="images/scripts for the loading effect/island-logo.png" alt=""></span>
-      <span class="ls-slice" style="--i:3"><img src="images/scripts for the loading effect/island-logo.png" alt=""></span>
+    <img class="ls-logo-img" src="images/Island 2 island.png" alt="Mastry" />
+    <div class="ls-dots">
+      <span class="ls-dot"></span>
+      <span class="ls-dot"></span>
+      <span class="ls-dot"></span>
+      <span class="ls-dot"></span>
     </div>
-    <span class="ls-label">Mastry</span>
   </div>
   <script>
     (function(){

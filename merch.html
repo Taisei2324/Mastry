@@ -12,32 +12,62 @@
   <link rel="stylesheet" href="style.css?v=16" />
   <style>
     /* Loading screen */
-    #loadingScreen { position: fixed; inset: 0; z-index: 9999; background: #faf7f0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 32px; transition: opacity .6s ease; }
+    #loadingScreen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #faf7f0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 32px;
+      transition: opacity .6s ease;
+    }
     #loadingScreen.hidden { opacity: 0; pointer-events: none; }
-    .ls-logo { width: 220px; height: auto; display: flex; gap: 0; align-items: center; justify-content: center; }
-    .ls-slice { display: block; width: 55px; height: 55px; overflow: hidden; opacity: 0; transform: scale(.15) translateY(12px); animation: lsZoom 600ms cubic-bezier(.18,.88,.24,1) forwards; }
-    .ls-slice img { width: 220px; height: 220px; object-fit: contain; transform: translateX(calc(var(--i) * -55px)); }
-    .ls-slice:nth-child(1) { animation-delay: 0ms; }
-    .ls-slice:nth-child(2) { animation-delay: 80ms; }
-    .ls-slice:nth-child(3) { animation-delay: 160ms; }
-    .ls-slice:nth-child(4) { animation-delay: 240ms; }
-    @keyframes lsZoom { 0% { opacity:0; transform:scale(.15) translateY(12px); } 40% { opacity:1; transform:scale(1.12) translateY(-2px); } 70% { transform:scale(.96) translateY(0); } 100% { opacity:1; transform:scale(1) translateY(0); } }
-    .ls-label { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; opacity: .4; font-family: inherit; }
+    .ls-logo-img { width: 200px; height: 200px; object-fit: contain; animation: lsLogoFade 1.6s ease forwards; }
+    @keyframes lsLogoFade { 0% { opacity:0; transform:scale(.88); } 40% { opacity:1; transform:scale(1.04); } 70% { transform:scale(.98); } 100% { opacity:1; transform:scale(1); } }
+    .ls-dots { display: flex; gap: 10px; align-items: center; }
+    .ls-dot { width: 7px; height: 7px; border-radius: 50%; background: #2a2a2a; opacity: 0; animation: miniSequentialZoom 900ms cubic-bezier(.18,.88,.24,1) infinite; }
+    .ls-dot:nth-child(1) { animation-delay: 0ms; }
+    .ls-dot:nth-child(2) { animation-delay: 160ms; }
+    .ls-dot:nth-child(3) { animation-delay: 320ms; }
+    .ls-dot:nth-child(4) { animation-delay: 480ms; }
+    @keyframes miniSequentialZoom { 0% { transform:scale(.1); opacity:0; } 35% { transform:scale(1.45); opacity:1; } 70% { transform:scale(.92); opacity:1; } 100% { transform:scale(1); opacity:0; } }
     .merch-hero { padding: calc(var(--nav-h) + 90px) 56px 40px; background: var(--clr-cream); }
     .merch-hero .display { margin-bottom: 8px; }
     @media (max-width: 760px) { .merch-hero { padding: calc(var(--nav-h) + 56px) 20px 24px; } }
-    .pv-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(20,18,15,0.72); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 24px; opacity: 0; transition: opacity .25s ease; }
+
+    /* Product viewer modal */
+    .pv-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(20,18,15,0.72); backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center;
+      padding: 24px; opacity: 0; transition: opacity .25s ease;
+    }
     .pv-overlay.open { display: flex; opacity: 1; }
-    .pv-modal { background: var(--clr-cream, #f4efe7); border-radius: 16px; max-width: 760px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,0.45); transform: translateY(16px) scale(.98); transition: transform .25s ease; }
+    .pv-modal {
+      background: var(--clr-cream, #f4efe7); border-radius: 16px;
+      max-width: 760px; width: 100%; max-height: 90vh;
+      display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+      transform: translateY(16px) scale(.98); transition: transform .25s ease;
+    }
     .pv-overlay.open .pv-modal { transform: translateY(0) scale(1); }
-    .pv-close { position: absolute; top: 16px; right: 20px; z-index: 2; background: rgba(255,255,255,0.85); border: none; cursor: pointer; width: 38px; height: 38px; border-radius: 50%; font-size: 22px; line-height: 1; color: #222; }
+    .pv-close {
+      position: absolute; top: 16px; right: 20px; z-index: 2;
+      background: rgba(255,255,255,0.85); border: none; cursor: pointer;
+      width: 38px; height: 38px; border-radius: 50%;
+      font-size: 22px; line-height: 1; color: #222;
+    }
     .pv-img-wrap { flex: 1; min-height: 0; overflow: auto; background: #fff; }
     .pv-img-wrap img { width: 100%; height: auto; display: block; }
-    .pv-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 24px; border-top: 1px solid rgba(0,0,0,0.08); background: var(--clr-cream, #f4efe7); }
+    .pv-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; padding: 18px 24px; border-top: 1px solid rgba(0,0,0,0.08);
+      background: var(--clr-cream, #f4efe7);
+    }
     .pv-bar__info { display: flex; flex-direction: column; }
     .pv-bar__name { font-weight: 600; font-size: 1.05rem; }
     .pv-bar__price { opacity: .7; font-size: .95rem; }
-    @media (max-width: 760px) { .pv-bar { flex-direction: column; align-items: stretch; } .pv-bar .btn { width: 100%; } }
+    @media (max-width: 760px) {
+      .pv-bar { flex-direction: column; align-items: stretch; }
+      .pv-bar .btn { width: 100%; }
+    }
   </style>
   <script>if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}</script>
 </head>
@@ -109,10 +139,13 @@
     </div>
   </div>
 
+  <!-- Product viewer modal -->
   <div class="pv-overlay" id="pvOverlay" onclick="if(event.target===this)closeProductView()">
     <div class="pv-modal">
       <button class="pv-close" onclick="closeProductView()" aria-label="Close">&times;</button>
-      <div class="pv-img-wrap"><img src="images/island_front_back_combined_landscape.jpg" alt="Island 2 Island Tee — front & back" /></div>
+      <div class="pv-img-wrap">
+        <img src="images/island_front_back_combined_landscape.jpg" alt="Island 2 Island Tee — front & back" />
+      </div>
       <div class="pv-bar">
         <div class="pv-bar__info">
           <span class="pv-bar__name">Island 2 Island Tee</span>
@@ -127,13 +160,13 @@
 
   <!-- Loading screen -->
   <div id="loadingScreen" aria-hidden="true">
-    <div class="ls-logo">
-      <span class="ls-slice" style="--i:0"><img src="images/scripts for the loading effect/island-logo.png" alt=""></span>
-      <span class="ls-slice" style="--i:1"><img src="images/scripts for the loading effect/island-logo.png" alt=""></span>
-      <span class="ls-slice" style="--i:2"><img src="images/scripts for the loading effect/island-logo.png" alt=""></span>
-      <span class="ls-slice" style="--i:3"><img src="images/scripts for the loading effect/island-logo.png" alt=""></span>
+    <img class="ls-logo-img" src="images/Island 2 island.png" alt="Mastry" />
+    <div class="ls-dots">
+      <span class="ls-dot"></span>
+      <span class="ls-dot"></span>
+      <span class="ls-dot"></span>
+      <span class="ls-dot"></span>
     </div>
-    <span class="ls-label">Mastry</span>
   </div>
   <script>
     (function(){
