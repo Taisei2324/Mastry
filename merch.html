@@ -18,16 +18,16 @@
       transition: opacity .7s ease; overflow: hidden;
     }
     #loadingScreen.hidden { opacity: 0; pointer-events: none; }
-    .ls-bg { position:absolute; inset:-4%; background:url('images/ad 5.png') center/cover no-repeat; filter:brightness(0.42) saturate(0.5); animation:lsBgDrift 10s ease-in-out infinite alternate; }
+    .ls-bg { position:absolute; inset:-4%; background:url('images/ad 5.png') center/cover no-repeat; filter:brightness(0.62) saturate(0.85); animation:lsBgDrift 10s ease-in-out infinite alternate; }
     @keyframes lsBgDrift { from{transform:translateX(0) scale(1);} to{transform:translateX(-2%) scale(1.04);} }
-    .ls-vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 25%, rgba(0,0,0,0.6) 100%); }
-    .ls-haze { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(210,230,248,.12) 0%, transparent 30%, transparent 62%, rgba(0,0,0,.45) 100%); }
+    .ls-vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.55) 100%); }
+    .ls-haze { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(180,210,240,.18) 0%, rgba(140,180,220,.08) 25%, transparent 50%, rgba(0,0,0,.4) 100%); }
     .ls-center { position:relative; z-index:2; width:min(680px,86vw); }
     .ls-ref { width:100%; height:auto; display:block; visibility:hidden; pointer-events:none; }
     .ls-shad { position:absolute; inset:0; opacity:0; transition:opacity .5s ease; pointer-events:none; }
     .ls-shad img { width:100%; height:auto; display:block; }
-    .ls-shad-1 { transform:translate(4px,6px);  filter:blur(3px)  brightness(0) invert(1); }
-    .ls-shad-2 { transform:translate(10px,14px); filter:blur(8px) brightness(0) invert(1); }
+    .ls-shad-1 { transform:translate(5px,7px);  filter:blur(2px)  invert(1) sepia(1) hue-rotate(185deg) saturate(1.8) brightness(0.55); }
+    .ls-shad-2 { transform:translate(11px,16px); filter:blur(6px)  invert(1) sepia(1) hue-rotate(25deg)  saturate(2.2) brightness(0.45); }
     .ls-sl { position:absolute; top:0; bottom:0; overflow:hidden; }
     .ls-sl img { position:absolute; top:0; display:block; transform:scaleY(0.08); opacity:0; transform-origin:center center; }
     #lsBottom { position:absolute; bottom:26px; left:0; right:0; z-index:3; display:flex; align-items:center; justify-content:center; gap:16px; }
