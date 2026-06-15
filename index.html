@@ -21,7 +21,7 @@
     #loadingScreen.hidden { opacity: 0; pointer-events: none; }
     .ls-bg {
       position: absolute; inset: -4%;
-      background: url('images/ad 5.png') center/cover no-repeat;
+      background: url('images/IMG_0043.jpg') center/cover no-repeat;
       filter: brightness(0.62) saturate(0.85);
       animation: lsBgDrift 10s ease-in-out infinite alternate;
     }
@@ -406,7 +406,7 @@
       var slices=slicesEl.querySelectorAll('.ls-sl');
       for(var i=0;i<slices.length;i++){
         var sl=slices[i], dist=Math.abs(i-wave), peak=Math.exp(-(dist*dist)/3.2);
-        var scale=(0.28+peak*1.45+clamp((t-.45)/.38,0,1)*(i/(N-1))*.85)*(0.72+easeOutBack(clamp(t/.78,0,1))*.30);
+        var scale=(0.28+peak*0.72+clamp((t-.45)/.38,0,1)*(i/(N-1))*.42)*(0.72+easeOutBack(clamp(t/.78,0,1))*.30);
         var pull=i-wave, xSpread=pull*9*spread, yDrop=Math.abs(pull)*2.4*spread, rise=-peak*14;
         sl.style.opacity=clamp(t*4-i*.035,0,1);
         sl.style.transform='translateX('+xSpread+'px) translateY('+(yDrop+rise)+'px) scale('+scale+')';

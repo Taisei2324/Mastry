@@ -18,7 +18,7 @@
       transition: opacity .7s ease; overflow: hidden;
     }
     #loadingScreen.hidden { opacity: 0; pointer-events: none; }
-    .ls-bg { position:absolute; inset:-4%; background:url('images/ad 5.png') center/cover no-repeat; filter:brightness(0.62) saturate(0.85); animation:lsBgDrift 10s ease-in-out infinite alternate; }
+    .ls-bg { position:absolute; inset:-4%; background:url('images/IMG_0043.jpg') center/cover no-repeat; filter:brightness(0.62) saturate(0.85); animation:lsBgDrift 10s ease-in-out infinite alternate; }
     @keyframes lsBgDrift { from{transform:translateX(0) scale(1);} to{transform:translateX(-2%) scale(1.04);} }
     .ls-vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.55) 100%); }
     .ls-haze { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(180,210,240,.18) 0%, rgba(140,180,220,.08) 25%, transparent 50%, rgba(0,0,0,.4) 100%); }
@@ -223,7 +223,7 @@
       var slices=slicesEl.querySelectorAll('.ls-sl');
       for(var i=0;i<slices.length;i++){
         var sl=slices[i], dist=Math.abs(i-wave), peak=Math.exp(-(dist*dist)/3.2);
-        var scale=(0.28+peak*1.45+clamp((t-.45)/.38,0,1)*(i/(N-1))*.85)*(0.72+easeOutBack(clamp(t/.78,0,1))*.30);
+        var scale=(0.28+peak*0.72+clamp((t-.45)/.38,0,1)*(i/(N-1))*.42)*(0.72+easeOutBack(clamp(t/.78,0,1))*.30);
         var pull=i-wave, xSpread=pull*9*spread, yDrop=Math.abs(pull)*2.4*spread, rise=-peak*14;
         sl.style.opacity=clamp(t*4-i*.035,0,1);
         sl.style.transform='translateX('+xSpread+'px) translateY('+(yDrop+rise)+'px) scale('+scale+')';
