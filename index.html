@@ -12,20 +12,12 @@
   <link rel="stylesheet" href="style.css?v=16" />
   <script>if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}</script>
   <style>
-    .hero-title {
-      font-family: 'Inter', sans-serif;
-      font-size: clamp(3.5rem, 8vw, 8rem);
-      font-weight: 900;
-      line-height: 1.0;
-      letter-spacing: -0.03em;
-      color: #fff;
-      margin: 0 0 24px;
+    .hero-logo-img {
+      width: clamp(280px, 45vw, 620px);
+      height: auto;
       display: block;
-    }
-    .hero-title sup {
-      font-size: 0.55em;
-      vertical-align: super;
-      letter-spacing: 0;
+      margin-bottom: 28px;
+      filter: invert(1);
     }
   </style>
 </head>
@@ -56,7 +48,7 @@
     <div class="fullscreen__overlay"></div>
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
-      <h1 class="hero-title">Island<sup>2</sup><br>Island.</h1>
+      <img src="images/Island 2 island.png" alt="Island 2 Island" class="hero-logo-img" />
       <p class="lead lead--light">The ancient resin of Chios meets<br>the purity of Japanese spring water.</p>
       <div class="hero__actions">
         <a href="#products" class="btn btn--primary-light">Explore the range</a>
