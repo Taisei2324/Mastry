@@ -206,7 +206,7 @@
       }
     }
 
-    var raf=null, startTime=null, shadShown=false;
+    var raf=null, startTime=null, shadShown=false, animDone=false;
 
     function renderFrame(now){
       if(!startTime) startTime=now;
@@ -232,18 +232,19 @@
 
       if(t<1){ raf=requestAnimationFrame(renderFrame); }
       else {
+        animDone=true;
         slicesEl.style.opacity='0';
         document.getElementById('lsFinal').style.opacity='1';
         setTimeout(function(){ hide(); }, HOLD);
       }
     }
 
-    function hide(){ ls.classList.add('hidden'); setTimeout(function(){ ls.remove(); },800); }
+    function hide(){ if(!animDone) return; ls.classList.add('hidden'); setTimeout(function(){ ls.remove(); },800); }
 
     buildSlices();
     setTimeout(function(){ raf=requestAnimationFrame(renderFrame); }, 80);
     window.addEventListener('load', function(){ setTimeout(hide, 3400); });
-    setTimeout(hide, 5500);
+    setTimeout(hide, 8000);
   })();
   </script>
 
