@@ -17,16 +17,16 @@
       transition: opacity .7s ease; overflow: hidden;
     }
     #loadingScreen.hidden { opacity: 0; pointer-events: none; }
-    .ls-bg { position:absolute; inset:-4%; background:url('images/IMG_0043.jpg') center/cover no-repeat; filter:brightness(0.62) saturate(0.85); opacity:0.05; animation:lsBgDrift 10s ease-in-out infinite alternate; }
+    .ls-bg { position:absolute; inset:-4%; background:url('images/IMG_0043.jpg') center/cover no-repeat; filter:brightness(0.62) saturate(0.85); opacity:0.6; animation:lsBgDrift 10s ease-in-out infinite alternate; }
     @keyframes lsBgDrift { from{transform:translateX(0) scale(1);} to{transform:translateX(-2%) scale(1.04);} }
-    .ls-vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.55) 100%); }
-    .ls-haze { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(180,210,240,.18) 0%, rgba(140,180,220,.08) 25%, transparent 50%, rgba(0,0,0,.4) 100%); }
+    .ls-vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.65) 100%); }
+    .ls-haze { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(180,210,240,.18) 0%, rgba(140,180,220,.08) 25%, transparent 50%, rgba(0,0,0,.5) 100%); }
     .ls-center { position:relative; z-index:2; width:min(680px,86vw); overflow:visible; }
     .ls-ref { width:100%; height:auto; display:block; visibility:hidden; pointer-events:none; }
-    .ls-shad { position:absolute; inset:0; opacity:0; transition:opacity .5s ease; pointer-events:none; }
+    .ls-shad { position:absolute; inset:0; opacity:0; transition:opacity .4s ease; pointer-events:none; }
     .ls-shad img { width:100%; height:auto; display:block; }
-    .ls-shad-1 { transform:translate(5px,7px);  filter:blur(2px)  invert(1) sepia(1) hue-rotate(185deg) saturate(1.8) brightness(0.55); }
-    .ls-shad-2 { transform:translate(11px,16px); filter:blur(6px)  invert(1) sepia(1) hue-rotate(25deg)  saturate(2.2) brightness(0.45); }
+    .ls-shad-1 { transform:translate(-8px,0); filter:sepia(1) hue-rotate(155deg) saturate(18) brightness(1.4); }
+    .ls-shad-2 { transform:translate(8px,0);  filter:sepia(1) hue-rotate(295deg) saturate(18) brightness(1.4); }
     .ls-slices { position:absolute; inset:0; display:flex; align-items:center; }
     .ls-sl { position:relative; height:100%; overflow:visible; transform-origin:center center; will-change:transform,opacity,filter; }
     .ls-clip { position:absolute; inset:0; overflow:hidden; }
@@ -112,7 +112,6 @@
 
   <section class="products" id="merch" style="padding-top:40px;">
     <div class="catalog">
-
       <div class="catalog__item" onclick="openProductView('pvTee')">
         <div class="catalog__img-wrap"><img src="images/island_front_left_chest_mockup.png" alt="Island 2 Island Tee" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
         <div class="catalog__info">
@@ -122,7 +121,6 @@
           <div class="catalog__footer"><span class="catalog__price">$32</span><span class="catalog__add">View</span></div>
         </div>
       </div>
-
       <div class="catalog__item" onclick="openProductView('pvHat')">
         <div class="catalog__img-wrap"><img src="images/side merch hat.png" alt="Mastry Hat" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
         <div class="catalog__info">
@@ -132,7 +130,6 @@
           <div class="catalog__footer"><span class="catalog__price">$28</span><span class="catalog__add">View</span></div>
         </div>
       </div>
-
       <div class="catalog__item" onclick="openProductView('pvHoodie')">
         <div class="catalog__img-wrap"><img src="images/hoodie mastry.png" alt="Mastry Hoodie" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
         <div class="catalog__info">
@@ -142,7 +139,6 @@
           <div class="catalog__footer"><span class="catalog__price">$58</span><span class="catalog__add">View</span></div>
         </div>
       </div>
-
     </div>
   </section>
 
@@ -177,14 +173,9 @@
   <div class="pv-overlay" id="pvTee" onclick="if(event.target===this)closeProductView('pvTee')">
     <div class="pv-modal">
       <button class="pv-close" onclick="closeProductView('pvTee')" aria-label="Close">&times;</button>
-      <div class="pv-img-wrap">
-        <img src="images/island_front_back_combined_landscape.jpg" alt="Island 2 Island Tee — front &amp; back" />
-      </div>
+      <div class="pv-img-wrap"><img src="images/island_front_back_combined_landscape.jpg" alt="Island 2 Island Tee" /></div>
       <div class="pv-bar">
-        <div class="pv-bar__info">
-          <span class="pv-bar__name">Island 2 Island Tee</span>
-          <span class="pv-bar__price">$32 · Front &amp; back print</span>
-        </div>
+        <div class="pv-bar__info"><span class="pv-bar__name">Island 2 Island Tee</span><span class="pv-bar__price">$32 · Front &amp; back print</span></div>
         <button class="btn btn--primary" onclick="addToCart(101,'Island 2 Island Tee',32); closeProductView('pvTee');">Add to cart</button>
       </div>
     </div>
@@ -199,10 +190,7 @@
         <img src="images/hat merch.png" alt="Island 2 Island Hat — front" />
       </div>
       <div class="pv-bar">
-        <div class="pv-bar__info">
-          <span class="pv-bar__name">Island 2 Island Hat</span>
-          <span class="pv-bar__price">$28 · Side &amp; front view</span>
-        </div>
+        <div class="pv-bar__info"><span class="pv-bar__name">Island 2 Island Hat</span><span class="pv-bar__price">$28 · Side &amp; front view</span></div>
         <button class="btn btn--primary" onclick="addToCart(102,'Island 2 Island Hat',28); closeProductView('pvHat');">Add to cart</button>
       </div>
     </div>
@@ -217,10 +205,7 @@
         <img src="images/hoodie back real .png" alt="Island 2 Island Hoodie — back" />
       </div>
       <div class="pv-bar">
-        <div class="pv-bar__info">
-          <span class="pv-bar__name">Island 2 Island Hoodie</span>
-          <span class="pv-bar__price">$58 · Front &amp; back view</span>
-        </div>
+        <div class="pv-bar__info"><span class="pv-bar__name">Island 2 Island Hoodie</span><span class="pv-bar__price">$58 · Front &amp; back view</span></div>
         <button class="btn btn--primary" onclick="addToCart(103,'Island 2 Island Hoodie',58); closeProductView('pvHoodie');">Add to cart</button>
       </div>
     </div>
@@ -256,8 +241,6 @@
     function clamp(v,mn,mx){ return Math.max(mn,Math.min(mx,v)); }
     function easeInOut(t){ return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
 
-    var HUE_STOPS = [200, 155, 55, 25, 275, 315];
-
     function buildSlices(){
       slicesEl.innerHTML = '';
       for(var i=0;i<N;i++){
@@ -278,8 +261,8 @@
 
       if(!shadShown && t>.12){
         shadShown=true;
-        document.getElementById('lsShad1').style.opacity='0.15';
-        document.getElementById('lsShad2').style.opacity='0.08';
+        document.getElementById('lsShad1').style.opacity='0.85';
+        document.getElementById('lsShad2').style.opacity='0.85';
       }
 
       var slices=slicesEl.querySelectorAll('.ls-sl');
@@ -290,10 +273,7 @@
         sl.style.opacity=clamp(t*5-i*.04,0,1);
         sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';
         sl.style.zIndex=String(Math.round(peak*1000));
-        var blurVal=((1-peak)*spread*0.8).toFixed(2);
-        var hue=HUE_STOPS[i];
-        var sat=(1.8+peak*4.0).toFixed(2);
-        sl.style.filter='blur('+blurVal+'px) sepia(1) hue-rotate('+hue+'deg) saturate('+sat+')';
+        sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';
       }
 
       if(t<1){ raf=requestAnimationFrame(renderFrame); }
@@ -302,7 +282,7 @@
         for(var j=0;j<settled.length;j++){
           settled[j].style.transition='transform 240ms ease-out, filter 240ms ease-out';
           settled[j].style.transform='translateX(0) translateY(0) scale(1)';
-          settled[j].style.filter='blur(0px) sepia(0) saturate(1)';
+          settled[j].style.filter='blur(0px)';
         }
         setTimeout(function(){
           slicesEl.style.transition='opacity 220ms ease';
