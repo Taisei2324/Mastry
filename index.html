@@ -39,7 +39,17 @@
     <div class="fullscreen__overlay"></div>
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
-      <img src="images/logo rework.png" alt="Island 2 Island." style="width:min(640px,92vw);height:auto;display:block;margin-top:400px;margin-bottom:32px;filter:invert(1);" />
+      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1156 660" style="width:min(480px,80vw);height:auto;display:block;margin-top:1345px;margin-bottom:32px;" aria-label="Island 2 Island." role="img">
+        <defs>
+          <filter id="logo-invert">
+            <feColorMatrix type="matrix" values="-1 0 0 0 1  0 -1 0 0 1  0 0 -1 0 1  0 0 0 1 0"/>
+          </filter>
+          <mask id="logo-mask" maskContentUnits="objectBoundingBox">
+            <image href="images/logo rework.png" x="0" y="0" width="1" height="1" preserveAspectRatio="xMidYMid meet" filter="url(#logo-invert)"/>
+          </mask>
+        </defs>
+        <rect x="0" y="0" width="1156" height="660" fill="white" mask="url(#logo-mask)"/>
+      </svg>
       <p class="lead lead--light">The ancient resin of Chios meets<br>the purity of Japanese spring water.</p>
       <div class="hero__actions">
         <a href="#products" class="btn btn--primary-light">Explore the range</a>
