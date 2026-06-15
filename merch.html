@@ -11,19 +11,29 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=16" />
   <style>
-    /* Loading screen */
+    /* Loading screen – Shredders-style alpine reveal */
     #loadingScreen {
       position: fixed; inset: 0; z-index: 9999;
-      background: #0d0c0b;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px;
-      transition: opacity .6s ease;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity .7s ease; overflow: hidden;
     }
     #loadingScreen.hidden { opacity: 0; pointer-events: none; }
-    #loadingScreen::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.07) 3px,rgba(0,0,0,0.07) 4px); pointer-events:none; z-index:1; }
-    .ls-glitch { position:relative; width:min(700px,88vw); z-index:2; overflow:hidden; }
-    .ls-glitch img { width:100%; height:auto; display:block; }
-    .ls-glitch::after { content:''; position:absolute; top:-20%; left:-60%; width:38%; height:140%; background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.03) 15%,rgba(255,255,255,0.18) 50%,rgba(255,255,255,0.03) 85%,transparent 100%); transform:skewX(-10deg) scaleX(0.7); animation:waveSwipe 2.4s cubic-bezier(.4,0,.6,1) infinite; }
-    @keyframes waveSwipe { 0%{left:-60%;transform:skewX(-10deg) scaleX(0.7);opacity:0;} 6%{opacity:1;} 88%{opacity:1;} 100%{left:125%;transform:skewX(-10deg) scaleX(1.5);opacity:0;} }
+    .ls-bg { position:absolute; inset:-4%; background:url('images/ad 5.png') center/cover no-repeat; filter:brightness(0.42) saturate(0.5); animation:lsBgDrift 10s ease-in-out infinite alternate; }
+    @keyframes lsBgDrift { from{transform:translateX(0) scale(1);} to{transform:translateX(-2%) scale(1.04);} }
+    .ls-vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 25%, rgba(0,0,0,0.6) 100%); }
+    .ls-haze { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(210,230,248,.12) 0%, transparent 30%, transparent 62%, rgba(0,0,0,.45) 100%); }
+    .ls-center { position:relative; z-index:2; width:min(680px,86vw); }
+    .ls-ref { width:100%; height:auto; display:block; visibility:hidden; pointer-events:none; }
+    .ls-shad { position:absolute; inset:0; opacity:0; transition:opacity .5s ease; pointer-events:none; }
+    .ls-shad img { width:100%; height:auto; display:block; }
+    .ls-shad-1 { transform:translate(4px,6px);  filter:blur(3px)  brightness(0); }
+    .ls-shad-2 { transform:translate(10px,14px); filter:blur(8px) brightness(0); }
+    .ls-sl { position:absolute; top:0; bottom:0; overflow:hidden; }
+    .ls-sl img { position:absolute; top:0; display:block; transform:scaleY(0.08); opacity:0; transform-origin:center center; }
+    #lsBottom { position:absolute; bottom:26px; left:0; right:0; z-index:3; display:flex; align-items:center; justify-content:center; gap:16px; }
+    #lsBottom span { font-family:'Inter',sans-serif; font-size:10px; font-weight:300; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.38); }
+    #lsIcon { animation:lsPulse 1.4s ease-in-out infinite; }
+    @keyframes lsPulse { 0%,100%{opacity:.18;} 50%{opacity:.72;} }
     .merch-hero { padding: calc(var(--nav-h) + 90px) 56px 40px; background: var(--clr-cream); }
     .merch-hero .display { margin-bottom: 8px; }
     @media (max-width: 760px) { .merch-hero { padding: calc(var(--nav-h) + 56px) 20px 24px; } }
@@ -140,12 +150,12 @@
     <div class="pv-modal">
       <button class="pv-close" onclick="closeProductView()" aria-label="Close">&times;</button>
       <div class="pv-img-wrap">
-        <img src="images/island_front_back_combined_landscape.jpg" alt="Island 2 Island Tee — front & back" />
+        <img src="images/island_front_back_combined_landscape.jpg" alt="Island 2 Island Tee — front &amp; back" />
       </div>
       <div class="pv-bar">
         <div class="pv-bar__info">
           <span class="pv-bar__name">Island 2 Island Tee</span>
-          <span class="pv-bar__price">$32 · Front & back print</span>
+          <span class="pv-bar__price">$32 · Front &amp; back print</span>
         </div>
         <button class="btn btn--primary" onclick="addToCart(101,'Island 2 Island Tee',32); closeProductView();">Add to cart</button>
       </div>
@@ -156,17 +166,60 @@
 
   <!-- Loading screen -->
   <div id="loadingScreen" aria-hidden="true">
-    <div class="ls-glitch">
-      <img src="images/loading screen.png" alt="Island 2 Island." />
+    <div class="ls-bg"></div>
+    <div class="ls-vignette"></div>
+    <div class="ls-haze"></div>
+    <div class="ls-center" id="lsCenter">
+      <img src="images/island_island_white_text svg.svg" class="ls-ref" alt="" />
+      <div class="ls-shad ls-shad-1" id="lsShad1"><img src="images/island_island_white_text svg.svg" alt="" /></div>
+      <div class="ls-shad ls-shad-2" id="lsShad2"><img src="images/island_island_white_text svg.svg" alt="" /></div>
+    </div>
+    <div id="lsBottom">
+      <span>Loading assets. Please do not close this page.</span>
+      <span id="lsIcon">◈</span>
     </div>
   </div>
   <script>
-    (function(){
-      var ls = document.getElementById('loadingScreen');
-      function hide(){ ls.classList.add('hidden'); setTimeout(function(){ ls.remove(); }, 700); }
-      window.addEventListener('load', function(){ setTimeout(hide, 400); });
-      setTimeout(hide, 2200);
-    })();
+  (function(){
+    var ls   = document.getElementById('loadingScreen');
+    var wrap = document.getElementById('lsCenter');
+    var N = 12, DELAY = 58;
+
+    for (var i = 0; i < N; i++) {
+      var div = document.createElement('div');
+      div.className = 'ls-sl';
+      div.style.left  = (i / N * 100) + '%';
+      div.style.width = (1 / N * 100) + '%';
+      var img = document.createElement('img');
+      img.src = 'images/island_island_white_text svg.svg';
+      img.alt = '';
+      img.style.left   = (-i * 100) + '%';
+      img.style.width  = (N * 100) + '%';
+      img.style.height = 'auto';
+      div.appendChild(img);
+      wrap.appendChild(div);
+    }
+
+    setTimeout(function() {
+      setTimeout(function() {
+        document.getElementById('lsShad1').style.opacity = '0.15';
+        document.getElementById('lsShad2').style.opacity = '0.08';
+      }, DELAY * 3);
+      wrap.querySelectorAll('.ls-sl img').forEach(function(img, i) {
+        setTimeout(function() {
+          img.animate([
+            { transform: 'scaleY(0.08)', opacity: 0,   filter: 'blur(4px)' },
+            { transform: 'scaleY(1.38)', opacity: 1,   filter: 'blur(0.5px)', offset: 0.58 },
+            { transform: 'scaleY(1.0)',  opacity: 1,   filter: 'blur(0px)' }
+          ], { duration: 520, fill: 'forwards', easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
+        }, i * DELAY);
+      });
+    }, 90);
+
+    function hide(){ ls.classList.add('hidden'); setTimeout(function(){ ls.remove(); }, 800); }
+    window.addEventListener('load', function(){ setTimeout(hide, 350); });
+    setTimeout(hide, 2600);
+  })();
   </script>
 
   <script>
