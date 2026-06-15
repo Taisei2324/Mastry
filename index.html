@@ -10,6 +10,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=16" />
+  <style>
+    .hero-loot-wrap { perspective: 1400px; display: block; }
+    .hero-loot { transform-style: preserve-3d; animation: lootSpin 5s linear infinite; backface-visibility: visible; }
+    @keyframes lootSpin {
+      0%   { transform: translateY(0)    rotateY(0deg); }
+      50%  { transform: translateY(22px) rotateY(180deg); }
+      100% { transform: translateY(0)    rotateY(360deg); }
+    }
+    @media (prefers-reduced-motion: reduce) { .hero-loot { animation: none; } }
+  </style>
   <script>if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}</script>
 </head>
 <body>
@@ -18,6 +28,7 @@
     <a href="#hero" class="nav__logo">MASTRY</a>
     <ul class="nav__links" id="navLinks">
       <li><a href="#products">Products</a></li>
+      <li><a href="merch.html">Merch</a></li>
       <li><a href="#japan">Japan</a></li>
       <li><a href="#greece">Greece</a></li>
       <li><a href="#about">About</a></li>
@@ -39,7 +50,9 @@
     <div class="fullscreen__overlay"></div>
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
-      <img src="images/island_island_white_text%20svg.svg" alt="Island 2 Island." style="width:min(480px,80vw);height:auto;display:block;margin-top:1345px;margin-bottom:32px;transform:translateY(189px);" />
+      <div class="hero-loot-wrap" style="margin-top:1345px;margin-bottom:32px;transform:translateY(189px);">
+        <img class="hero-loot" src="images/island_island_white_text%20svg.svg" alt="Island 2 Island." style="width:min(480px,80vw);height:auto;display:block;" />
+      </div>
       <p class="lead lead--light">The ancient resin of Chios meets<br>the purity of Japanese spring water.</p>
       <div class="hero__actions">
         <a href="#products" class="btn btn--primary-light">Explore the range</a>
@@ -211,7 +224,7 @@
     <div class="footer__inner">
       <span class="footer__logo">MASTRY</span>
       <span class="footer__copy">© 2026 Mastry · mastry.jp · Chios × Japan</span>
-      <div class="footer__links"><a href="#products">Products</a><a href="#japan">Japan</a><a href="#greece">Greece</a><a href="#contact">Order</a></div>
+      <div class="footer__links"><a href="#products">Products</a><a href="merch.html">Merch</a><a href="#greece">Greece</a><a href="#contact">Order</a></div>
     </div>
   </footer>
 

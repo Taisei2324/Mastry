@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mastry — Merch</title>
+  <link rel="icon" href="images/better web logo.png" type="image/png" />
+  <link rel="apple-touch-icon" href="images/better web logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=16" />
+  <style>
+    .merch-hero { padding: calc(var(--nav-h) + 90px) 56px 40px; background: var(--clr-cream); }
+    .merch-hero .display { margin-bottom: 8px; }
+    @media (max-width: 760px) { .merch-hero { padding: calc(var(--nav-h) + 56px) 20px 24px; } }
+  </style>
+  <script>if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}</script>
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <a href="index.html#hero" class="nav__logo">MASTRY</a>
+    <ul class="nav__links" id="navLinks">
+      <li><a href="index.html#products">Products</a></li>
+      <li><a href="merch.html">Merch</a></li>
+      <li><a href="index.html#japan">Japan</a></li>
+      <li><a href="index.html#greece">Greece</a></li>
+      <li><a href="index.html#about">About</a></li>
+      <li><a href="index.html#contact">Contact</a></li>
+    </ul>
+    <button class="nav__cart" id="cartBtn" aria-label="Open cart">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <span class="cart-badge" id="cartBadge">0</span>
+    </button>
+    <button class="nav__burger" id="burger" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <section class="merch-hero">
+    <p class="eyebrow">Wear it</p>
+    <h2 class="display">Mastry merch.</h2>
+    <p class="lead">Island 2 Island. — on your back.</p>
+  </section>
+
+  <section class="products" id="merch" style="padding-top:40px;">
+    <div class="catalog">
+      <div class="catalog__item" onclick="addToCart(101,'Mastry Tee — Black',32)">
+        <div class="catalog__img-wrap"><img src="images/merch-tee-1.png" alt="Mastry Tee — Black" class="catalog__img" /><div class="catalog__zoom-ring"></div></div>
+        <div class="catalog__info">
+          <span class="catalog__tag">Tee</span>
+          <h3 class="catalog__name">Island 2 Island<br>Tee — Black</h3>
+          <p class="catalog__desc">Heavyweight cotton tee with the Island 2 Island. wordmark.</p>
+          <div class="catalog__footer"><span class="catalog__price">$32</span><span class="catalog__add">+ Add</span></div>
+        </div>
+      </div>
+      <div class="catalog__item" onclick="addToCart(102,'Mastry Tee — Cream',32)">
+        <div class="catalog__img-wrap"><img src="images/merch-tee-2.png" alt="Mastry Tee — Cream" class="catalog__img" /><div class="catalog__zoom-ring"></div></div>
+        <div class="catalog__info">
+          <span class="catalog__tag">Tee</span>
+          <h3 class="catalog__name">Island 2 Island<br>Tee — Cream</h3>
+          <p class="catalog__desc">Soft cream tee with subtle tonal print. Everyday staple.</p>
+          <div class="catalog__footer"><span class="catalog__price">$32</span><span class="catalog__add">+ Add</span></div>
+        </div>
+      </div>
+      <div class="catalog__item" onclick="addToCart(103,'Mastry Hoodie',58)">
+        <div class="catalog__img-wrap"><img src="images/merch-hoodie.png" alt="Mastry Hoodie" class="catalog__img" /><div class="catalog__zoom-ring"></div></div>
+        <div class="catalog__info">
+          <span class="catalog__tag">Hoodie</span>
+          <h3 class="catalog__name">Mastry<br>Hoodie</h3>
+          <p class="catalog__desc">Brushed-fleece hoodie. Embroidered Mastry mark on the chest.</p>
+          <div class="catalog__footer"><span class="catalog__price">$58</span><span class="catalog__add">+ Add</span></div>
+        </div>
+      </div>
+      <div class="catalog__item" onclick="addToCart(104,'Mastry Cap',26)">
+        <div class="catalog__img-wrap"><img src="images/merch-cap.png" alt="Mastry Cap" class="catalog__img" /><div class="catalog__zoom-ring"></div></div>
+        <div class="catalog__info">
+          <span class="catalog__tag">Cap</span>
+          <h3 class="catalog__name">Mastry<br>Cap</h3>
+          <p class="catalog__desc">Six-panel cap with embroidered logo. One size, adjustable.</p>
+          <div class="catalog__footer"><span class="catalog__price">$26</span><span class="catalog__add">+ Add</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <span class="footer__logo">MASTRY</span>
+      <span class="footer__copy">© 2026 Mastry · mastry.jp · Chios × Japan</span>
+      <div class="footer__links"><a href="index.html#products">Products</a><a href="merch.html">Merch</a><a href="index.html#greece">Greece</a><a href="index.html#contact">Order</a></div>
+    </div>
+  </footer>
+
+  <div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
+  <aside class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer__header"><h2>Your Cart</h2><button onclick="closeCart()" class="cart-close">&times;</button></div>
+    <div class="cart-items" id="cartItems"><p class="cart-empty">Your cart is empty.</p></div>
+    <div class="cart-drawer__footer" id="cartFooter" style="display:none">
+      <div class="cart-subtotal"><span>Subtotal</span><span id="cartSubtotal">$0.00</span></div>
+      <button class="btn btn--primary btn--full" onclick="checkout()">Checkout</button>
+    </div>
+  </aside>
+
+  <div class="modal-overlay" id="successOverlay" style="display:none">
+    <div class="modal">
+      <p class="modal-icon">◈</p>
+      <h3>Order received.</h3>
+      <p>Thank you for choosing Mastry. We'll confirm within 24 hours.</p>
+      <button class="btn btn--primary" onclick="closeSuccess()">Continue</button>
+    </div>
+  </div>
+
+  <script src="script.js?v=8"></script>
+</body>
+</html>
