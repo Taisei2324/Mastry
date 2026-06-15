@@ -67,12 +67,12 @@
           alt="Island 2 Island."
           auto-rotate
           auto-rotate-delay="0"
-          rotation-per-second="28deg"
+          rotation-per-second="3deg"
           camera-controls
           disable-zoom
           interaction-prompt="none"
           shadow-intensity="0.5"
-          exposure="1.2"
+          exposure="1.45"
           style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;">
         </model-viewer>
         <script>
@@ -84,8 +84,8 @@
                 (mv.model.materials || []).forEach(function (m) {
                   m.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
                   m.pbrMetallicRoughness.setMetallicFactor(0);
-                  m.pbrMetallicRoughness.setRoughnessFactor(0.55);
-                  if (m.setEmissiveFactor) m.setEmissiveFactor([0.05, 0.05, 0.05]);
+                  m.pbrMetallicRoughness.setRoughnessFactor(0.5);
+                  if (m.setEmissiveFactor) m.setEmissiveFactor([0.45, 0.45, 0.45]);
                 });
               } catch (e) {}
             });
