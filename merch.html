@@ -84,7 +84,7 @@
   <section class="products" id="merch" style="padding-top:40px;">
     <div class="catalog">
       <div class="catalog__item" onclick="openProductView()">
-        <div class="catalog__img-wrap"><img src="images/island_front_left_chest_mockup.png" alt="Island 2 Island Tee" class="catalog__img" /><div class="catalog__zoom-ring"></div></div>
+        <div class="catalog__img-wrap"><img src="images/island_front_left_chest_mockup.png" alt="Island 2 Island Tee" class="catalog__img" style="object-fit:contain;background:#fff;" /><div class="catalog__zoom-ring"></div></div>
         <div class="catalog__info">
           <span class="catalog__tag">Tee</span>
           <h3 class="catalog__name">Island 2 Island<br>Tee</h3>
@@ -139,7 +139,7 @@
     </div>
   </div>
 
-  <script src="script.js?v=8"></script>
+  <script src="script.js?v=9"></script>
   <script>
     function openProductView() {
       document.getElementById('pvOverlay').classList.add('open');

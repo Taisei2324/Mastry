@@ -14,9 +14,23 @@ window.addEventListener('orientationchange', () => {
   document.getElementById('burger').classList.remove('open');
 });
 
-// Hero fully zoomed out (1.0) — maximum view of the image.
-const heroImg = document.getElementById('heroImg');
-if (heroImg) heroImg.style.transform = 'scale(1.0)';
+// Scroll-driven zoom: every fullscreen image scales with scroll position.
+const zoomImgs = document.querySelectorAll('.fullscreen__img');
+function applyScrollZoom() {
+  const vh = window.innerHeight;
+  zoomImgs.forEach(img => {
+    const sec = img.closest('.fullscreen');
+    if (!sec) return;
+    const rect = sec.getBoundingClientRect();
+    // progress 0 -> 1 as the section travels up through the viewport
+    const progress = Math.min(1, Math.max(0, (vh - rect.top) / (vh + rect.height)));
+    const scale = 1 + progress * 0.18;
+    img.style.transform = 'scale(' + scale.toFixed(4) + ')';
+  });
+}
+window.addEventListener('scroll', applyScrollZoom, { passive: true });
+window.addEventListener('resize', applyScrollZoom);
+applyScrollZoom();
 
 // Mobile burger
 document.getElementById('burger').addEventListener('click', () => {
@@ -101,7 +115,8 @@ function closeSuccess() {
   document.getElementById('successOverlay').style.display = 'none';
 }
 
-document.getElementById('orderForm').addEventListener('submit', (e) => {
+const orderFormEl = document.getElementById('orderForm');
+if (orderFormEl) orderFormEl.addEventListener('submit', (e) => {
   e.preventDefault();
   document.getElementById('successOverlay').style.display = 'flex';
   e.target.reset();
