@@ -115,3 +115,33 @@ const observer = new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.5 });
 counters.forEach(c => observer.observe(c));
+
+// Phone bottom tab bar — highlight active section on scroll
+(function () {
+  const phoneNavItems = document.querySelectorAll('.phone-nav__item');
+  if (!phoneNavItems.length) return;
+
+  const sections = ['hero', 'products', 'japan', 'about', 'contact'].map(id => document.getElementById(id)).filter(Boolean);
+
+  function updateActiveTab() {
+    const mid = window.scrollY + window.innerHeight / 2;
+    let active = sections[0];
+    for (const s of sections) {
+      if (s.offsetTop <= mid) active = s;
+    }
+    phoneNavItems.forEach(item => {
+      item.classList.toggle('active', item.dataset.section === active.id);
+    });
+  }
+
+  window.addEventListener('scroll', updateActiveTab, { passive: true });
+  updateActiveTab();
+
+  // Close burger menu when a phone-nav link is tapped
+  phoneNavItems.forEach(item => {
+    item.addEventListener('click', () => {
+      document.getElementById('navLinks').classList.remove('open');
+      document.getElementById('burger').classList.remove('open');
+    });
+  });
+})();
