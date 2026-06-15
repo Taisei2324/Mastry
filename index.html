@@ -12,7 +12,16 @@
   <link rel="stylesheet" href="style.css?v=16" />
   <style>
     .hero-loot-wrap { perspective: 1400px; display: block; }
-    .hero-loot { transform-style: preserve-3d; animation: lootSpin 13s linear infinite; backface-visibility: visible; }
+    .hero-loot {
+      transform-style: preserve-3d;
+      animation: lootSpin 13s linear infinite;
+      backface-visibility: visible;
+      filter:
+        drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff)
+        drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+        drop-shadow(0 6px 10px rgba(0,0,0,0.45))
+        drop-shadow(0 0 16px rgba(255,255,255,0.35));
+    }
     @keyframes lootSpin {
       0%   { transform: translateY(0)    rotateY(0deg); }
       50%  { transform: translateY(22px) rotateY(180deg); }
