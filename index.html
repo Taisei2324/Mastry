@@ -39,18 +39,40 @@
     <div class="fullscreen__overlay"></div>
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
-      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 762 406" style="width:min(576px,96vw);height:auto;display:block;margin-top:300px;margin-bottom:28px;" aria-label="Island 2 Island." role="img">
-        <defs>
-          <filter id="invert-mask">
-            <feColorMatrix type="matrix" values="-1 0 0 0 1  0 -1 0 0 1  0 0 -1 0 1  0 0 0 1 0"/>
-          </filter>
-          <mask id="logo-mask" maskContentUnits="objectBoundingBox">
-            <image href="images/Island 2 island.png" x="0" y="0" width="1" height="1" preserveAspectRatio="xMidYMid meet" filter="url(#invert-mask)"/>
-          </mask>
-        </defs>
-        <rect x="0" y="0" width="762" height="406" fill="white" mask="url(#logo-mask)"/>
-      </svg>
-      <p class="lead lead--light">The ancient resin of Chios meets<br>the purity of Japanese spring water.</p>
+      <div class="logo-wrap" id="logoWrap" style="position:relative;display:inline-block;margin-top:980px;margin-bottom:60px;width:min(720px,92vw);align-self:flex-start;margin-left:0;">
+        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 762 406" style="width:100%;display:block;" aria-label="Island Island." role="img">
+          <defs>
+            <filter id="inv2">
+              <feColorMatrix type="matrix" values="-1 0 0 0 1  0 -1 0 0 1  0 0 -1 0 1  0 0 0 1 0"/>
+            </filter>
+            <mask id="words-mask" maskContentUnits="objectBoundingBox">
+              <image href="images/Island 2 island.png" x="0" y="0" width="1" height="1" preserveAspectRatio="xMidYMid meet" filter="url(#inv2)"/>
+              <rect x="0.79" y="0.25" width="0.16" height="0.37" fill="black"/>
+            </mask>
+          </defs>
+          <rect x="0" y="0" width="762" height="406" fill="white" mask="url(#words-mask)"/>
+        </svg>
+        <img src="images/logo-2.png" id="logo2" alt="2" style="position:absolute;left:72%;top:18%;width:18.6%;filter:invert(1);cursor:grab;touch-action:none;" />
+      </div>
+      <script>
+        (function(){
+          var two=document.getElementById('logo2'),wrap=document.getElementById('logoWrap'),drag=false;
+          function move(e){
+            if(!drag)return;
+            var p=e.touches?e.touches[0]:e,r=wrap.getBoundingClientRect();
+            two.style.left=((p.clientX-r.left)/r.width*100).toFixed(2)+'%';
+            two.style.top=((p.clientY-r.top)/r.height*100).toFixed(2)+'%';
+          }
+          function up(){if(drag){drag=false;two.style.cursor='grab';console.log('LOGO 2 POSITION -> left:'+two.style.left+' top:'+two.style.top);}}
+          two.addEventListener('mousedown',function(e){drag=true;two.style.cursor='grabbing';e.preventDefault();});
+          two.addEventListener('touchstart',function(e){drag=true;e.preventDefault();});
+          document.addEventListener('mousemove',move);
+          document.addEventListener('touchmove',move,{passive:false});
+          document.addEventListener('mouseup',up);
+          document.addEventListener('touchend',up);
+        })();
+      </script>
+      <p class="lead lead--light" style="margin-top:80px;">The ancient resin of Chios meets<br>the purity of Japanese spring water.</p>
       <div class="hero__actions">
         <a href="#products" class="btn btn--primary-light">Explore the range</a>
         <a href="#about" class="btn btn--ghost-light">Our story</a>
