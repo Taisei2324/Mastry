@@ -13,7 +13,7 @@
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
     /* Custom island cursor */
-    :root { --cursor-size: 64px; --cursor-angle: -45deg; --pink: #ff2bd6; --yellow: #ffe600; --blue: #00e5ff; }
+    :root { --cursor-size: 64px; --cursor-angle: 135deg; }
     @media (pointer: fine) { * { cursor: none !important; } }
     #customCursor {
       position: fixed; left: 0; top: 0; width: var(--cursor-size); height: var(--cursor-size);
@@ -22,17 +22,8 @@
     #customCursor img {
       width: 100%; height: 100%; object-fit: contain;
       transform: rotate(var(--cursor-angle));
-      filter: drop-shadow(2px 2px 0 var(--pink)) drop-shadow(-2px -1px 0 var(--blue)) drop-shadow(4px 3px 0 var(--yellow));
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
     }
-    #loadingBurst {
-      position: fixed; left: 50%; top: 50%; transform: translate3d(-50%,-50%,0) skewX(-13deg);
-      display: flex; align-items: center; gap: 0; pointer-events: none; opacity: 0; z-index: 9998; will-change: transform,opacity;
-    }
-    #loadingBurst.active { opacity: 1; }
-    .slice { display: block; width: 76px; height: 96px; overflow: hidden; transform: translateY(14px) scale(.2); opacity: 0; filter: blur(1px); animation: none; }
-    .slice b { display: block; width: max-content; font-size: 92px; line-height: .9; letter-spacing: -.085em; font-weight: 900; color: #111; font-style: italic; transform: translateX(calc(var(--i) * -76px)); text-shadow: 3px 3px 0 var(--pink), 6px 6px 0 var(--yellow), -3px -2px 0 var(--blue); }
-    #loadingBurst.active .slice { animation: sliceZoom 780ms cubic-bezier(.12,.95,.24,1) both; animation-delay: calc(var(--i) * 62ms); }
-    @keyframes sliceZoom { 0% { transform: translateY(18px) translateX(-8px) scale(.15); opacity:0; filter:blur(2px); } 28% { transform: translateY(-4px) translateX(0) scale(1.45); opacity:1; filter:blur(0); } 54% { transform: translateY(0) scale(.92); opacity:1; } 78% { transform: translateY(0) scale(1.02); opacity:1; } 100% { transform: translateY(-10px) scale(1.05); opacity:0; filter:blur(.5px); } }
     .hero-loot-wrap { perspective: 1400px; display: block; }
     .hero-loot {
       transform-style: preserve-3d;
@@ -89,7 +80,7 @@
           interaction-prompt="none"
           shadow-intensity="0.5"
           exposure="1.3"
-          style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;filter:drop-shadow(0 14px 22px rgba(0,0,0,0.55)) drop-shadow(0 0 10px rgba(0,0,0,0.35));">
+          style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px #fff) drop-shadow(0 0 8px rgba(255,255,255,0.6)) drop-shadow(0 14px 22px rgba(0,0,0,0.55));">
         </model-viewer>
         <script>
           (function () {
@@ -328,26 +319,13 @@
 
   <!-- Island cursor -->
   <div id="customCursor" aria-hidden="true"><img src="images/island_cursor_diagonal_minus45_effect_pack/island-logo.png" alt=""></div>
-  <div id="loadingBurst" aria-hidden="true">
-    <span class="slice" style="--i:0"><b>Island².</b></span>
-    <span class="slice" style="--i:1"><b>Island².</b></span>
-    <span class="slice" style="--i:2"><b>Island².</b></span>
-    <span class="slice" style="--i:3"><b>Island².</b></span>
-    <span class="slice" style="--i:4"><b>Island².</b></span>
-    <span class="slice" style="--i:5"><b>Island².</b></span>
-    <span class="slice" style="--i:6"><b>Island².</b></span>
-  </div>
   <script>
     (function(){
       var cursor=document.getElementById('customCursor');
-      var burst=document.getElementById('loadingBurst');
       var x=innerWidth/2,y=innerHeight/2,cx=x,cy=y;
       function move(e){x=e.clientX;y=e.clientY;}
       function loop(){cx+=(x-cx)*.32;cy+=(y-cy)*.32;cursor.style.transform='translate3d('+(cx-32)+'px,'+(cy-32)+'px,0)';requestAnimationFrame(loop);}
-      function triggerBurst(e){var px=e?e.clientX:cx,py=e?e.clientY:cy;burst.style.left=px+'px';burst.style.top=py+'px';burst.classList.remove('active');void burst.offsetWidth;burst.classList.add('active');}
       addEventListener('pointermove',move,{passive:true});
-      addEventListener('pointerdown',triggerBurst);
-      document.querySelectorAll('a,button').forEach(function(el){el.addEventListener('mouseenter',triggerBurst);});
       loop();
     })();
   </script>
