@@ -415,10 +415,18 @@
 
       if(t<1){ raf=requestAnimationFrame(renderFrame); }
       else {
-        animDone=true;
-        slicesEl.style.opacity='0';
-        document.getElementById('lsFinal').style.opacity='1';
-        setTimeout(function(){ hide(); }, HOLD);
+        var settled=slicesEl.querySelectorAll('.ls-sl');
+        for(var j=0;j<settled.length;j++){
+          settled[j].style.transition='transform 240ms ease-out, filter 240ms ease-out';
+          settled[j].style.transform='translateX(0) translateY(0) scale(1)';
+          settled[j].style.filter='blur(0px)';
+        }
+        setTimeout(function(){
+          slicesEl.style.transition='opacity 220ms ease';
+          slicesEl.style.opacity='0';
+          document.getElementById('lsFinal').style.opacity='1';
+          setTimeout(function(){ animDone=true; hide(); }, HOLD);
+        }, 260);
       }
     }
 
