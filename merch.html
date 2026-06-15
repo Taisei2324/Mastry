@@ -17,7 +17,7 @@
       transition: opacity .7s ease; overflow: hidden;
     }
     #loadingScreen.hidden { opacity: 0; pointer-events: none; }
-    .ls-bg { position:absolute; inset:-4%; background:url('images/IMG_0043.jpg') center/cover no-repeat; filter:brightness(0.62) saturate(0.85); opacity:0.8; animation:lsBgDrift 10s ease-in-out infinite alternate; }
+    .ls-bg { position:absolute; inset:-4%; background:url('images/IMG_0043.jpg') center/cover no-repeat; filter:brightness(0.62) saturate(0.85); opacity:0.05; animation:lsBgDrift 10s ease-in-out infinite alternate; }
     @keyframes lsBgDrift { from{transform:translateX(0) scale(1);} to{transform:translateX(-2%) scale(1.04);} }
     .ls-vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.55) 100%); }
     .ls-haze { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(180,210,240,.18) 0%, rgba(140,180,220,.08) 25%, transparent 50%, rgba(0,0,0,.4) 100%); }
@@ -190,7 +190,7 @@
     </div>
   </div>
 
-  <!-- Hat modal (side logo first, front second) -->
+  <!-- Hat modal -->
   <div class="pv-overlay" id="pvHat" onclick="if(event.target===this)closeProductView('pvHat')">
     <div class="pv-modal">
       <button class="pv-close" onclick="closeProductView('pvHat')" aria-label="Close">&times;</button>
@@ -256,6 +256,8 @@
     function clamp(v,mn,mx){ return Math.max(mn,Math.min(mx,v)); }
     function easeInOut(t){ return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
 
+    var HUE_STOPS = [200, 155, 55, 25, 275, 315];
+
     function buildSlices(){
       slicesEl.innerHTML = '';
       for(var i=0;i<N;i++){
@@ -268,7 +270,6 @@
     }
 
     var raf=null, startTime=null, shadShown=false, animDone=false;
-    var HUE_STOPS = [200, 160, 60, 30, 280, 320];
 
     function renderFrame(now){
       if(!startTime) startTime=now;
@@ -290,13 +291,9 @@
         sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';
         sl.style.zIndex=String(Math.round(peak*1000));
         var blurVal=((1-peak)*spread*0.8).toFixed(2);
-        if(peak>0.05){
-          var hue=HUE_STOPS[i];
-          var sat=(1+peak*3.5).toFixed(2);
-          sl.style.filter='blur('+blurVal+'px) sepia(1) hue-rotate('+hue+'deg) saturate('+sat+')';
-        } else {
-          sl.style.filter='blur('+blurVal+'px)';
-        }
+        var hue=HUE_STOPS[i];
+        var sat=(1.8+peak*4.0).toFixed(2);
+        sl.style.filter='blur('+blurVal+'px) sepia(1) hue-rotate('+hue+'deg) saturate('+sat+')';
       }
 
       if(t<1){ raf=requestAnimationFrame(renderFrame); }
@@ -305,7 +302,7 @@
         for(var j=0;j<settled.length;j++){
           settled[j].style.transition='transform 240ms ease-out, filter 240ms ease-out';
           settled[j].style.transform='translateX(0) translateY(0) scale(1)';
-          settled[j].style.filter='blur(0px)';
+          settled[j].style.filter='blur(0px) sepia(0) saturate(1)';
         }
         setTimeout(function(){
           slicesEl.style.transition='opacity 220ms ease';
