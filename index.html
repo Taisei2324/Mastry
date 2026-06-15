@@ -36,7 +36,7 @@
     .ls-shad { position: absolute; inset: 0; opacity: 0; transition: opacity .4s ease; pointer-events: none; }
     .ls-shad img { width: 100%; height: auto; display: block; }
     .ls-shad-1 { transform: translate(-7px, 0);  filter: sepia(1) hue-rotate(220deg) saturate(22) brightness(1.3); }
-    .ls-shad-2 { transform: translate(2px, 0);   filter: sepia(1) hue-rotate(295deg) saturate(18) brightness(1.4); }
+    .ls-shad-2 { transform: translate(3px, 0);   filter: sepia(1) hue-rotate(295deg) saturate(14) brightness(1.2); }
     .ls-shad-3 { transform: translate(7px, 7px); filter: sepia(1) hue-rotate(345deg) saturate(20) brightness(1.5); }
     .ls-slices { position: absolute; inset: 0; display: flex; align-items: center; }
     .ls-sl { position: relative; height: 100%; overflow: visible; transform-origin: center center; will-change: transform, opacity, filter; }
@@ -89,7 +89,6 @@
 
             function beginResume(){
               resumeTimer=setTimeout(function(){
-                // Sync theta to wherever the user left the model — no snap
                 try{
                   var o=mv.getCameraOrbit();
                   theta=o.theta*(180/Math.PI);
@@ -197,7 +196,7 @@
       if(!startTime)startTime=now;
       var t=clamp((now-startTime)/DURATION,0,1);
       var wave=t*(N-1),spread=1-easeInOut(clamp((t-.20)/.62,0,1));
-      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShad1').style.opacity='0.85';document.getElementById('lsShad2').style.opacity='0.28';document.getElementById('lsShad3').style.opacity='0.85';}
+      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShad1').style.opacity='0.85';document.getElementById('lsShad2').style.opacity='0.22';document.getElementById('lsShad3').style.opacity='0.85';}
       var slices=slicesEl.querySelectorAll('.ls-sl');
       for(var i=0;i<slices.length;i++){var sl=slices[i],dist=Math.abs(i-wave),peak=Math.exp(-(dist*dist)/2.0),scale=1+peak*0.55,pull=i-wave,xSpread=pull*3*spread,rise=-peak*8;sl.style.opacity=clamp(t*5-i*.04,0,1);sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';sl.style.zIndex=String(Math.round(peak*1000));sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';}
       if(t<1){raf=requestAnimationFrame(renderFrame);}
