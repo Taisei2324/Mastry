@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=16" />
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
     .hero-loot-wrap { perspective: 1400px; display: block; }
     .hero-loot {
@@ -60,7 +61,19 @@
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
       <div class="hero-loot-wrap" style="margin-top:1345px;margin-bottom:32px;transform:translate(-76px,114px);">
-        <img class="hero-loot" src="images/island_island_white_text%20svg.svg" alt="Island 2 Island." style="width:min(480px,80vw);height:auto;display:block;" />
+        <model-viewer
+          src="images/island_logo_holes_preserved_puffy_3d.glb"
+          alt="Island 2 Island."
+          auto-rotate
+          auto-rotate-delay="0"
+          rotation-per-second="28deg"
+          camera-controls
+          disable-zoom
+          interaction-prompt="none"
+          shadow-intensity="0.5"
+          exposure="1.15"
+          style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;">
+        </model-viewer>
       </div>
       <p class="lead lead--light">The ancient resin of Chios meets<br>the purity of Japanese spring water.</p>
       <div class="hero__actions">
