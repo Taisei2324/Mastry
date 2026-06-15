@@ -22,14 +22,17 @@
     @keyframes lsBgDrift { from{transform:translateX(0) scale(1);} to{transform:translateX(-2%) scale(1.04);} }
     .ls-vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.55) 100%); }
     .ls-haze { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(180,210,240,.18) 0%, rgba(140,180,220,.08) 25%, transparent 50%, rgba(0,0,0,.4) 100%); }
-    .ls-center { position:relative; z-index:2; width:min(680px,86vw); }
+    .ls-center { position:relative; z-index:2; width:min(680px,86vw); overflow:visible; }
     .ls-ref { width:100%; height:auto; display:block; visibility:hidden; pointer-events:none; }
     .ls-shad { position:absolute; inset:0; opacity:0; transition:opacity .5s ease; pointer-events:none; }
     .ls-shad img { width:100%; height:auto; display:block; }
     .ls-shad-1 { transform:translate(5px,7px);  filter:blur(2px)  invert(1) sepia(1) hue-rotate(185deg) saturate(1.8) brightness(0.55); }
     .ls-shad-2 { transform:translate(11px,16px); filter:blur(6px)  invert(1) sepia(1) hue-rotate(25deg)  saturate(2.2) brightness(0.45); }
-    .ls-sl { position:absolute; top:0; bottom:0; overflow:hidden; }
-    .ls-sl img { position:absolute; top:0; display:block; transform:scaleY(0.08); opacity:0; transform-origin:center center; }
+    .ls-slices { position:absolute; inset:0; display:flex; align-items:center; }
+    .ls-sl { position:relative; height:100%; overflow:visible; transform-origin:center center; will-change:transform,opacity,filter; }
+    .ls-clip { position:absolute; inset:0; overflow:hidden; }
+    .ls-clip img { position:absolute; top:0; display:block; height:auto; filter:invert(1); }
+    .ls-final { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; filter:invert(1); transition:opacity 200ms ease; }
     #lsBottom { position:absolute; bottom:26px; left:0; right:0; z-index:3; display:flex; align-items:center; justify-content:center; gap:16px; }
     #lsBottom span { font-family:'Inter',sans-serif; font-size:10px; font-weight:300; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.38); }
     #lsIcon { animation:lsPulse 1.4s ease-in-out infinite; }
@@ -170,9 +173,11 @@
     <div class="ls-vignette"></div>
     <div class="ls-haze"></div>
     <div class="ls-center" id="lsCenter">
-      <img src="images/loading screen.png" class="ls-ref" alt="" style="filter:invert(1);" />
+      <img src="images/loading screen.png" class="ls-ref" alt="" />
       <div class="ls-shad ls-shad-1" id="lsShad1"><img src="images/loading screen.png" alt="" style="filter:invert(1);" /></div>
       <div class="ls-shad ls-shad-2" id="lsShad2"><img src="images/loading screen.png" alt="" style="filter:invert(1);" /></div>
+      <div class="ls-slices" id="lsSlices"></div>
+      <img src="images/loading screen.png" class="ls-final" id="lsFinal" alt="" />
     </div>
     <div id="lsBottom">
       <span>Loading assets. Please do not close this page.</span>
@@ -181,45 +186,65 @@
   </div>
   <script>
   (function(){
-    var ls   = document.getElementById('loadingScreen');
-    var wrap = document.getElementById('lsCenter');
-    var N = 12, DELAY = 58;
+    var ls       = document.getElementById('loadingScreen');
+    var slicesEl = document.getElementById('lsSlices');
+    var N        = 14;
+    var DURATION = 1900;
+    var HOLD     = 520;
 
-    for (var i = 0; i < N; i++) {
-      var div = document.createElement('div');
-      div.className = 'ls-sl';
-      div.style.left  = (i / N * 100) + '%';
-      div.style.width = (1 / N * 100) + '%';
-      var img = document.createElement('img');
-      img.src = 'images/loading screen.png';
-      img.alt = '';
-      img.style.filter = 'invert(1)';
-      img.style.left   = (-i * 100) + '%';
-      img.style.width  = (N * 100) + '%';
-      img.style.height = 'auto';
-      div.appendChild(img);
-      wrap.appendChild(div);
+    function clamp(v,mn,mx){ return Math.max(mn,Math.min(mx,v)); }
+    function easeOutBack(t){ var c1=1.65,c3=c1+1; return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2); }
+    function easeInOut(t){ return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
+
+    function buildSlices(){
+      slicesEl.innerHTML = '';
+      for(var i=0;i<N;i++){
+        var sl=document.createElement('div'); sl.className='ls-sl'; sl.style.flex='0 0 calc(100% / '+N+')';
+        var clip=document.createElement('div'); clip.className='ls-clip';
+        var img=document.createElement('img'); img.src='images/loading screen.png'; img.alt='';
+        img.style.left=(i*-100)+'%'; img.style.width=(N*100)+'%';
+        clip.appendChild(img); sl.appendChild(clip); slicesEl.appendChild(sl);
+      }
     }
 
-    setTimeout(function() {
-      setTimeout(function() {
-        document.getElementById('lsShad1').style.opacity = '0.15';
-        document.getElementById('lsShad2').style.opacity = '0.08';
-      }, DELAY * 3);
-      wrap.querySelectorAll('.ls-sl img').forEach(function(img, i) {
-        setTimeout(function() {
-          img.animate([
-            { transform: 'scaleY(0.08)', opacity: 0,   filter: 'invert(1) blur(4px)' },
-            { transform: 'scaleY(1.38)', opacity: 1,   filter: 'invert(1) blur(0.5px)', offset: 0.58 },
-            { transform: 'scaleY(1.0)',  opacity: 1,   filter: 'invert(1) blur(0px)' }
-          ], { duration: 520, fill: 'forwards', easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
-        }, i * DELAY);
-      });
-    }, 90);
+    var raf=null, startTime=null, shadShown=false;
 
-    function hide(){ ls.classList.add('hidden'); setTimeout(function(){ ls.remove(); }, 800); }
-    window.addEventListener('load', function(){ setTimeout(hide, 350); });
-    setTimeout(hide, 2600);
+    function renderFrame(now){
+      if(!startTime) startTime=now;
+      var t=clamp((now-startTime)/DURATION,0,1);
+      var wave=t*(N-1), settle=easeInOut(clamp((t-.20)/.62,0,1)), spread=1-settle;
+
+      if(!shadShown && t>.12){
+        shadShown=true;
+        document.getElementById('lsShad1').style.opacity='0.15';
+        document.getElementById('lsShad2').style.opacity='0.08';
+      }
+
+      var slices=slicesEl.querySelectorAll('.ls-sl');
+      for(var i=0;i<slices.length;i++){
+        var sl=slices[i], dist=Math.abs(i-wave), peak=Math.exp(-(dist*dist)/3.2);
+        var scale=(0.28+peak*1.45+clamp((t-.45)/.38,0,1)*(i/(N-1))*.85)*(0.72+easeOutBack(clamp(t/.78,0,1))*.30);
+        var pull=i-wave, xSpread=pull*18*spread, yDrop=Math.abs(pull)*4.8*spread, rise=-peak*24;
+        sl.style.opacity=clamp(t*4-i*.035,0,1);
+        sl.style.transform='translateX('+xSpread+'px) translateY('+(yDrop+rise)+'px) scale('+scale+')';
+        sl.style.zIndex=String(Math.round(peak*1000));
+        sl.style.filter='blur('+((1-peak)*spread*1.2).toFixed(2)+'px)';
+      }
+
+      if(t<1){ raf=requestAnimationFrame(renderFrame); }
+      else {
+        slicesEl.style.opacity='0';
+        document.getElementById('lsFinal').style.opacity='1';
+        setTimeout(function(){ hide(); }, HOLD);
+      }
+    }
+
+    function hide(){ ls.classList.add('hidden'); setTimeout(function(){ ls.remove(); },800); }
+
+    buildSlices();
+    setTimeout(function(){ raf=requestAnimationFrame(renderFrame); }, 80);
+    window.addEventListener('load', function(){ setTimeout(hide, 3400); });
+    setTimeout(hide, 5500);
   })();
   </script>
 
