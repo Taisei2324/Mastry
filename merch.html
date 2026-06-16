@@ -13,16 +13,18 @@
   <style>
     #loadingScreen{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .7s ease;overflow:hidden;}
     #loadingScreen.hidden{opacity:0;pointer-events:none;}
-    .ls-bg{position:absolute;inset:-4%;background:url('images/IMG_0043.jpg') center/cover no-repeat;filter:brightness(0.62) saturate(0.85);opacity:1;animation:lsBgDrift 10s ease-in-out infinite alternate;}
+    .ls-bg{position:absolute;inset:-4%;background:url('images/IMG_0043.jpg') center/cover no-repeat;filter:brightness(0.62) saturate(0.85);opacity:1;animation:lsBgDrift 3s ease-in-out infinite alternate;}
     @keyframes lsBgDrift{from{transform:translateX(0) scale(1);}to{transform:translateX(-2%) scale(1.04);}}
+    .ls-glitch{position:absolute;inset:-4%;background:url('images/IMG_0043.jpg') center/cover no-repeat;filter:brightness(0.62) saturate(0.85);opacity:0;pointer-events:none;animation:lsGlitch 5s steps(1) infinite;}
+    @keyframes lsGlitch{0%,84%{opacity:0;transform:none;filter:brightness(0.62) saturate(0.85);}85%{opacity:1;transform:translateX(-6%) scaleX(1.03);filter:brightness(0.75) saturate(2) blur(5px) hue-rotate(25deg);}87%{opacity:1;transform:translateX(5%) scaleX(0.97);filter:brightness(0.5) saturate(0.4) blur(0px) hue-rotate(-15deg);}89%{opacity:1;transform:translateX(-2%) scale(1.01);filter:brightness(0.7) saturate(1.5) blur(3px);}91%,100%{opacity:0;transform:none;filter:brightness(0.62) saturate(0.85);}}
     .ls-vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 20%,rgba(0,0,0,0.65) 100%);}
     .ls-haze{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(180,210,240,.18) 0%,rgba(140,180,220,.08) 25%,transparent 50%,rgba(0,0,0,.5) 100%);}
     .ls-center{position:relative;z-index:2;width:min(680px,86vw);overflow:visible;}
     .ls-ref{width:100%;height:auto;display:block;visibility:hidden;pointer-events:none;}
     .ls-shad{position:absolute;inset:0;opacity:0;transition:opacity .4s ease;pointer-events:none;}
     .ls-shad img{width:100%;height:auto;display:block;}
-    .ls-shad-1{transform:translate(-7px,0); filter:sepia(1) hue-rotate(220deg) saturate(22) brightness(1.3);}
-    .ls-shad-3{transform:translate(7px,7px);filter:sepia(1) hue-rotate(345deg) saturate(20) brightness(1.5);}
+    .ls-shad-1{transform:translate(-7px,0);}
+    .ls-shad-3{transform:translate(7px,7px);}
     .ls-slices{position:absolute;inset:0;display:flex;align-items:center;}
     .ls-sl{position:relative;height:100%;overflow:visible;transform-origin:center center;will-change:transform,opacity,filter;}
     .ls-clip{position:absolute;inset:0;overflow:hidden;}
@@ -77,11 +79,11 @@
   <div class="pv-overlay" id="pvHoodie" onclick="if(event.target===this)closeProductView('pvHoodie')"><div class="pv-modal"><button class="pv-close" onclick="closeProductView('pvHoodie')" aria-label="Close">&times;</button><div class="pv-img-wrap"><img src="images/hoodie_front_back_color_matched_side_by_side.jpg" alt="Hoodie — front &amp; back" /></div><div class="pv-bar"><div class="pv-bar__info"><span class="pv-bar__name">Island 2 Island Hoodie</span><span class="pv-bar__price">$58 · Front &amp; back view</span></div><button class="btn btn--primary" onclick="addToCart(103,'Island 2 Island Hoodie',58);closeProductView('pvHoodie');">Add to cart</button></div></div></div>
   <script src="script.js?v=9"></script>
   <div id="loadingScreen" aria-hidden="true">
-    <div class="ls-bg"></div><div class="ls-vignette"></div><div class="ls-haze"></div>
+    <div class="ls-bg"></div><div class="ls-glitch"></div><div class="ls-vignette"></div><div class="ls-haze"></div>
     <div class="ls-center" id="lsCenter">
       <img src="images/loading screen.png" class="ls-ref" alt="" />
-      <div class="ls-shad ls-shad-3" id="lsShad3"><img src="images/loading screen.png" alt="" style="filter:invert(1);" /></div>
-      <div class="ls-shad ls-shad-1" id="lsShad1"><img src="images/loading screen.png" alt="" style="filter:invert(1);" /></div>
+      <div class="ls-shad ls-shad-3" id="lsShad3"><img src="images/loading screen.png" alt="" style="filter:invert(1) sepia(1) hue-rotate(310deg) saturate(25) brightness(1.5);" /></div>
+      <div class="ls-shad ls-shad-1" id="lsShad1"><img src="images/loading screen.png" alt="" style="filter:invert(1) sepia(1) hue-rotate(200deg) saturate(22) brightness(1.3);" /></div>
       <div class="ls-slices" id="lsSlices"></div>
       <img src="images/loading screen.png" class="ls-final" id="lsFinal" alt="" />
     </div>
