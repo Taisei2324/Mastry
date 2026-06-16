@@ -39,7 +39,7 @@
     }
     @keyframes lsGlitch {
       0%,72%   { opacity: 0; transform: none; }
-      73%      { opacity: 0.9; transform: translateX(-0.8%); }
+      73%      { opacity: 0.9; transform: translateX(0.8%) translateY(-0.8%); }
       75%,100% { opacity: 0; transform: none; }
     }
     .ls-vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.65) 100%); }
@@ -48,8 +48,10 @@
     .ls-ref { width: 100%; height: auto; display: block; visibility: hidden; pointer-events: none; }
     .ls-shad { position: absolute; inset: 0; opacity: 0; transition: opacity .4s ease; pointer-events: none; }
     .ls-shad img { width: 100%; height: auto; display: block; }
-    .ls-shad-1 { transform: translate(-7px, 0); }
-    .ls-shad-3 { transform: translate(7px, 7px); }
+    .ls-shad-1 { transform: translate(2px, 2px); }
+    .ls-shad-2 { transform: translate(4px, 4px); }
+    .ls-shad-3 { transform: translate(6px, 6px); }
+    .ls-shad-4 { transform: translate(8px, 8px); }
     .ls-slices { position: absolute; inset: 0; display: flex; align-items: center; }
     .ls-sl { position: relative; height: 100%; overflow: visible; transform-origin: center center; will-change: transform, opacity, filter; }
     .ls-clip { position: absolute; inset: 0; overflow: hidden; }
@@ -88,7 +90,7 @@
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
       <div class="hero-loot-wrap" style="margin-top:1345px;margin-bottom:32px;transform:translate(-76px,114px);">
-        <model-viewer id="heroModel" src="images/island_logo_holes_preserved_puffy_3d.glb" alt="Island 2 Island." camera-controls disable-zoom disable-pan environment-image="" interaction-prompt="none" shadow-intensity="0" exposure="0.9" tone-mapping="neutral" min-camera-orbit="auto 65deg auto" max-camera-orbit="auto 115deg auto" style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;filter:drop-shadow(0 8px 20px rgba(0,0,0,0.4));"></model-viewer>
+        <model-viewer id="heroModel" src="images/island_logo_holes_preserved_puffy_3d.glb" alt="Island 2 Island." camera-controls disable-zoom disable-pan interaction-prompt="none" shadow-intensity="0" exposure="1.2" tone-mapping="neutral" min-camera-orbit="auto 65deg auto" max-camera-orbit="auto 115deg auto" style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;filter:drop-shadow(0 8px 20px rgba(0,0,0,0.4));"></model-viewer>
         <script>
           (function(){
             var mv = document.getElementById('heroModel');
@@ -112,14 +114,12 @@
             mv.addEventListener('load', function () {
               try {
                 (mv.model.materials || []).forEach(function (m) {
-                  m.pbrMetallicRoughness.setBaseColorFactor([0.25, 0.38, 0.12, 1]);
+                  m.pbrMetallicRoughness.setBaseColorFactor([0.42, 0.478, 0.196, 1]);
                   m.pbrMetallicRoughness.setMetallicFactor(0);
                   m.pbrMetallicRoughness.setRoughnessFactor(1.0);
                   if (m.setEmissiveFactor) m.setEmissiveFactor([0, 0, 0]);
                   if (m.setAlphaMode) m.setAlphaMode('OPAQUE');
                   if (m.setDoubleSided) m.setDoubleSided(true);
-                  var pbr = m.pbrMetallicRoughness;
-                  if (pbr.baseColorTexture && pbr.baseColorTexture.setTexture) { try { pbr.baseColorTexture.setTexture(null); } catch(e) {} }
                 });
               } catch (e) {}
               var orbit = mv.getCameraOrbit();
@@ -184,8 +184,14 @@
     <div class="ls-haze"></div>
     <div class="ls-center" id="lsCenter">
       <img src="images/loading screen.png" class="ls-ref" alt="" />
-      <div class="ls-shad ls-shad-3" id="lsShad3"><img src="images/loading screen.png" alt="" style="filter:invert(1) sepia(1) hue-rotate(310deg) saturate(25) brightness(1.5);" /></div>
-      <div class="ls-shad ls-shad-1" id="lsShad1"><img src="images/loading screen.png" alt="" style="filter:invert(1) sepia(1) hue-rotate(200deg) saturate(22) brightness(1.3);" /></div>
+      <!-- dark purple edge — furthest back -->
+      <div class="ls-shad ls-shad-4" id="lsShad4"><img src="images/loading screen.png" alt="" style="filter:invert(1) sepia(1) hue-rotate(256deg) saturate(10) brightness(0.35);" /></div>
+      <!-- yellow shadow -->
+      <div class="ls-shad ls-shad-3" id="lsShad3"><img src="images/loading screen.png" alt="" style="filter:invert(1) sepia(1) hue-rotate(27deg) saturate(15) brightness(1.8);" /></div>
+      <!-- hot pink outline -->
+      <div class="ls-shad ls-shad-2" id="lsShad2"><img src="images/loading screen.png" alt="" style="filter:invert(1) sepia(1) hue-rotate(284deg) saturate(20) brightness(1.5);" /></div>
+      <!-- white highlight — closest -->
+      <div class="ls-shad ls-shad-1" id="lsShad1"><img src="images/loading screen.png" alt="" style="filter:invert(1) brightness(1.1);" /></div>
       <div class="ls-slices" id="lsSlices"></div>
       <img src="images/loading screen.png" class="ls-final" id="lsFinal" alt="" />
     </div>
@@ -202,7 +208,7 @@
       if(!startTime)startTime=now;
       var t=clamp((now-startTime)/DURATION,0,1);
       var wave=t*(N-1),spread=1-easeInOut(clamp((t-.20)/.62,0,1));
-      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShad1').style.opacity='0.85';document.getElementById('lsShad3').style.opacity='0.85';}
+      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShad1').style.opacity='0.9';document.getElementById('lsShad2').style.opacity='0.85';document.getElementById('lsShad3').style.opacity='0.85';document.getElementById('lsShad4').style.opacity='0.8';}
       var slices=slicesEl.querySelectorAll('.ls-sl');
       for(var i=0;i<slices.length;i++){var sl=slices[i],dist=Math.abs(i-wave),peak=Math.exp(-(dist*dist)/2.0),scale=1+peak*0.55,pull=i-wave,xSpread=pull*3*spread,rise=-peak*8;sl.style.opacity=clamp(t*5-i*.04,0,1);sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';sl.style.zIndex=String(Math.round(peak*1000));sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';}
       if(t<1){raf=requestAnimationFrame(renderFrame);}
