@@ -42,26 +42,27 @@
     #lsIcon{animation:lsPulse 1.4s ease-in-out infinite;}
     @keyframes lsPulse{0%,100%{opacity:.18;}50%{opacity:.72;}}
     .hero-loot-wrap{perspective:1400px;display:block;}
+    .hero-model-shell{position:relative;display:inline-block;line-height:0;}
+    .hero-model-bg{position:absolute;inset:0;background:#000;pointer-events:none;z-index:0;}
     @media(prefers-reduced-motion:reduce){#heroModel{animation:none;}}
   </style>
   <script>
     if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}
-    // Palette applied as model-viewer background — black 3D model renders on top, z-axis stays black
     window.__heroPick = (function(){
       var p = [
-        '#6B7A32', // muted olive
-        '#F4E8C1', // warm cream
-        '#F7F3E8', // bone white
-        '#D8C99B', // sand beige
-        '#9A6B43', // clay brown
-        '#A8B88A', // light sage
-        '#8A8678', // stone gray
-        '#C8B89A', // warm tan
-        '#7A9070', // sage green
-        '#B8A888', // driftwood
-        '#E8DCC8', // linen
-        '#5C6B3A', // dark olive
-        '#A09080'  // warm greige
+        'invert(1) sepia(1) hue-rotate(39deg)  saturate(2.3) brightness(0.47)',
+        'invert(1) sepia(1) hue-rotate(11deg)  saturate(1.62) brightness(1.0)',
+        'invert(1) sepia(1) hue-rotate(10deg)  saturate(1.26) brightness(1.0)',
+        'invert(1) sepia(1) hue-rotate(12deg)  saturate(2.0)  brightness(1.0)',
+        'invert(1) sepia(1) hue-rotate(358deg) saturate(2.5)  brightness(0.61)',
+        'invert(1) sepia(1) hue-rotate(358deg) saturate(1.8)  brightness(0.21)',
+        'invert(1) sepia(1) hue-rotate(65deg)  saturate(2.3)  brightness(0.28)',
+        'invert(1) sepia(1) hue-rotate(64deg)  saturate(1.8)  brightness(0.23)',
+        'invert(1) sepia(1) hue-rotate(10deg)  saturate(1.62) brightness(1.0)',
+        'invert(1) sepia(1) hue-rotate(62deg)  saturate(1.32) brightness(0.12)',
+        'invert(1) sepia(1) hue-rotate(18deg)  saturate(1.2)  brightness(1.0)',
+        'invert(1) sepia(1) hue-rotate(47deg)  saturate(2.0)  brightness(0.87)',
+        'invert(1) sepia(1) hue-rotate(13deg)  saturate(1.26) brightness(0.75)'
       ];
       return p[Math.floor(Math.random()*p.length)];
     })();
@@ -92,24 +93,27 @@
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
       <div class="hero-loot-wrap" style="margin-top:1345px;margin-bottom:32px;transform:translate(-76px,114px);">
-        <model-viewer id="heroModel"
-          src="images/island_logo_holes_preserved_puffy_3d.glb"
-          alt="Island 2 Island."
-          camera-controls disable-zoom disable-pan
-          interaction-prompt="none"
-          shadow-intensity="0"
-          exposure="1.4"
-          min-camera-orbit="auto 65deg auto"
-          max-camera-orbit="auto 115deg auto"
-          style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;display:block;">
-        </model-viewer>
+        <div class="hero-model-shell">
+          <div class="hero-model-bg" style="width:min(520px,86vw);height:360px;"></div>
+          <model-viewer id="heroModel"
+            src="images/island_logo_holes_preserved_puffy_3d.glb"
+            alt="Island 2 Island."
+            camera-controls disable-zoom disable-pan
+            interaction-prompt="none"
+            shadow-intensity="0"
+            exposure="1.4"
+            field-of-view="22deg"
+            min-camera-orbit="auto 65deg auto"
+            max-camera-orbit="auto 115deg auto"
+            style="position:relative;z-index:1;width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;display:block;">
+          </model-viewer>
+        </div>
         <script>
           (function(){
             var mv = document.getElementById('heroModel');
             if (!mv) return;
-            var bg = window.__heroPick || '#D8C99B';
-            mv.style.background = bg;
-            mv.style.filter = 'drop-shadow(0 12px 28px rgba(0,0,0,0.5))';
+            var f = window.__heroPick || 'invert(1) sepia(1) hue-rotate(39deg) saturate(2.3) brightness(0.47)';
+            mv.style.filter = f + ' drop-shadow(0 8px 20px rgba(0,0,0,0.35))';
             var userInteracting = false, resumeTimer = null;
             var theta = 0, phiDeg = 90, origPhiDeg = 90, radius = 1;
             var last = performance.now(), RAD = 180 / Math.PI;
