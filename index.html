@@ -40,29 +40,11 @@
     #lsBottom span{font-family:'Inter',sans-serif;font-size:10px;font-weight:300;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.38);}
     #lsIcon{animation:lsPulse 1.4s ease-in-out infinite;}
     @keyframes lsPulse{0%,100%{opacity:.18;}50%{opacity:.72;}}
-    .hero-loot-wrap{perspective:1400px;display:block;}
+    .hero-loot-wrap{perspective:1400px;display:block;position:relative;}
     @media(prefers-reduced-motion:reduce){#heroModel{animation:none;}}
   </style>
   <script>
     if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}
-    window.__heroPick = (function(){
-      var p = [
-        'sepia(1) hue-rotate(39deg)  saturate(2.3) brightness(0.62)',
-        'sepia(1) hue-rotate(11deg)  saturate(1.8)  brightness(1.1)',
-        'sepia(1) hue-rotate(10deg)  saturate(1.4)  brightness(1.1)',
-        'sepia(1) hue-rotate(12deg)  saturate(2.2)  brightness(1.05)',
-        'sepia(1) hue-rotate(358deg) saturate(2.8)  brightness(0.75)',
-        'sepia(1) hue-rotate(358deg) saturate(2.0)  brightness(0.42)',
-        'sepia(1) hue-rotate(65deg)  saturate(2.6)  brightness(0.5)',
-        'sepia(1) hue-rotate(64deg)  saturate(2.0)  brightness(0.44)',
-        'sepia(1) hue-rotate(10deg)  saturate(1.8)  brightness(1.1)',
-        'sepia(1) hue-rotate(62deg)  saturate(1.5)  brightness(0.28)',
-        'sepia(1) hue-rotate(18deg)  saturate(1.4)  brightness(1.1)',
-        'sepia(1) hue-rotate(47deg)  saturate(2.2)  brightness(1.0)',
-        'sepia(1) hue-rotate(13deg)  saturate(1.4)  brightness(0.9)'
-      ];
-      return p[Math.floor(Math.random()*p.length)];
-    })();
   </script>
 </head>
 <body>
@@ -90,6 +72,7 @@
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
       <div class="hero-loot-wrap" style="margin-top:1345px;margin-bottom:32px;transform:translate(-76px,114px);">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse 62% 58% at 50% 48%, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 55%, transparent 80%);pointer-events:none;z-index:0;"></div>
         <model-viewer id="heroModel"
           src="images/blackfill web hero logo/floating_web_hero_logo2_1.glb"
           alt="Island 2 Island."
@@ -99,14 +82,12 @@
           exposure="1.4"
           min-camera-orbit="auto 65deg auto"
           max-camera-orbit="auto 115deg auto"
-          style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;display:block;">
+          style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;display:block;position:relative;z-index:1;">
         </model-viewer>
         <script>
           (function(){
             var mv = document.getElementById('heroModel');
             if (!mv) return;
-            var f = window.__heroPick || 'sepia(1) hue-rotate(39deg) saturate(2.3) brightness(0.62)';
-            mv.style.filter = f;
             var userInteracting = false, resumeTimer = null;
             var theta = 0, phiDeg = 90, origPhiDeg = 90, radius = 1;
             var last = performance.now(), RAD = 180 / Math.PI;
@@ -124,11 +105,10 @@
             mv.addEventListener('pointerup',onRelease);
             mv.addEventListener('pointercancel',onRelease);
             mv.addEventListener('load',function(){
-              // Force all materials to clean white so CSS filter colorizes them correctly
               try{
                 var mats=mv.model.materials;
                 for(var m=0;m<mats.length;m++){
-                  mats[m].pbrMetallicRoughness.setBaseColorFactor([0.949,1,0.910,1]);
+                  mats[m].pbrMetallicRoughness.setBaseColorFactor([0,0,0,1]);
                 }
               }catch(e){}
               var orbit=mv.getCameraOrbit();
