@@ -45,19 +45,16 @@
     .m-nav__badge{position:absolute;top:2px;right:2px;background:var(--sage);color:#fff;font-size:0.55rem;font-weight:800;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;}
     section{scroll-margin-top:var(--nav-h);}
 
-    /* HERO — full image visible, overlay text below image */
+    /* HERO — full image, logo overlaid bottom-left */
     .m-hero{position:relative;width:100%;margin-top:var(--nav-h);background:#0d0d0d;}
-    .m-hero__img{width:100%;height:auto;display:block;object-fit:contain;}
-    .m-hero__content{position:relative;padding:28px 24px calc(20px + var(--tab-h));background:linear-gradient(to bottom,#0d0d0d 0%,#111 100%);}
+    .m-hero__img{width:100%;height:auto;display:block;}
+    /* Floating logo — overlaid on hero image, bottom-left */
+    .m-hero__logo{position:absolute;bottom:12px;left:8px;width:160px;height:118px;background:transparent;--poster-color:transparent;display:block;pointer-events:auto;}
+    .m-hero__content{padding:24px 24px calc(20px + var(--tab-h));background:#0d0d0d;}
     .m-hero__eyebrow{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:10px;display:block;}
     .m-hero__title{font-size:clamp(2.4rem,10vw,3.4rem);font-weight:900;line-height:0.95;letter-spacing:-0.03em;color:#fff;margin-bottom:14px;}
     .m-hero__sub{font-size:0.88rem;line-height:1.65;color:rgba(255,255,255,0.6);margin-bottom:24px;}
     .m-hero__actions{display:flex;flex-direction:column;gap:10px;}
-
-    /* FLOATING LOGO */
-    .m-logo-section{background:#0d0d0d;display:flex;flex-direction:column;align-items:center;padding:28px 0 16px;}
-    .m-logo-section model-viewer{width:92vw;max-width:420px;height:auto;aspect-ratio:1.4/1;background:transparent;--poster-color:transparent;display:block;}
-    .m-logo-caption{font-size:0.62rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.28);margin-top:6px;}
 
     /* BUTTONS */
     .m-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;font-family:inherit;font-size:0.8rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;border:none;cursor:pointer;touch-action:manipulation;-webkit-appearance:none;transition:opacity .2s;}
@@ -79,12 +76,10 @@
     .m-eyebrow{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--sage);margin-bottom:8px;display:block;}
     .m-title{font-size:clamp(1.9rem,8.5vw,2.6rem);font-weight:900;line-height:0.95;letter-spacing:-0.03em;color:var(--cream);}
     .m-lead{font-size:0.87rem;color:var(--muted);line-height:1.7;margin-top:10px;}
-    /* Card scroll — each card shows full image */
     .m-catalog-scroll{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;margin:0 -20px;padding:0 20px 4px;}
     .m-catalog-scroll::-webkit-scrollbar{display:none;}
     .m-card{flex:0 0 72vw;max-width:280px;scroll-snap-align:start;background:#1a1a1a;border:1px solid var(--border);overflow:hidden;cursor:pointer;touch-action:manipulation;}
     .m-card:active{opacity:0.85;}
-    /* Full image — no cropping */
     .m-card__img{width:100%;height:auto;display:block;object-fit:contain;background:#1a1a1a;}
     .m-card__body{padding:16px 16px 18px;}
     .m-card__tag{font-size:0.6rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#b07d3a;margin-bottom:6px;display:block;}
@@ -94,9 +89,9 @@
     .m-card__price{font-size:0.77rem;font-weight:600;color:var(--muted);}
     .m-card__add{font-size:0.67rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--sage);}
 
-    /* PHOTO SECTIONS — full image visible, text below */
+    /* PHOTO SECTIONS */
     .m-photo{position:relative;width:100%;background:#0d0d0d;}
-    .m-photo__img{width:100%;height:auto;display:block;object-fit:contain;}
+    .m-photo__img{width:100%;height:auto;display:block;}
     .m-photo__content{padding:28px 24px 36px;background:#0d0d0d;}
     .m-photo__caption{font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);display:block;margin-top:10px;}
     .m-photo__title{font-size:clamp(2rem,9vw,2.8rem);font-weight:900;line-height:0.95;letter-spacing:-0.03em;color:#fff;margin-bottom:10px;}
@@ -104,7 +99,7 @@
 
     /* BOTTLE */
     .m-bottle{background:#0d0d0d;}
-    .m-bottle__img{width:100%;height:auto;display:block;object-fit:contain;}
+    .m-bottle__img{width:100%;height:auto;display:block;}
     .m-bottle__text{padding:28px 24px 44px;}
     .m-bottle__features{display:flex;flex-direction:column;gap:10px;margin:20px 0 28px;}
     .m-bottle__feature{display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:10px;}
@@ -190,11 +185,42 @@
     </button>
   </nav>
 
-  <!-- HERO -->
+  <!-- HERO — full image, spinning logo overlaid bottom-left -->
   <section id="home">
     <div class="m-hero">
       <img src="" alt="Mastry" class="m-hero__img" id="heroImg" />
       <script>(function(){var h=['images/wider and newer web hero.png','images/perfect web hero.png','images/image web hero temple.png','images/web hero half & half.png','images/web hero new striking.png'];document.getElementById('heroImg').src=h[Math.floor(Math.random()*h.length)];})();</script>
+
+      <!-- Floating logo overlaid on hero, bottom-left -->
+      <model-viewer id="heroModel"
+        src="images/blackfill web hero logo/floating_web_hero_logo2_1.glb"
+        alt="Island 2 Island."
+        camera-controls disable-zoom disable-pan
+        interaction-prompt="none"
+        shadow-intensity="0"
+        exposure="0.7"
+        min-camera-orbit="auto 65deg auto"
+        max-camera-orbit="auto 115deg auto"
+        class="m-hero__logo">
+      </model-viewer>
+      <script>
+      (function(){
+        var mv=document.getElementById('heroModel');
+        if(!mv)return;
+        var userInteracting=false,resumeTimer=null,theta=0,phiDeg=90,origPhiDeg=90,radius=1,last=performance.now(),RAD=180/Math.PI;
+        mv.addEventListener('pointerdown',function(){userInteracting=true;if(resumeTimer){clearTimeout(resumeTimer);resumeTimer=null;}});
+        function onRelease(){if(resumeTimer){clearTimeout(resumeTimer);resumeTimer=null;}resumeTimer=setTimeout(function(){try{var o=mv.getCameraOrbit();theta=o.theta*RAD;phiDeg=o.phi*RAD;}catch(e){}last=performance.now();userInteracting=false;},180);}
+        mv.addEventListener('pointerup',onRelease);mv.addEventListener('pointercancel',onRelease);
+        mv.addEventListener('load',function(){
+          try{var col=window.__heroColor||[0.60,0.42,0.26],mat=mv.model.materials[0];mat.pbrMetallicRoughness.setMetallicFactor(0);mat.pbrMetallicRoughness.setRoughnessFactor(1.0);mat.setEmissiveFactor([col[0],col[1],col[2]]);}catch(e){}
+          var orbit=mv.getCameraOrbit();origPhiDeg=orbit.phi*RAD;phiDeg=origPhiDeg;theta=orbit.theta*RAD;radius=orbit.radius;last=performance.now();
+          var SLOW=5,FAST=18;
+          function frame(now){var dt=Math.min((now-last)/1000,0.05);last=now;if(!userInteracting){var t=((theta%360)+360)%360,distFront=Math.min(t,360-t),w=Math.min(1,Math.max(0,(distFront-30)/30)),ease=w*w*(3-2*w);theta+=(SLOW+(FAST-SLOW)*ease)*dt;phiDeg+=(origPhiDeg-phiDeg)*(1-Math.exp(-3.5*dt));mv.cameraOrbit=theta.toFixed(2)+'deg '+phiDeg.toFixed(3)+'deg '+radius+'m';}requestAnimationFrame(frame);}
+          requestAnimationFrame(frame);
+        });
+      })();
+      </script>
+
       <div class="m-hero__content">
         <span class="m-hero__eyebrow">Chios, Greece × Japan</span>
         <h1 class="m-hero__title">Resin.<br>Water.<br>Nothing else.</h1>
@@ -206,38 +232,6 @@
       </div>
     </div>
   </section>
-
-  <!-- FLOATING 3D LOGO -->
-  <div class="m-logo-section">
-    <model-viewer id="heroModel"
-      src="images/blackfill web hero logo/floating_web_hero_logo2_1.glb"
-      alt="Island 2 Island."
-      camera-controls disable-zoom disable-pan
-      interaction-prompt="none"
-      shadow-intensity="0"
-      exposure="0.7"
-      min-camera-orbit="auto 65deg auto"
-      max-camera-orbit="auto 115deg auto">
-    </model-viewer>
-    <span class="m-logo-caption">Island 2 Island.</span>
-    <script>
-    (function(){
-      var mv=document.getElementById('heroModel');
-      if(!mv)return;
-      var userInteracting=false,resumeTimer=null,theta=0,phiDeg=90,origPhiDeg=90,radius=1,last=performance.now(),RAD=180/Math.PI;
-      mv.addEventListener('pointerdown',function(){userInteracting=true;if(resumeTimer){clearTimeout(resumeTimer);resumeTimer=null;}});
-      function onRelease(){if(resumeTimer){clearTimeout(resumeTimer);resumeTimer=null;}resumeTimer=setTimeout(function(){try{var o=mv.getCameraOrbit();theta=o.theta*RAD;phiDeg=o.phi*RAD;}catch(e){}last=performance.now();userInteracting=false;},180);}
-      mv.addEventListener('pointerup',onRelease);mv.addEventListener('pointercancel',onRelease);
-      mv.addEventListener('load',function(){
-        try{var col=window.__heroColor||[0.60,0.42,0.26],mat=mv.model.materials[0];mat.pbrMetallicRoughness.setMetallicFactor(0);mat.pbrMetallicRoughness.setRoughnessFactor(1.0);mat.setEmissiveFactor([col[0],col[1],col[2]]);}catch(e){}
-        var orbit=mv.getCameraOrbit();origPhiDeg=orbit.phi*RAD;phiDeg=origPhiDeg;theta=orbit.theta*RAD;radius=orbit.radius;last=performance.now();
-        var SLOW=5,FAST=18;
-        function frame(now){var dt=Math.min((now-last)/1000,0.05);last=now;if(!userInteracting){var t=((theta%360)+360)%360,distFront=Math.min(t,360-t),w=Math.min(1,Math.max(0,(distFront-30)/30)),ease=w*w*(3-2*w);theta+=(SLOW+(FAST-SLOW)*ease)*dt;phiDeg+=(origPhiDeg-phiDeg)*(1-Math.exp(-3.5*dt));mv.cameraOrbit=theta.toFixed(2)+'deg '+phiDeg.toFixed(3)+'deg '+radius+'m';}requestAnimationFrame(frame);}
-        requestAnimationFrame(frame);
-      });
-    })();
-    </script>
-  </div>
 
   <!-- STRIP -->
   <div class="m-strip">
