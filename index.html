@@ -16,13 +16,6 @@
     #loadingScreen.hidden{opacity:0;pointer-events:none;}
     .ls-bg{position:absolute;inset:-4%;background:url('images/IMG_0043.jpg') center/cover no-repeat;filter:brightness(0.62) saturate(0.85);opacity:1;animation:lsBgDrift 3s ease-in-out infinite alternate;}
     @keyframes lsBgDrift{from{transform:translateX(0) scale(1);}to{transform:translateX(-2%) scale(1.04);}}
-    .ls-glitch{position:absolute;inset:-4%;background:url('images/IMG_0043.jpg') center/cover no-repeat;filter:brightness(0.62) saturate(0.85);opacity:0;pointer-events:none;animation:lsGlitch 1.8s linear infinite;}
-    @keyframes lsGlitch{
-      0%,70%{opacity:0;transform:translateX(0);}
-      71%{opacity:0.85;transform:translateX(0);}
-      75%{opacity:0.85;transform:translateX(0.25%);}
-      76%,100%{opacity:0;transform:translateX(0.25%);}
-    }
     .ls-vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 20%,rgba(0,0,0,0.65) 100%);}
     .ls-haze{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(180,210,240,.18) 0%,rgba(140,180,220,.08) 25%,transparent 50%,rgba(0,0,0,.5) 100%);}
     .ls-center{position:relative;z-index:2;width:min(680px,86vw);overflow:visible;}
@@ -178,7 +171,6 @@
 
   <div id="loadingScreen" aria-hidden="true">
     <div class="ls-bg"></div>
-    <div class="ls-glitch"></div>
     <div class="ls-vignette"></div>
     <div class="ls-haze"></div>
     <div class="ls-center" id="lsCenter">
@@ -192,45 +184,111 @@
   </div>
   <script>
   (function(){
-    var ls=document.getElementById('loadingScreen'),slicesEl=document.getElementById('lsSlices'),N=6,DURATION=1900,HOLD=520;
+    var ls=document.getElementById('loadingScreen');
+    var slicesEl=document.getElementById('lsSlices');
+    var N=6;
+    // wave cycle: 1400ms sweep + 600ms rest = 2000ms total loop
+    var CYCLE=2000, SWEEP=1400;
+
     function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
     function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
-    function buildSlices(){slicesEl.innerHTML='';for(var i=0;i<N;i++){var sl=document.createElement('div');sl.className='ls-sl';sl.style.flex='0 0 calc(100% / '+N+')';var clip=document.createElement('div');clip.className='ls-clip';var img=document.createElement('img');img.src='images/loading screen.png';img.alt='';img.style.left=(i*-100)+'%';img.style.width=(N*100)+'%';clip.appendChild(img);sl.appendChild(clip);slicesEl.appendChild(sl);}}
-    var raf=null,startTime=null,shadShown=false,animDone=false;
+
+    function buildSlices(){
+      slicesEl.innerHTML='';
+      for(var i=0;i<N;i++){
+        var sl=document.createElement('div');
+        sl.className='ls-sl';
+        sl.style.flex='0 0 calc(100% / '+N+')';
+        var clip=document.createElement('div');
+        clip.className='ls-clip';
+        var img=document.createElement('img');
+        img.src='images/loading screen.png';
+        img.alt='';
+        img.style.left=(i*-100)+'%';
+        img.style.width=(N*100)+'%';
+        clip.appendChild(img);
+        sl.appendChild(clip);
+        slicesEl.appendChild(sl);
+      }
+    }
+
+    var startTime=null, pageLoaded=false, exiting=false;
+
+    // show aberration layers immediately
+    setTimeout(function(){
+      document.getElementById('lsShadR').style.opacity='0.75';
+      document.getElementById('lsShadC').style.opacity='0.75';
+    },120);
+
     function renderFrame(now){
-      if(!startTime)startTime=now;
-      var t=clamp((now-startTime)/DURATION,0,1);
+      if(!startTime) startTime=now;
+      if(exiting) return;
+
+      var elapsed=now-startTime;
+      // position within current cycle
+      var cyclePos=(elapsed%CYCLE);
+      // t goes 0→1 during sweep, then holds at 1 during rest
+      var t=clamp(cyclePos/SWEEP,0,1);
       var wave=t*(N-1);
-      // collapse spread faster — finishes at t=0.65 instead of 0.82, snapping all slices uniformly
-      var spread=1-easeInOut(clamp((t-.18)/.47,0,1));
-      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShadR').style.opacity='0.75';document.getElementById('lsShadC').style.opacity='0.75';}
+      // spread: rises quickly, falls gently near end so the close is smooth not snappy
+      var spread;
+      if(t<0.5){
+        spread=easeInOut(t*2); // 0→1 in first half
+      } else {
+        // second half: gentle ease back down to 0
+        spread=1-easeInOut((t-0.5)*2);
+      }
+      // attenuate spread near the very end so slices settle softly
+      spread *= Math.sin(t * Math.PI);
+
       var slices=slicesEl.querySelectorAll('.ls-sl');
       for(var i=0;i<slices.length;i++){
-        var sl=slices[i],dist=Math.abs(i-wave),peak=Math.exp(-(dist*dist)/2.0);
-        var scale=1+peak*0.55,pull=i-wave,xSpread=pull*3*spread,rise=-peak*8;
-        sl.style.opacity=clamp(t*5-i*.04,0,1);
-        sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';
+        var sl=slices[i];
+        var dist=Math.abs(i-wave);
+        var peak=Math.exp(-(dist*dist)/1.8);
+        var scale=1+peak*0.45;
+        var pull=i-wave;
+        var xSpread=pull*2.5*spread;
+        var rise=-peak*6;
+        sl.style.opacity='1';
+        sl.style.transform='translateX('+xSpread.toFixed(1)+'px) translateY('+rise.toFixed(1)+'px) scale('+scale.toFixed(3)+')';
         sl.style.zIndex=String(Math.round(peak*1000));
-        sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';
+        sl.style.filter='blur('+((1-peak)*spread*0.6).toFixed(2)+'px)';
       }
-      if(t<1){raf=requestAnimationFrame(renderFrame);}else{
+
+      // when page is loaded, wait until current cycle is near its rest phase then exit
+      if(pageLoaded && cyclePos>SWEEP*0.9 && !exiting){
+        exiting=true;
+        // settle all slices
         var settled=slicesEl.querySelectorAll('.ls-sl');
         for(var j=0;j<settled.length;j++){
-          settled[j].style.transition='transform 160ms ease-out, filter 160ms ease-out';
+          settled[j].style.transition='transform 300ms ease-out, filter 300ms ease-out';
           settled[j].style.transform='translateX(0) translateY(0) scale(1)';
           settled[j].style.filter='blur(0px)';
         }
         setTimeout(function(){
-          slicesEl.style.transition='opacity 220ms ease';
+          slicesEl.style.transition='opacity 240ms ease';
           slicesEl.style.opacity='0';
           document.getElementById('lsFinal').style.opacity='1';
-          setTimeout(function(){animDone=true;hide();},HOLD);
-        },180);
+          var sr=document.getElementById('lsShadR');
+          var sc=document.getElementById('lsShadC');
+          sr.style.transition='opacity 500ms ease'; sr.style.opacity='0';
+          sc.style.transition='opacity 500ms ease'; sc.style.opacity='0';
+        },320);
+        setTimeout(function(){
+          ls.classList.add('hidden');
+          setTimeout(function(){ls.remove();},800);
+        },820);
+        return;
       }
+
+      requestAnimationFrame(renderFrame);
     }
-    function hide(){if(!animDone)return;ls.classList.add('hidden');setTimeout(function(){ls.remove();},800);}
-    buildSlices();setTimeout(function(){raf=requestAnimationFrame(renderFrame);},80);
-    window.addEventListener('load',function(){setTimeout(hide,3400);});setTimeout(hide,8000);
+
+    buildSlices();
+    setTimeout(function(){requestAnimationFrame(renderFrame);},80);
+    window.addEventListener('load',function(){setTimeout(function(){pageLoaded=true;},1000);});
+    setTimeout(function(){pageLoaded=true;},9000);
   })();
   </script>
 </body>
