@@ -1,33 +1,31 @@
-# MASTRY Web Color Palette
+# MASTRY No-Black Web Color Palette
 
-Upload these files to GitHub:
+GitHub-ready palette with all black shades removed.
 
-- `mastry-colors.css`
-- `colors.json`
+Total colors: 132
+
+## Files
+
+- `mastry-palette-no-black.css`
+- `colors-no-black.json`
+- `mastry-colors-no-black.js`
+- `mastry-colors-no-black.ts`
+- `tailwind.config.js`
 - `palette-preview.html`
 
-## Use in your website
-
-Add this inside your HTML `<head>`:
+## Use
 
 ```html
-<link rel="stylesheet" href="./mastry-colors.css">
+<link rel="stylesheet" href="./mastry-palette-no-black.css">
 ```
-
-Then use colors like this:
 
 ```css
 .hero {
-  background: var(--off-white);
-  color: var(--warm-black);
+  background: var(--muted-olive);
+  color: var(--soft-ivory);
 }
 
 .logo {
-  color: var(--muted-olive);
-}
-
-.button {
-  background: var(--deep-forest);
-  color: var(--soft-ivory);
+  color: var(--forest-depth);
 }
 ```
