@@ -210,7 +210,26 @@
     var ls=document.getElementById('loadingScreen');
     var slicesEl=document.getElementById('lsSlices');
     var N=6;
-    var CYCLE=2000, SWEEP=1400;
+
+    // Default cycle — will be updated once load time is known.
+    // CYCLE = full wave loop duration ms. SWEEP = active motion portion.
+    var CYCLE = 2000;
+    var SWEEP = CYCLE * 0.70;
+
+    // After page load fires, measure how long it actually took and
+    // remap CYCLE: fast load (<500ms) => 600ms, slow load (>5000ms) => 2000ms.
+    // The wave always completes its current cycle before dismissing.
+    var pageLoadMs = null;
+    var pageLoaded = false;
+
+    function computeCycle(loadMs) {
+      var MIN_MS = 500,  MAX_MS = 5000;
+      var MIN_CYCLE = 600, MAX_CYCLE = 2000;
+      var t = Math.max(0, Math.min(1, (loadMs - MIN_MS) / (MAX_MS - MIN_MS)));
+      // ease-in so mid-range feels natural
+      t = t * t;
+      return Math.round(MIN_CYCLE + (MAX_CYCLE - MIN_CYCLE) * t);
+    }
 
     function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
     function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
@@ -234,7 +253,8 @@
       }
     }
 
-    var startTime=null, pageLoaded=false, exiting=false;
+    var startTime=null, exiting=false;
+    var pageStartTime = performance.now();
 
     setTimeout(function(){
       document.getElementById('lsShadR').style.opacity='0.75';
@@ -245,9 +265,10 @@
       if(!startTime) startTime=now;
       if(exiting) return;
 
+      // Use live CYCLE/SWEEP values so speed update takes effect mid-animation
       var elapsed=now-startTime;
-      var cyclePos=(elapsed%CYCLE);
-      var t=clamp(cyclePos/SWEEP,0,1);
+      var cyclePos=(elapsed % CYCLE);
+      var t=clamp(cyclePos / SWEEP, 0, 1);
       var wave=t*(N-1);
       var spread;
       if(t<0.5){
@@ -272,7 +293,8 @@
         sl.style.filter='blur('+((1-peak)*spread*0.6).toFixed(2)+'px)';
       }
 
-      if(pageLoaded && cyclePos>SWEEP*0.9 && !exiting){
+      // Dismiss: only after load is done AND current wave cycle is near its end
+      if(pageLoaded && cyclePos > SWEEP * 0.9 && !exiting){
         exiting=true;
         var settled=slicesEl.querySelectorAll('.ls-sl');
         for(var j=0;j<settled.length;j++){
@@ -301,8 +323,17 @@
 
     buildSlices();
     setTimeout(function(){requestAnimationFrame(renderFrame);},80);
-    window.addEventListener('load',function(){setTimeout(function(){pageLoaded=true;},1000);});
-    setTimeout(function(){pageLoaded=true;},9000);
+
+    window.addEventListener('load', function(){
+      var loadMs = performance.now() - pageStartTime;
+      CYCLE = computeCycle(loadMs);
+      SWEEP = CYCLE * 0.70;
+      // Small delay so the wave completes at least one full cycle visually
+      setTimeout(function(){pageLoaded=true;}, Math.max(200, CYCLE * 0.5));
+    });
+
+    // Hard cap: always dismiss by 9s regardless
+    setTimeout(function(){pageLoaded=true;}, 9000);
   })();
   </script>
 </body>
