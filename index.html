@@ -67,26 +67,37 @@
   </style>
   <script>
     if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}
-    // Pick one colour entry per load. filter = CSS chain that colorises black pixels.
+    // Matte/powdered palette — low saturation, chalky feel
+    // invert(1) sepia(1) = sepia base (~hue 29°), then hue-rotate to target
+    // saturate kept at 1.5–3 max for powdered look
     window.__heroPick = (function(){
       var p = [
-        {r:0.420,g:0.478,b:0.196, f:'invert(1) sepia(1) hue-rotate(49deg) saturate(10) brightness(0.9)'},   // muted olive
-        {r:0.957,g:0.910,b:0.757, f:'invert(1) sepia(1) hue-rotate(14deg) saturate(4) brightness(2.2)'},    // warm cream
-        {r:0.969,g:0.953,b:0.910, f:'invert(1) sepia(1) hue-rotate(14deg) saturate(2) brightness(2.4)'},    // bone white
-        {r:0.847,g:0.788,b:0.608, f:'invert(1) sepia(1) hue-rotate(15deg) saturate(4) brightness(1.9)'},    // sand beige
-        {r:0.604,g:0.420,b:0.263, f:'invert(1) sepia(1) hue-rotate(358deg) saturate(7) brightness(1.2)'},   // clay brown
-        {r:0.149,g:0.227,b:0.125, f:'invert(1) sepia(1) hue-rotate(81deg) saturate(7) brightness(0.55)'},   // deep forest
-        {r:0.973,g:0.945,b:0.863, f:'invert(1) sepia(1) hue-rotate(15deg) saturate(3) brightness(2.3)'},    // soft ivory
-        {r:0.980,g:0.973,b:0.937, f:'invert(1) sepia(1) hue-rotate(24deg) saturate(2) brightness(2.5)'},    // off white
-        {r:0.659,g:0.722,b:0.541, f:'invert(1) sepia(1) hue-rotate(59deg) saturate(6) brightness(1.6)'},    // light sage
-        {r:0.541,g:0.525,b:0.471, f:'invert(1) sepia(1) hue-rotate(16deg) saturate(2) brightness(1.35)'},   // stone gray
-        {r:0.090,g:0.125,b:0.200, f:'invert(1) sepia(1) hue-rotate(187deg) saturate(8) brightness(0.55)'},  // dark navy
-        {r:0.839,g:0.722,b:0.353, f:'invert(1) sepia(1) hue-rotate(14deg) saturate(9) brightness(1.75)'},   // soft gold
-        {r:0.769,g:0.584,b:0.416, f:'invert(1) sepia(1) hue-rotate(358deg) saturate(7) brightness(1.6)'},   // terracotta
-        {r:0.306,g:0.478,b:0.353, f:'invert(1) sepia(1) hue-rotate(114deg) saturate(7) brightness(1.1)'},   // muted jade
-        {r:0.557,g:0.635,b:0.427, f:'invert(1) sepia(1) hue-rotate(58deg) saturate(7) brightness(1.4)'},    // fern green
-        {r:0.482,g:0.420,b:0.306, f:'invert(1) sepia(1) hue-rotate(9deg) saturate(4) brightness(1.1)'},     // warm khaki
-        {r:0.541,g:0.478,b:0.353, f:'invert(1) sepia(1) hue-rotate(9deg) saturate(5) brightness(1.2)'}      // warm bronze
+        // #6B7A32 muted olive — hue 78°, rot 49°
+        'invert(1) sepia(1) hue-rotate(49deg) saturate(2.5) brightness(0.72)',
+        // #F4E8C1 warm cream — hue 43°, rot 14°
+        'invert(1) sepia(1) hue-rotate(14deg) saturate(1.8) brightness(1.85)',
+        // #F7F3E8 bone white — near white warm
+        'invert(1) sepia(1) hue-rotate(12deg) saturate(1.4) brightness(2.0)',
+        // #D8C99B sand beige — hue 44°, rot 15°
+        'invert(1) sepia(1) hue-rotate(15deg) saturate(2.2) brightness(1.55)',
+        // #9A6B43 clay brown — hue 27°, rot 358°
+        'invert(1) sepia(1) hue-rotate(358deg) saturate(2.8) brightness(0.95)',
+        // #2B2118 dark espresso — very dark warm
+        'invert(1) sepia(1) hue-rotate(358deg) saturate(2.0) brightness(0.32)',
+        // #263A20 deep forest — hue 110°, rot 81°
+        'invert(1) sepia(1) hue-rotate(81deg) saturate(2.5) brightness(0.42)',
+        // #1F2A1C charcoal green — hue 109°
+        'invert(1) sepia(1) hue-rotate(80deg) saturate(2.0) brightness(0.35)',
+        // #F8F1DC soft ivory — warm near-white
+        'invert(1) sepia(1) hue-rotate(13deg) saturate(1.8) brightness(1.95)',
+        // #12140F warm black — near black
+        'invert(1) sepia(1) hue-rotate(78deg) saturate(1.5) brightness(0.18)',
+        // #FAF8EF off white — cool white
+        'invert(1) sepia(1) hue-rotate(22deg) saturate(1.3) brightness(2.1)',
+        // #A8B88A light sage — hue 88°, rot 59°
+        'invert(1) sepia(1) hue-rotate(59deg) saturate(2.2) brightness(1.35)',
+        // #8A8678 stone gray — hue 45°, low sat
+        'invert(1) sepia(1) hue-rotate(16deg) saturate(1.4) brightness(1.15)'
       ];
       return p[Math.floor(Math.random()*p.length)];
     })();
@@ -132,9 +143,8 @@
           (function(){
             var mv = document.getElementById('heroModel');
             if (!mv) return;
-            var pick = window.__heroPick || {r:0.420,g:0.478,b:0.196,f:'invert(1) sepia(1) hue-rotate(49deg) saturate(10) brightness(0.9)'};
-            // Apply CSS filter immediately so colour shows as soon as model renders
-            mv.style.filter = pick.f + ' drop-shadow(0 8px 20px rgba(0,0,0,0.4))';
+            var f = window.__heroPick || 'invert(1) sepia(1) hue-rotate(49deg) saturate(2.5) brightness(0.72)';
+            mv.style.filter = f + ' drop-shadow(0 8px 20px rgba(0,0,0,0.35))';
             var userInteracting = false, resumeTimer = null;
             var theta = 0, phiDeg = 90, origPhiDeg = 90, radius = 1;
             var last = performance.now(), RAD = 180 / Math.PI;
@@ -152,16 +162,6 @@
             mv.addEventListener('pointerup', onRelease);
             mv.addEventListener('pointercancel', onRelease);
             mv.addEventListener('load', function () {
-              // Also try PBR override (works if materials aren’t baked black)
-              try {
-                (mv.model.materials || []).forEach(function (m) {
-                  m.pbrMetallicRoughness.setBaseColorFactor([pick.r,pick.g,pick.b,1]);
-                  m.pbrMetallicRoughness.setMetallicFactor(0);
-                  m.pbrMetallicRoughness.setRoughnessFactor(0.6);
-                  if (m.setEmissiveFactor) m.setEmissiveFactor([pick.r*0.25,pick.g*0.25,pick.b*0.25]);
-                  if (m.setDoubleSided) m.setDoubleSided(true);
-                });
-              } catch (e) {}
               var orbit = mv.getCameraOrbit();
               origPhiDeg = orbit.phi * RAD; phiDeg = origPhiDeg;
               theta = orbit.theta * RAD; radius = orbit.radius;
