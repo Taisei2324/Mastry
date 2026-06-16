@@ -15,13 +15,6 @@
     #loadingScreen.hidden{opacity:0;pointer-events:none;}
     .ls-bg{position:absolute;inset:-4%;background:url('images/IMG_0043.jpg') center/cover no-repeat;filter:brightness(0.62) saturate(0.85);opacity:1;animation:lsBgDrift 3s ease-in-out infinite alternate;}
     @keyframes lsBgDrift{from{transform:translateX(0) scale(1);}to{transform:translateX(-2%) scale(1.04);}}
-    .ls-glitch{position:absolute;inset:-4%;background:url('images/IMG_0043.jpg') center/cover no-repeat;filter:brightness(0.62) saturate(0.85);opacity:0;pointer-events:none;animation:lsGlitch 1.8s linear infinite;}
-    @keyframes lsGlitch{
-      0%,70%{opacity:0;transform:translateX(0);}
-      71%{opacity:0.85;transform:translateX(0);}
-      75%{opacity:0.85;transform:translateX(0.25%);}
-      76%,100%{opacity:0;transform:translateX(0.25%);}
-    }
     .ls-vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 20%,rgba(0,0,0,0.65) 100%);}
     .ls-haze{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(180,210,240,.18) 0%,rgba(140,180,220,.08) 25%,transparent 50%,rgba(0,0,0,.5) 100%);}
     .ls-center{position:relative;z-index:2;width:min(680px,86vw);overflow:visible;}
@@ -83,11 +76,14 @@
   <div class="pv-overlay" id="pvHat" onclick="if(event.target===this)closeProductView('pvHat')"><div class="pv-modal"><button class="pv-close" onclick="closeProductView('pvHat')" aria-label="Close">&times;</button><div class="pv-img-wrap pv-img-wrap--duo"><img src="images/side merch hat.png" alt="Hat — side" /><img src="images/hat merch.png" alt="Hat — front" /></div><div class="pv-bar"><div class="pv-bar__info"><span class="pv-bar__name">Island 2 Island Hat</span><span class="pv-bar__price">$28 · Side &amp; front view</span></div><button class="btn btn--primary" onclick="addToCart(102,'Island 2 Island Hat',28);closeProductView('pvHat');">Add to cart</button></div></div></div>
   <div class="pv-overlay" id="pvHoodie" onclick="if(event.target===this)closeProductView('pvHoodie')"><div class="pv-modal"><button class="pv-close" onclick="closeProductView('pvHoodie')" aria-label="Close">&times;</button><div class="pv-img-wrap"><img src="images/hoodie_front_back_color_matched_side_by_side.jpg" alt="Hoodie — front &amp; back" /></div><div class="pv-bar"><div class="pv-bar__info"><span class="pv-bar__name">Island 2 Island Hoodie</span><span class="pv-bar__price">$58 · Front &amp; back view</span></div><button class="btn btn--primary" onclick="addToCart(103,'Island 2 Island Hoodie',58);closeProductView('pvHoodie');">Add to cart</button></div></div></div>
   <script src="script.js?v=9"></script>
+
   <div id="loadingScreen" aria-hidden="true">
-    <div class="ls-bg"></div><div class="ls-glitch"></div><div class="ls-vignette"></div><div class="ls-haze"></div>
+    <div class="ls-bg"></div>
+    <div class="ls-vignette"></div>
+    <div class="ls-haze"></div>
     <div class="ls-center" id="lsCenter">
       <img src="images/loading screen.png" class="ls-ref" alt="" />
-      <div class="ls-shad ls-shad-r" id="lsShadR"><div class="ls-shad-color" style="background:#FF2200;"></div></div>
+      <div class="ls-shad ls-shad-r" id="lsShadR"><div class="ls-shad-color" style="background:#5C0000;"></div></div>
       <div class="ls-shad ls-shad-c" id="lsShadC"><div class="ls-shad-color" style="background:#0022CC;"></div></div>
       <div class="ls-slices" id="lsSlices"></div>
       <img src="images/loading screen.png" class="ls-final" id="lsFinal" alt="" />
@@ -96,22 +92,122 @@
   </div>
   <script>
   (function(){
-    var ls=document.getElementById('loadingScreen'),slicesEl=document.getElementById('lsSlices'),N=6,DURATION=1900,HOLD=520;
+    var ls=document.getElementById('loadingScreen');
+    var slicesEl=document.getElementById('lsSlices');
+    var N=6;
+
+    var CYCLE = 2000;
+    var SWEEP = CYCLE * 0.70;
+
+    var pageLoaded = false;
+    var pageStartTime = performance.now();
+
+    function computeCycle(loadMs) {
+      var MIN_MS = 500, MAX_MS = 5000;
+      var MIN_CYCLE = 600, MAX_CYCLE = 2000;
+      var t = Math.max(0, Math.min(1, (loadMs - MIN_MS) / (MAX_MS - MIN_MS)));
+      t = t * t;
+      return Math.round(MIN_CYCLE + (MAX_CYCLE - MIN_CYCLE) * t);
+    }
+
     function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
     function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
-    function buildSlices(){slicesEl.innerHTML='';for(var i=0;i<N;i++){var sl=document.createElement('div');sl.className='ls-sl';sl.style.flex='0 0 calc(100% / '+N+')';var clip=document.createElement('div');clip.className='ls-clip';var img=document.createElement('img');img.src='images/loading screen.png';img.alt='';img.style.left=(i*-100)+'%';img.style.width=(N*100)+'%';clip.appendChild(img);sl.appendChild(clip);slicesEl.appendChild(sl);}}
-    var raf=null,startTime=null,shadShown=false,animDone=false;
-    function renderFrame(now){
-      if(!startTime)startTime=now;
-      var t=clamp((now-startTime)/DURATION,0,1),wave=t*(N-1),spread=1-easeInOut(clamp((t-.20)/.62,0,1));
-      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShadR').style.opacity='0.75';document.getElementById('lsShadC').style.opacity='0.75';}
-      var slices=slicesEl.querySelectorAll('.ls-sl');
-      for(var i=0;i<slices.length;i++){var sl=slices[i],dist=Math.abs(i-wave),peak=Math.exp(-(dist*dist)/2.0),scale=1+peak*0.55,pull=i-wave,xSpread=pull*3*spread,rise=-peak*8;sl.style.opacity=clamp(t*5-i*.04,0,1);sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';sl.style.zIndex=String(Math.round(peak*1000));sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';}
-      if(t<1){raf=requestAnimationFrame(renderFrame);}else{var settled=slicesEl.querySelectorAll('.ls-sl');for(var j=0;j<settled.length;j++){settled[j].style.transition='transform 240ms ease-out, filter 240ms ease-out';settled[j].style.transform='translateX(0) translateY(0) scale(1)';settled[j].style.filter='blur(0px)';}setTimeout(function(){slicesEl.style.transition='opacity 220ms ease';slicesEl.style.opacity='0';document.getElementById('lsFinal').style.opacity='1';setTimeout(function(){animDone=true;hide();},HOLD);},260);}
+
+    function buildSlices(){
+      slicesEl.innerHTML='';
+      for(var i=0;i<N;i++){
+        var sl=document.createElement('div');
+        sl.className='ls-sl';
+        sl.style.flex='0 0 calc(100% / '+N+')';
+        var clip=document.createElement('div');
+        clip.className='ls-clip';
+        var img=document.createElement('img');
+        img.src='images/loading screen.png';
+        img.alt='';
+        img.style.left=(i*-100)+'%';
+        img.style.width=(N*100)+'%';
+        clip.appendChild(img);
+        sl.appendChild(clip);
+        slicesEl.appendChild(sl);
+      }
     }
-    function hide(){if(!animDone)return;ls.classList.add('hidden');setTimeout(function(){ls.remove();},800);}
-    buildSlices();setTimeout(function(){raf=requestAnimationFrame(renderFrame);},80);
-    window.addEventListener('load',function(){setTimeout(hide,3400);});setTimeout(hide,8000);
+
+    var startTime=null, exiting=false;
+
+    setTimeout(function(){
+      document.getElementById('lsShadR').style.opacity='0.75';
+      document.getElementById('lsShadC').style.opacity='0.75';
+    },120);
+
+    function renderFrame(now){
+      if(!startTime) startTime=now;
+      if(exiting) return;
+
+      var elapsed=now-startTime;
+      var cyclePos=(elapsed % CYCLE);
+      var t=clamp(cyclePos / SWEEP, 0, 1);
+      var wave=t*(N-1);
+      var spread;
+      if(t<0.5){
+        spread=easeInOut(t*2);
+      } else {
+        spread=1-easeInOut((t-0.5)*2);
+      }
+      spread *= Math.sin(t * Math.PI);
+
+      var slices=slicesEl.querySelectorAll('.ls-sl');
+      for(var i=0;i<slices.length;i++){
+        var sl=slices[i];
+        var dist=Math.abs(i-wave);
+        var peak=Math.exp(-(dist*dist)/1.8);
+        var scale=1+peak*0.45;
+        var pull=i-wave;
+        var xSpread=pull*2.5*spread;
+        var rise=-peak*6;
+        sl.style.opacity='1';
+        sl.style.transform='translateX('+xSpread.toFixed(1)+'px) translateY('+rise.toFixed(1)+'px) scale('+scale.toFixed(3)+')';
+        sl.style.zIndex=String(Math.round(peak*1000));
+        sl.style.filter='blur('+((1-peak)*spread*0.6).toFixed(2)+'px)';
+      }
+
+      if(pageLoaded && cyclePos > SWEEP * 0.9 && !exiting){
+        exiting=true;
+        var settled=slicesEl.querySelectorAll('.ls-sl');
+        for(var j=0;j<settled.length;j++){
+          settled[j].style.transition='transform 300ms ease-out, filter 300ms ease-out';
+          settled[j].style.transform='translateX(0) translateY(0) scale(1)';
+          settled[j].style.filter='blur(0px)';
+        }
+        setTimeout(function(){
+          slicesEl.style.transition='opacity 240ms ease';
+          slicesEl.style.opacity='0';
+          document.getElementById('lsFinal').style.opacity='1';
+          var sr=document.getElementById('lsShadR');
+          var sc=document.getElementById('lsShadC');
+          sr.style.transition='opacity 500ms ease'; sr.style.opacity='0';
+          sc.style.transition='opacity 500ms ease'; sc.style.opacity='0';
+        },320);
+        setTimeout(function(){
+          ls.classList.add('hidden');
+          setTimeout(function(){ls.remove();},800);
+        },820);
+        return;
+      }
+
+      requestAnimationFrame(renderFrame);
+    }
+
+    buildSlices();
+    setTimeout(function(){requestAnimationFrame(renderFrame);},80);
+
+    window.addEventListener('load', function(){
+      var loadMs = performance.now() - pageStartTime;
+      CYCLE = computeCycle(loadMs);
+      SWEEP = CYCLE * 0.70;
+      setTimeout(function(){pageLoaded=true;}, Math.max(200, CYCLE * 0.5));
+    });
+
+    setTimeout(function(){pageLoaded=true;}, 9000);
   })();
   </script>
   <script>
