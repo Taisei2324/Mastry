@@ -39,14 +39,36 @@
   <script>
     if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}
     window.__heroColor = (function(){
-      var p = [
-        [0.42, 0.48, 0.20],  // muted-olive   #6B7A32
-        [0.60, 0.42, 0.26],  // clay-brown    #9A6B43
-        [0.66, 0.72, 0.54],  // light-sage    #A8B88A
-        [0.54, 0.53, 0.47],  // stone-gray    #8A8678
-        [0.85, 0.79, 0.61]   // sand-beige    #D8C99B
+      // all 130 colors from mastry-colors-no-black.js
+      var hex = [
+        '#6B7A32','#F4E8C1','#F7F3E8','#D8C99B','#9A6B43','#263A20','#1F2A1C','#F8F1DC','#FAF8EF','#A8B88A',
+        '#8A8678','#EEF2D7','#E1E8BE','#CBD894','#B2C36D','#92A64A','#596830','#46552A','#354322','#26341C',
+        '#EEF5EA','#DAE9D2','#BBD3AE','#92B383','#6E9562','#527748','#3F6037','#314C2B','#1D3018',
+        '#F4F7EF','#E7EEDB','#D0DCBE','#B8C79E','#8E9F71','#74875B','#5D7049','#485A38','#34452A',
+        '#F0FAF7','#DDF1EC','#C3E4DA','#A4D2C4','#83BAAA','#659F90','#4E8376','#3D6A60','#2F554C','#234239',
+        '#F3FAFC','#DFEFF3','#C7E2EA','#A8D1DC','#88BBC8','#6FA4B3','#5A8A98','#47717D','#355B66','#264650',
+        '#FFFDF3','#FCF8E8','#ECDDAE','#C5B37F','#AC9860','#917C49','#786436',
+        '#F6F4EE','#ECE7DB','#D8D1C1','#C4BBA8','#AAA18F','#777061','#625C4F','#4C493F','#38382F',
+        '#F6EEE7','#EBD8C8','#D8B99B','#C3936C','#865C3A','#714A2E','#5D3924','#482C1D','#352117',
+        '#F7F4D8','#EDE7BF','#DED38E','#B8B66A','#91964F','#71793C','#596532','#425129','#314021','#24341B',
+        '#FFF9E8','#F8EDC7','#EEDB9B','#DFC46B','#C6A548','#A88632','#856623','#6F5422','#58431C','#423316',
+        '#EEF1EA','#F9F5E9','#E6E0D1','#766A56','#30352C','#1D2E18','#B6A86B','#726A36','#A5A18F',
+        '#8B7156','#5B442E','#8A873E','#4E6A35','#7F8A4A','#B9C98C','#DCCB9D','#DDE8C9','#74875A',
+        '#9BAE7A','#D7E8E2','#6D9DAA','#CAD6D3','#6C776E'
       ];
-      return p[Math.floor(Math.random()*p.length)];
+      function h2r(h){
+        return [
+          parseInt(h.slice(1,3),16)/255,
+          parseInt(h.slice(3,5),16)/255,
+          parseInt(h.slice(5,7),16)/255
+        ];
+      }
+      // filter: exclude near-whites (max channel > 0.88) and near-blacks (max channel < 0.20)
+      var valid = hex.map(h2r).filter(function(c){
+        var mx = Math.max(c[0],c[1],c[2]);
+        return mx <= 0.88 && mx >= 0.20;
+      });
+      return valid[Math.floor(Math.random()*valid.length)];
     })();
   </script>
 </head>
