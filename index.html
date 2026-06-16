@@ -41,26 +41,25 @@
     #lsIcon{animation:lsPulse 1.4s ease-in-out infinite;}
     @keyframes lsPulse{0%,100%{opacity:.18;}50%{opacity:.72;}}
     .hero-loot-wrap{perspective:1400px;display:block;}
-    #heroModel{mix-blend-mode:screen;}
     @media(prefers-reduced-motion:reduce){#heroModel{animation:none;}}
   </style>
   <script>
     if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}
     window.__heroPick = (function(){
       var p = [
-        'invert(1) sepia(1) hue-rotate(39deg)  saturate(2.3) brightness(0.47)',
-        'invert(1) sepia(1) hue-rotate(11deg)  saturate(1.62) brightness(1.0)',
-        'invert(1) sepia(1) hue-rotate(10deg)  saturate(1.26) brightness(1.0)',
-        'invert(1) sepia(1) hue-rotate(12deg)  saturate(2.0)  brightness(1.0)',
-        'invert(1) sepia(1) hue-rotate(358deg) saturate(2.5)  brightness(0.61)',
-        'invert(1) sepia(1) hue-rotate(358deg) saturate(1.8)  brightness(0.21)',
-        'invert(1) sepia(1) hue-rotate(65deg)  saturate(2.3)  brightness(0.28)',
-        'invert(1) sepia(1) hue-rotate(64deg)  saturate(1.8)  brightness(0.23)',
-        'invert(1) sepia(1) hue-rotate(10deg)  saturate(1.62) brightness(1.0)',
-        'invert(1) sepia(1) hue-rotate(62deg)  saturate(1.32) brightness(0.12)',
-        'invert(1) sepia(1) hue-rotate(18deg)  saturate(1.2)  brightness(1.0)',
-        'invert(1) sepia(1) hue-rotate(47deg)  saturate(2.0)  brightness(0.87)',
-        'invert(1) sepia(1) hue-rotate(13deg)  saturate(1.26) brightness(0.75)'
+        'sepia(1) hue-rotate(39deg)  saturate(2.3) brightness(0.62)',
+        'sepia(1) hue-rotate(11deg)  saturate(1.8)  brightness(1.1)',
+        'sepia(1) hue-rotate(10deg)  saturate(1.4)  brightness(1.1)',
+        'sepia(1) hue-rotate(12deg)  saturate(2.2)  brightness(1.05)',
+        'sepia(1) hue-rotate(358deg) saturate(2.8)  brightness(0.75)',
+        'sepia(1) hue-rotate(358deg) saturate(2.0)  brightness(0.42)',
+        'sepia(1) hue-rotate(65deg)  saturate(2.6)  brightness(0.5)',
+        'sepia(1) hue-rotate(64deg)  saturate(2.0)  brightness(0.44)',
+        'sepia(1) hue-rotate(10deg)  saturate(1.8)  brightness(1.1)',
+        'sepia(1) hue-rotate(62deg)  saturate(1.5)  brightness(0.28)',
+        'sepia(1) hue-rotate(18deg)  saturate(1.4)  brightness(1.1)',
+        'sepia(1) hue-rotate(47deg)  saturate(2.2)  brightness(1.0)',
+        'sepia(1) hue-rotate(13deg)  saturate(1.4)  brightness(0.9)'
       ];
       return p[Math.floor(Math.random()*p.length)];
     })();
@@ -92,7 +91,7 @@
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
       <div class="hero-loot-wrap" style="margin-top:1345px;margin-bottom:32px;transform:translate(-76px,114px);">
         <model-viewer id="heroModel"
-          src="images/island_logo_holes_preserved_puffy_3d.glb"
+          src="images/blackfill web hero logo/floating_web_hero_logo2_1.glb"
           alt="Island 2 Island."
           camera-controls disable-zoom disable-pan
           interaction-prompt="none"
@@ -106,7 +105,7 @@
           (function(){
             var mv = document.getElementById('heroModel');
             if (!mv) return;
-            var f = window.__heroPick || 'invert(1) sepia(1) hue-rotate(39deg) saturate(2.3) brightness(0.47)';
+            var f = window.__heroPick || 'sepia(1) hue-rotate(39deg) saturate(2.3) brightness(0.62)';
             mv.style.filter = f;
             var userInteracting = false, resumeTimer = null;
             var theta = 0, phiDeg = 90, origPhiDeg = 90, radius = 1;
@@ -125,6 +124,13 @@
             mv.addEventListener('pointerup',onRelease);
             mv.addEventListener('pointercancel',onRelease);
             mv.addEventListener('load',function(){
+              // Force all materials to clean white so CSS filter colorizes them correctly
+              try{
+                var mats=mv.model.materials;
+                for(var m=0;m<mats.length;m++){
+                  mats[m].pbrMetallicRoughness.setBaseColorFactor([0.949,1,0.910,1]);
+                }
+              }catch(e){}
               var orbit=mv.getCameraOrbit();
               origPhiDeg=orbit.phi*RAD;phiDeg=origPhiDeg;
               theta=orbit.theta*RAD;radius=orbit.radius;
