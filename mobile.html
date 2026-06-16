@@ -45,14 +45,11 @@
     .m-nav__badge{position:absolute;top:2px;right:2px;background:var(--sage);color:#fff;font-size:0.55rem;font-weight:800;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;}
     section{scroll-margin-top:var(--nav-h);}
 
-    /* HERO — full image, text + logo overlaid */
+    /* HERO */
     .m-hero{position:relative;width:100%;margin-top:var(--nav-h);background:#0d0d0d;}
     .m-hero__img{width:100%;height:auto;display:block;}
-    /* Floating logo — overlaid on hero image, bottom-left */
     .m-hero__logo{position:absolute;bottom:12px;left:8px;width:160px;height:118px;background:transparent;--poster-color:transparent;display:block;pointer-events:auto;}
-    /* Hero text — overlaid on image at bottom with gradient */
-    .m-hero__content{position:absolute;bottom:0;left:0;right:0;padding:60px 24px calc(28px) 24px;background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.5) 45%,transparent 100%);pointer-events:none;}
-    .m-hero__content a,.m-hero__content button{pointer-events:auto;}
+    .m-hero__content{padding:24px 24px calc(20px + var(--tab-h));background:#0d0d0d;}
     .m-hero__eyebrow{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:10px;display:block;}
     .m-hero__title{font-size:clamp(2.4rem,10vw,3.4rem);font-weight:900;line-height:0.95;letter-spacing:-0.03em;color:#fff;margin-bottom:14px;}
     .m-hero__sub{font-size:0.88rem;line-height:1.65;color:rgba(255,255,255,0.6);margin-bottom:24px;}
@@ -187,13 +184,12 @@
     </button>
   </nav>
 
-  <!-- HERO — full image, text + spinning logo overlaid -->
+  <!-- HERO -->
   <section id="home">
     <div class="m-hero">
       <img src="" alt="Mastry" class="m-hero__img" id="heroImg" />
       <script>(function(){var h=['images/wider and newer web hero.png','images/perfect web hero.png','images/image web hero temple.png','images/web hero half & half.png','images/web hero new striking.png'];document.getElementById('heroImg').src=h[Math.floor(Math.random()*h.length)];})();</script>
 
-      <!-- Floating logo overlaid on hero, bottom-left -->
       <model-viewer id="heroModel"
         src="images/blackfill web hero logo/floating_web_hero_logo2_1.glb"
         alt="Island 2 Island."
@@ -223,16 +219,15 @@
         });
       })();
       </script>
+    </div>
 
-      <!-- Text overlaid on image at bottom -->
-      <div class="m-hero__content">
-        <span class="m-hero__eyebrow">Chios, Greece × Japan</span>
-        <h1 class="m-hero__title">Resin.<br>Water.<br>Nothing else.</h1>
-        <p class="m-hero__sub">The ancient resin of Chios meets the purity of Japanese spring water.</p>
-        <div class="m-hero__actions">
-          <a href="#products" class="m-btn m-btn--solid">Explore the range</a>
-          <a href="#order" class="m-btn m-btn--outline">Order now</a>
-        </div>
+    <div class="m-hero__content">
+      <span class="m-hero__eyebrow">Chios, Greece × Japan</span>
+      <h1 class="m-hero__title">Resin.<br>Water.<br>Nothing else.</h1>
+      <p class="m-hero__sub">The ancient resin of Chios meets the purity of Japanese spring water.</p>
+      <div class="m-hero__actions">
+        <a href="#products" class="m-btn m-btn--solid">Explore the range</a>
+        <a href="#order" class="m-btn m-btn--outline">Order now</a>
       </div>
     </div>
   </section>
