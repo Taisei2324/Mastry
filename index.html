@@ -39,7 +39,7 @@
     }
     @keyframes lsGlitch {
       0%,72%   { opacity: 0; transform: none; }
-      73%      { opacity: 0.9; transform: translateX(-1.2%); }
+      73%      { opacity: 0.9; transform: translateX(-0.8%); }
       75%,100% { opacity: 0; transform: none; }
     }
     .ls-vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.65) 100%); }
@@ -93,36 +93,22 @@
           (function(){
             var mv = document.getElementById('heroModel');
             if (!mv) return;
-
-            var userInteracting = false;
-            var resumeTimer = null;
-            var theta = 0;
-            var phiDeg = 90;
-            var origPhiDeg = 90;
-            var radius = 1;
-            var last = performance.now();
-            var RAD = 180 / Math.PI;
-
+            var userInteracting = false, resumeTimer = null;
+            var theta = 0, phiDeg = 90, origPhiDeg = 90, radius = 1;
+            var last = performance.now(), RAD = 180 / Math.PI;
             mv.addEventListener('pointerdown', function () {
               userInteracting = true;
               if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
             });
-
             function onRelease() {
               if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
               resumeTimer = setTimeout(function () {
-                try {
-                  var o = mv.getCameraOrbit();
-                  theta  = o.theta * RAD;
-                  phiDeg = o.phi   * RAD;
-                } catch (e) {}
-                last = performance.now();
-                userInteracting = false;
+                try { var o = mv.getCameraOrbit(); theta = o.theta * RAD; phiDeg = o.phi * RAD; } catch (e) {}
+                last = performance.now(); userInteracting = false;
               }, 180);
             }
-            mv.addEventListener('pointerup',     onRelease);
+            mv.addEventListener('pointerup', onRelease);
             mv.addEventListener('pointercancel', onRelease);
-
             mv.addEventListener('load', function () {
               try {
                 (mv.model.materials || []).forEach(function (m) {
@@ -130,31 +116,23 @@
                   m.pbrMetallicRoughness.setMetallicFactor(0);
                   m.pbrMetallicRoughness.setRoughnessFactor(1.0);
                   if (m.setEmissiveFactor) m.setEmissiveFactor([0, 0, 0]);
-                  if (m.setAlphaMode)     m.setAlphaMode('OPAQUE');
-                  if (m.setDoubleSided)   m.setDoubleSided(true);
+                  if (m.setAlphaMode) m.setAlphaMode('OPAQUE');
+                  if (m.setDoubleSided) m.setDoubleSided(true);
                   var pbr = m.pbrMetallicRoughness;
-                  if (pbr.baseColorTexture && pbr.baseColorTexture.setTexture) {
-                    try { pbr.baseColorTexture.setTexture(null); } catch(e) {}
-                  }
+                  if (pbr.baseColorTexture && pbr.baseColorTexture.setTexture) { try { pbr.baseColorTexture.setTexture(null); } catch(e) {} }
                 });
               } catch (e) {}
-
               var orbit = mv.getCameraOrbit();
-              origPhiDeg = orbit.phi   * RAD;
-              phiDeg     = origPhiDeg;
-              theta      = orbit.theta * RAD;
-              radius     = orbit.radius;
-              last       = performance.now();
-
+              origPhiDeg = orbit.phi * RAD; phiDeg = origPhiDeg;
+              theta = orbit.theta * RAD; radius = orbit.radius;
+              last = performance.now();
               var SLOW = 5, FAST = 18;
-
               function frame(now) {
-                var dt = Math.min((now - last) / 1000, 0.05);
-                last = now;
+                var dt = Math.min((now - last) / 1000, 0.05); last = now;
                 if (!userInteracting) {
                   var t = ((theta % 360) + 360) % 360;
                   var distFront = Math.min(t, 360 - t);
-                  var w    = Math.min(1, Math.max(0, (distFront - 30) / 30));
+                  var w = Math.min(1, Math.max(0, (distFront - 30) / 30));
                   var ease = w * w * (3 - 2 * w);
                   theta += (SLOW + (FAST - SLOW) * ease) * dt;
                   phiDeg += (origPhiDeg - phiDeg) * (1 - Math.exp(-3.5 * dt));
