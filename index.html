@@ -123,17 +123,20 @@
             mv.addEventListener('pointerup',onRelease);
             mv.addEventListener('pointercancel',onRelease);
             mv.addEventListener('load',function(){
-              var col = window.__heroColor || [0.62,0.36,0.08];
+              var col = window.__heroColor || [0.84,0.60,0.14];
               try{
-                var mats=mv.model.materials;
-                if(mats.length===1){
-                  mats[0].pbrMetallicRoughness.setBaseColorFactor([col[0],col[1],col[2],1]);
-                } else {
-                  // First material = front face (colored), rest = black depth fills
-                  mats[0].pbrMetallicRoughness.setBaseColorFactor([col[0],col[1],col[2],1]);
-                  for(var m=1;m<mats.length;m++){
-                    mats[m].pbrMetallicRoughness.setBaseColorFactor([0,0,0,1]);
-                  }
+                var mats = mv.model.materials;
+                // material 0 = front face cap -> colored matte
+                var pbr0 = mats[0].pbrMetallicRoughness;
+                pbr0.setBaseColorFactor([col[0],col[1],col[2],1]);
+                pbr0.setMetallicFactor(0);
+                pbr0.setRoughnessFactor(0.65);
+                // remaining materials = side walls / depth -> matte black
+                for(var m=1;m<mats.length;m++){
+                  var pbr = mats[m].pbrMetallicRoughness;
+                  pbr.setBaseColorFactor([0.02,0.02,0.02,1]);
+                  pbr.setMetallicFactor(0);
+                  pbr.setRoughnessFactor(0.8);
                 }
               }catch(e){}
               var orbit=mv.getCameraOrbit();
