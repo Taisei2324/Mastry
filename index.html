@@ -39,7 +39,6 @@
   <script>
     if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}
     window.__heroColor = (function(){
-      // all 130 colors from mastry-colors-no-black.js
       var hex = [
         '#6B7A32','#F4E8C1','#F7F3E8','#D8C99B','#9A6B43','#263A20','#1F2A1C','#F8F1DC','#FAF8EF','#A8B88A',
         '#8A8678','#EEF2D7','#E1E8BE','#CBD894','#B2C36D','#92A64A','#596830','#46552A','#354322','#26341C',
@@ -63,12 +62,15 @@
           parseInt(h.slice(5,7),16)/255
         ];
       }
-      // filter: exclude near-whites (max channel > 0.88) and near-blacks (max channel < 0.20)
-      var valid = hex.map(h2r).filter(function(c){
+      var pool = [];
+      hex.map(h2r).forEach(function(c){
         var mx = Math.max(c[0],c[1],c[2]);
-        return mx <= 0.88 && mx >= 0.20;
+        if(mx > 0.88 || mx < 0.20) return;
+        // mid/light colors (max >= 0.45) get 3 tickets; dark colors get 1
+        var weight = mx >= 0.45 ? 3 : 1;
+        for(var w=0;w<weight;w++) pool.push(c);
       });
-      return valid[Math.floor(Math.random()*valid.length)];
+      return pool[Math.floor(Math.random()*pool.length)];
     })();
   </script>
 </head>
@@ -91,7 +93,7 @@
   <section class="fullscreen" id="hero">
     <div class="fullscreen__media">
       <img src="" alt="Mastry" class="fullscreen__img" id="heroImg" />
-      <script>(function(){var h=['images/wider and newer web hero.png','images/perfect web hero.png','images/image web hero temple.png','images/web hero half & half.png','images/web hero new striking.png'];document.getElementById('heroImg').src=h[Math.floor(Math.random()*h.length)];})();</script>
+      <script>(function(){var h=['images/wider and newer web hero.png','images/perfect web hero.png','images/image web hero temple.png','images/web hero half & half.png','images/web hero new striking.png'];document.getElementById('heroImg').src=h[Math.floor(Math.random()*h.length)];})();<\/script>
     </div>
     <div class="fullscreen__overlay"></div>
     <div class="fullscreen__content fullscreen__content--hero">
@@ -157,7 +159,7 @@
               requestAnimationFrame(frame);
             });
           })();
-        </script>
+        <\/script>
       </div>
       <p class="lead lead--light">The ancient resin of Chios meets<br>the purity of Japanese spring water.</p>
       <div class="hero__actions"><a href="#products" class="btn btn--primary-light">Explore the range</a><a href="#about" class="btn btn--ghost-light">Our story</a></div>
