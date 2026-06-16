@@ -42,8 +42,6 @@
     #lsIcon{animation:lsPulse 1.4s ease-in-out infinite;}
     @keyframes lsPulse{0%,100%{opacity:.18;}50%{opacity:.72;}}
     .hero-loot-wrap{perspective:1400px;display:block;}
-    .hero-model-shell{position:relative;display:inline-block;line-height:0;}
-    .hero-model-bg{position:absolute;inset:0;background:#000;pointer-events:none;z-index:0;}
     @media(prefers-reduced-motion:reduce){#heroModel{animation:none;}}
   </style>
   <script>
@@ -93,21 +91,17 @@
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
       <div class="hero-loot-wrap" style="margin-top:1345px;margin-bottom:32px;transform:translate(-76px,114px);">
-        <div class="hero-model-shell">
-          <div class="hero-model-bg" style="width:min(520px,86vw);height:360px;"></div>
-          <model-viewer id="heroModel"
-            src="images/island_logo_holes_preserved_puffy_3d.glb"
-            alt="Island 2 Island."
-            camera-controls disable-zoom disable-pan
-            interaction-prompt="none"
-            shadow-intensity="0"
-            exposure="1.4"
-            field-of-view="22deg"
-            min-camera-orbit="auto 65deg auto"
-            max-camera-orbit="auto 115deg auto"
-            style="position:relative;z-index:1;width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;display:block;">
-          </model-viewer>
-        </div>
+        <model-viewer id="heroModel"
+          src="images/island_logo_holes_preserved_puffy_3d.glb"
+          alt="Island 2 Island."
+          camera-controls disable-zoom disable-pan
+          interaction-prompt="none"
+          shadow-intensity="0"
+          exposure="1.4"
+          min-camera-orbit="auto 65deg auto"
+          max-camera-orbit="auto 115deg auto"
+          style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;display:block;">
+        </model-viewer>
         <script>
           (function(){
             var mv = document.getElementById('heroModel');
