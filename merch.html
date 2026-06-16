@@ -27,7 +27,7 @@
     .ls-center{position:relative;z-index:2;width:min(680px,86vw);overflow:visible;}
     .ls-ref{width:100%;height:auto;display:block;visibility:hidden;pointer-events:none;}
     .ls-shad{position:absolute;inset:0;opacity:0;transition:opacity .4s ease;pointer-events:none;}
-    .ls-shad img{width:100%;height:auto;display:block;}
+    .ls-shad-color{position:absolute;inset:0;-webkit-mask:url('images/loading screen.png') top left/100% auto no-repeat;mask:url('images/loading screen.png') top left/100% auto no-repeat;}
     .ls-shad-1{transform:translate(4px,4px);}
     .ls-shad-2{transform:translate(8px,8px);}
     .ls-shad-3{transform:translate(18px,18px);}
@@ -88,12 +88,18 @@
     <div class="ls-bg"></div><div class="ls-glitch"></div><div class="ls-vignette"></div><div class="ls-haze"></div>
     <div class="ls-center" id="lsCenter">
       <img src="images/loading screen.png" class="ls-ref" alt="" />
-      <!-- hot pink #D62CC5 — furthest back, 18px offset -->
-      <div class="ls-shad ls-shad-3" id="lsShad3"><img src="images/loading screen.png" alt="" style="filter:invert(1) sepia(1) hue-rotate(277deg) saturate(20) brightness(1.4);" /></div>
-      <!-- yellow -->
-      <div class="ls-shad ls-shad-2" id="lsShad2"><img src="images/loading screen.png" alt="" style="filter:invert(1) sepia(1) hue-rotate(27deg) saturate(15) brightness(1.8);" /></div>
-      <!-- white — closest -->
-      <div class="ls-shad ls-shad-1" id="lsShad1"><img src="images/loading screen.png" alt="" style="filter:invert(1) brightness(1.1);" /></div>
+      <!-- hot pink #D62CC5 — furthest back, 18px -->
+      <div class="ls-shad ls-shad-3" id="lsShad3">
+        <div class="ls-shad-color" style="background:#D62CC5;"></div>
+      </div>
+      <!-- neon yellow — middle, 8px -->
+      <div class="ls-shad ls-shad-2" id="lsShad2">
+        <div class="ls-shad-color" style="background:#FFE500;"></div>
+      </div>
+      <!-- white — closest, 4px -->
+      <div class="ls-shad ls-shad-1" id="lsShad1">
+        <div class="ls-shad-color" style="background:#FFFFFF;"></div>
+      </div>
       <div class="ls-slices" id="lsSlices"></div>
       <img src="images/loading screen.png" class="ls-final" id="lsFinal" alt="" />
     </div>
@@ -109,7 +115,7 @@
     function renderFrame(now){
       if(!startTime)startTime=now;
       var t=clamp((now-startTime)/DURATION,0,1),wave=t*(N-1),spread=1-easeInOut(clamp((t-.20)/.62,0,1));
-      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShad1').style.opacity='0.9';document.getElementById('lsShad2').style.opacity='0.85';document.getElementById('lsShad3').style.opacity='0.85';}
+      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShad1').style.opacity='0.95';document.getElementById('lsShad2').style.opacity='0.9';document.getElementById('lsShad3').style.opacity='0.9';}
       var slices=slicesEl.querySelectorAll('.ls-sl');
       for(var i=0;i<slices.length;i++){var sl=slices[i],dist=Math.abs(i-wave),peak=Math.exp(-(dist*dist)/2.0),scale=1+peak*0.55,pull=i-wave,xSpread=pull*3*spread,rise=-peak*8;sl.style.opacity=clamp(t*5-i*.04,0,1);sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';sl.style.zIndex=String(Math.round(peak*1000));sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';}
       if(t<1){raf=requestAnimationFrame(renderFrame);}else{var settled=slicesEl.querySelectorAll('.ls-sl');for(var j=0;j<settled.length;j++){settled[j].style.transition='transform 240ms ease-out, filter 240ms ease-out';settled[j].style.transform='translateX(0) translateY(0) scale(1)';settled[j].style.filter='blur(0px)';}setTimeout(function(){slicesEl.style.transition='opacity 220ms ease';slicesEl.style.opacity='0';document.getElementById('lsFinal').style.opacity='1';setTimeout(function(){animDone=true;hide();},HOLD);},260);}
