@@ -42,23 +42,22 @@
   </style>
   <script>
     if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}
-    // Matte powdered palette — lighting -50%, sat -25%, hue -20%, gamma -15%
-    // brightness multiplier = 0.5 * 0.85 = 0.425 vs previous values
+    // Powdered palette — sat/hue restored, brightness moderated (cap 1.0 for light tones)
     window.__heroPick = (function(){
       var p = [
-        'invert(1) sepia(1) hue-rotate(39deg)  saturate(1.9) brightness(0.31)',  // #6B7A32 muted olive
-        'invert(1) sepia(1) hue-rotate(11deg)  saturate(1.35) brightness(0.79)', // #F4E8C1 warm cream
-        'invert(1) sepia(1) hue-rotate(10deg)  saturate(1.05) brightness(0.85)', // #F7F3E8 bone white
-        'invert(1) sepia(1) hue-rotate(12deg)  saturate(1.65) brightness(0.66)', // #D8C99B sand beige
-        'invert(1) sepia(1) hue-rotate(358deg) saturate(2.1)  brightness(0.40)', // #9A6B43 clay brown
-        'invert(1) sepia(1) hue-rotate(358deg) saturate(1.5)  brightness(0.14)', // #2B2118 dark espresso
-        'invert(1) sepia(1) hue-rotate(65deg)  saturate(1.9)  brightness(0.18)', // #263A20 deep forest
-        'invert(1) sepia(1) hue-rotate(64deg)  saturate(1.5)  brightness(0.15)', // #1F2A1C charcoal green
-        'invert(1) sepia(1) hue-rotate(10deg)  saturate(1.35) brightness(0.83)', // #F8F1DC soft ivory
-        'invert(1) sepia(1) hue-rotate(62deg)  saturate(1.1)  brightness(0.08)', // #12140F warm black
-        'invert(1) sepia(1) hue-rotate(18deg)  saturate(1.0)  brightness(0.89)', // #FAF8EF off white
-        'invert(1) sepia(1) hue-rotate(47deg)  saturate(1.65) brightness(0.57)', // #A8B88A light sage
-        'invert(1) sepia(1) hue-rotate(13deg)  saturate(1.05) brightness(0.49)'  // #8A8678 stone gray
+        'invert(1) sepia(1) hue-rotate(39deg)  saturate(2.3) brightness(0.47)',  // muted olive
+        'invert(1) sepia(1) hue-rotate(11deg)  saturate(1.62) brightness(1.0)',  // warm cream
+        'invert(1) sepia(1) hue-rotate(10deg)  saturate(1.26) brightness(1.0)',  // bone white
+        'invert(1) sepia(1) hue-rotate(12deg)  saturate(2.0)  brightness(1.0)',  // sand beige
+        'invert(1) sepia(1) hue-rotate(358deg) saturate(2.5)  brightness(0.61)', // clay brown
+        'invert(1) sepia(1) hue-rotate(358deg) saturate(1.8)  brightness(0.21)', // dark espresso
+        'invert(1) sepia(1) hue-rotate(65deg)  saturate(2.3)  brightness(0.28)', // deep forest
+        'invert(1) sepia(1) hue-rotate(64deg)  saturate(1.8)  brightness(0.23)', // charcoal green
+        'invert(1) sepia(1) hue-rotate(10deg)  saturate(1.62) brightness(1.0)',  // soft ivory
+        'invert(1) sepia(1) hue-rotate(62deg)  saturate(1.32) brightness(0.12)', // warm black
+        'invert(1) sepia(1) hue-rotate(18deg)  saturate(1.2)  brightness(1.0)',  // off white
+        'invert(1) sepia(1) hue-rotate(47deg)  saturate(2.0)  brightness(0.87)', // light sage
+        'invert(1) sepia(1) hue-rotate(13deg)  saturate(1.26) brightness(0.75)'  // stone gray
       ];
       return p[Math.floor(Math.random()*p.length)];
     })();
@@ -104,7 +103,7 @@
           (function(){
             var mv = document.getElementById('heroModel');
             if (!mv) return;
-            var f = window.__heroPick || 'invert(1) sepia(1) hue-rotate(39deg) saturate(1.9) brightness(0.31)';
+            var f = window.__heroPick || 'invert(1) sepia(1) hue-rotate(39deg) saturate(2.3) brightness(0.47)';
             mv.style.filter = f + ' drop-shadow(0 8px 20px rgba(0,0,0,0.35))';
             var userInteracting = false, resumeTimer = null;
             var theta = 0, phiDeg = 90, origPhiDeg = 90, radius = 1;
