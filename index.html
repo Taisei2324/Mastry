@@ -66,7 +66,34 @@
     @keyframes lootSpin { 0%{transform:translateY(0) rotateY(0deg);} 50%{transform:translateY(22px) rotateY(180deg);} 100%{transform:translateY(0) rotateY(360deg);} }
     @media (prefers-reduced-motion: reduce) { .hero-loot { animation: none; } }
   </style>
-  <script>if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}</script>
+  <script>
+    if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}
+    // Pick a random logo colour once per load — applied when model-viewer fires 'load'
+    window.__heroColor = (function(){
+      var p = [
+        [0.420,0.478,0.196], // #6B7A32 muted olive
+        [0.957,0.910,0.757], // #F4E8C1 warm cream
+        [0.969,0.953,0.910], // #F7F3E8 bone white
+        [0.847,0.788,0.608], // #D8C99B sand beige
+        [0.604,0.420,0.263], // #9A6B43 clay brown
+        [0.169,0.129,0.094], // #2B2118 dark espresso
+        [0.149,0.227,0.125], // #263A20 deep forest
+        [0.122,0.165,0.110], // #1F2A1C charcoal green
+        [0.973,0.945,0.863], // #F8F1DC soft ivory
+        [0.980,0.973,0.937], // #FAF8EF off white
+        [0.659,0.722,0.541], // #A8B88A light sage
+        [0.541,0.525,0.471], // #8A8678 stone gray
+        [0.090,0.125,0.200], // #172033 dark navy
+        [0.839,0.722,0.353], // #D6B85A soft gold
+        [0.482,0.420,0.306], // #7B6B4E warm khaki
+        [0.769,0.584,0.416], // #C4956A terracotta
+        [0.306,0.478,0.353], // #4E7A5A muted jade
+        [0.541,0.478,0.353], // #8A7A5A warm bronze
+        [0.557,0.635,0.427]  // #8EA26D fern green
+      ];
+      return p[Math.floor(Math.random()*p.length)];
+    })();
+  </script>
 </head>
 <body>
 
@@ -93,7 +120,17 @@
     <div class="fullscreen__content fullscreen__content--hero">
       <p class="eyebrow eyebrow--light">Chios, Greece × Japan</p>
       <div class="hero-loot-wrap" style="margin-top:1345px;margin-bottom:32px;transform:translate(-76px,114px);">
-        <model-viewer id="heroModel" src="images/island_logo_holes_preserved_puffy_3d.glb" alt="Island 2 Island." camera-controls disable-zoom disable-pan interaction-prompt="none" shadow-intensity="0" exposure="1.2" tone-mapping="neutral" min-camera-orbit="auto 65deg auto" max-camera-orbit="auto 115deg auto" style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;filter:drop-shadow(0 8px 20px rgba(0,0,0,0.4));"></model-viewer>
+        <model-viewer id="heroModel"
+          src="images/island_logo_holes_preserved_puffy_3d.glb"
+          alt="Island 2 Island."
+          camera-controls disable-zoom disable-pan
+          interaction-prompt="none"
+          shadow-intensity="0"
+          exposure="1.4"
+          min-camera-orbit="auto 65deg auto"
+          max-camera-orbit="auto 115deg auto"
+          style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;filter:drop-shadow(0 8px 20px rgba(0,0,0,0.4));">
+        </model-viewer>
         <script>
           (function(){
             var mv = document.getElementById('heroModel');
@@ -115,13 +152,13 @@
             mv.addEventListener('pointerup', onRelease);
             mv.addEventListener('pointercancel', onRelease);
             mv.addEventListener('load', function () {
+              var c = window.__heroColor || [0.420,0.478,0.196];
               try {
                 (mv.model.materials || []).forEach(function (m) {
-                  m.pbrMetallicRoughness.setBaseColorFactor([0.42, 0.478, 0.196, 1]);
+                  m.pbrMetallicRoughness.setBaseColorFactor([c[0],c[1],c[2],1]);
                   m.pbrMetallicRoughness.setMetallicFactor(0);
-                  m.pbrMetallicRoughness.setRoughnessFactor(1.0);
-                  if (m.setEmissiveFactor) m.setEmissiveFactor([0, 0, 0]);
-                  if (m.setAlphaMode) m.setAlphaMode('OPAQUE');
+                  m.pbrMetallicRoughness.setRoughnessFactor(0.75);
+                  if (m.setEmissiveFactor) m.setEmissiveFactor([0,0,0]);
                   if (m.setDoubleSided) m.setDoubleSided(true);
                 });
               } catch (e) {}
