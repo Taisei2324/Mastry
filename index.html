@@ -40,11 +40,11 @@
     if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}
     window.__heroColor = (function(){
       var p = [
-        [0.21, 0.24, 0.10],
-        [0.30, 0.21, 0.13],
-        [0.33, 0.36, 0.27],
-        [0.27, 0.27, 0.24],
-        [0.43, 0.40, 0.31]
+        [0.42, 0.48, 0.20],  // muted-olive   #6B7A32
+        [0.60, 0.42, 0.26],  // clay-brown    #9A6B43
+        [0.66, 0.72, 0.54],  // light-sage    #A8B88A
+        [0.54, 0.53, 0.47],  // stone-gray    #8A8678
+        [0.85, 0.79, 0.61]   // sand-beige    #D8C99B
       ];
       return p[Math.floor(Math.random()*p.length)];
     })();
@@ -108,7 +108,7 @@
             mv.addEventListener('pointercancel',onRelease);
             mv.addEventListener('load',function(){
               try {
-                var col = window.__heroColor || [0.30, 0.21, 0.13];
+                var col = window.__heroColor || [0.60, 0.42, 0.26];
                 var mat = mv.model.materials[0];
                 mat.pbrMetallicRoughness.setMetallicFactor(0);
                 mat.pbrMetallicRoughness.setRoughnessFactor(1.0);
@@ -187,7 +187,6 @@
     var ls=document.getElementById('loadingScreen');
     var slicesEl=document.getElementById('lsSlices');
     var N=6;
-    // wave cycle: 1400ms sweep + 600ms rest = 2000ms total loop
     var CYCLE=2000, SWEEP=1400;
 
     function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
@@ -214,7 +213,6 @@
 
     var startTime=null, pageLoaded=false, exiting=false;
 
-    // show aberration layers immediately
     setTimeout(function(){
       document.getElementById('lsShadR').style.opacity='0.75';
       document.getElementById('lsShadC').style.opacity='0.75';
@@ -225,20 +223,15 @@
       if(exiting) return;
 
       var elapsed=now-startTime;
-      // position within current cycle
       var cyclePos=(elapsed%CYCLE);
-      // t goes 0→1 during sweep, then holds at 1 during rest
       var t=clamp(cyclePos/SWEEP,0,1);
       var wave=t*(N-1);
-      // spread: rises quickly, falls gently near end so the close is smooth not snappy
       var spread;
       if(t<0.5){
-        spread=easeInOut(t*2); // 0→1 in first half
+        spread=easeInOut(t*2);
       } else {
-        // second half: gentle ease back down to 0
         spread=1-easeInOut((t-0.5)*2);
       }
-      // attenuate spread near the very end so slices settle softly
       spread *= Math.sin(t * Math.PI);
 
       var slices=slicesEl.querySelectorAll('.ls-sl');
@@ -256,10 +249,8 @@
         sl.style.filter='blur('+((1-peak)*spread*0.6).toFixed(2)+'px)';
       }
 
-      // when page is loaded, wait until current cycle is near its rest phase then exit
       if(pageLoaded && cyclePos>SWEEP*0.9 && !exiting){
         exiting=true;
-        // settle all slices
         var settled=slicesEl.querySelectorAll('.ls-sl');
         for(var j=0;j<settled.length;j++){
           settled[j].style.transition='transform 300ms ease-out, filter 300ms ease-out';
