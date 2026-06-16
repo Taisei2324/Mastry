@@ -66,7 +66,6 @@
       hex.map(h2r).forEach(function(c){
         var mx = Math.max(c[0],c[1],c[2]);
         if(mx > 0.88 || mx < 0.20) return;
-        // mid/light colors (max >= 0.45) get 3 tickets; dark colors get 1
         var weight = mx >= 0.45 ? 3 : 1;
         for(var w=0;w<weight;w++) pool.push(c);
       });
@@ -93,7 +92,7 @@
   <section class="fullscreen" id="hero">
     <div class="fullscreen__media">
       <img src="" alt="Mastry" class="fullscreen__img" id="heroImg" />
-      <script>(function(){var h=['images/wider and newer web hero.png','images/perfect web hero.png','images/image web hero temple.png','images/web hero half & half.png','images/web hero new striking.png'];document.getElementById('heroImg').src=h[Math.floor(Math.random()*h.length)];})();<\/script>
+      <script>(function(){var h=['images/wider and newer web hero.png','images/perfect web hero.png','images/image web hero temple.png','images/web hero half & half.png','images/web hero new striking.png'];document.getElementById('heroImg').src=h[Math.floor(Math.random()*h.length)];})();</script>
     </div>
     <div class="fullscreen__overlay"></div>
     <div class="fullscreen__content fullscreen__content--hero">
@@ -159,7 +158,7 @@
               requestAnimationFrame(frame);
             });
           })();
-        <\/script>
+        </script>
       </div>
       <p class="lead lead--light">The ancient resin of Chios meets<br>the purity of Japanese spring water.</p>
       <div class="hero__actions"><a href="#products" class="btn btn--primary-light">Explore the range</a><a href="#about" class="btn btn--ghost-light">Our story</a></div>
