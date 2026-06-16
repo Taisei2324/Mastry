@@ -126,8 +126,10 @@
               try{
                 var mats = mv.model.materials;
                 for(var m=0;m<mats.length;m++){
-                  var pbr = mats[m].pbrMetallicRoughness;
-                  pbr.setBaseColorFactor([col[0],col[1],col[2],1]);
+                  var mat = mats[m];
+                  // emissive adds color additively — ignores black base texture
+                  mat.setEmissiveFactor([col[0],col[1],col[2]]);
+                  var pbr = mat.pbrMetallicRoughness;
                   pbr.setMetallicFactor(0);
                   pbr.setRoughnessFactor(1.0);
                 }
