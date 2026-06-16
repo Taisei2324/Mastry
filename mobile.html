@@ -49,18 +49,19 @@
     .m-hero{position:relative;width:100%;margin-top:var(--nav-h);background:#0d0d0d;}
     .m-hero__img{width:100%;height:auto;display:block;}
     .m-hero__logo{position:absolute;bottom:12px;left:8px;width:160px;height:118px;background:transparent;--poster-color:transparent;display:block;pointer-events:auto;}
-    .m-hero__content{padding:24px 24px calc(20px + var(--tab-h));background:#0d0d0d;}
-    .m-hero__eyebrow{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:10px;display:block;}
-    .m-hero__title{font-size:clamp(2.4rem,10vw,3.4rem);font-weight:900;line-height:0.95;letter-spacing:-0.03em;color:#fff;margin-bottom:14px;}
-    .m-hero__sub{font-size:0.88rem;line-height:1.65;color:rgba(255,255,255,0.6);margin-bottom:24px;}
-    .m-hero__actions{display:flex;flex-direction:column;gap:10px;}
+    /* Text below hero image — compact */
+    .m-hero__content{padding:16px 20px 20px;background:#0d0d0d;}
+    .m-hero__eyebrow{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:6px;display:block;}
+    .m-hero__title{font-size:clamp(2rem,8.5vw,2.8rem);font-weight:900;line-height:0.95;letter-spacing:-0.03em;color:#fff;margin-bottom:10px;}
+    .m-hero__sub{font-size:0.82rem;line-height:1.6;color:rgba(255,255,255,0.55);margin-bottom:14px;}
+    .m-hero__actions{display:flex;gap:10px;}
 
     /* BUTTONS */
-    .m-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;font-family:inherit;font-size:0.8rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;border:none;cursor:pointer;touch-action:manipulation;-webkit-appearance:none;transition:opacity .2s;}
+    .m-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;font-family:inherit;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;border:none;cursor:pointer;touch-action:manipulation;-webkit-appearance:none;transition:opacity .2s;}
     .m-btn:active{opacity:0.75;}
     .m-btn--solid{background:#fff;color:#0d0d0d;}
     .m-btn--outline{background:transparent;border:1px solid rgba(255,255,255,0.35);color:#fff;}
-    .m-btn--sage{background:var(--sage);color:#fff;}
+    .m-btn--sage{background:var(--sage);color:#fff;min-height:52px;font-size:0.8rem;}
     .m-btn--dark{background:#1a1a1a;color:var(--cream);border:1px solid var(--border);}
 
     /* STRIP */
@@ -221,6 +222,7 @@
       </script>
     </div>
 
+    <!-- Text + compact buttons sit cleanly below the hero image -->
     <div class="m-hero__content">
       <span class="m-hero__eyebrow">Chios, Greece × Japan</span>
       <h1 class="m-hero__title">Resin.<br>Water.<br>Nothing else.</h1>
