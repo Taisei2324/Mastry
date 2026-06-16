@@ -45,14 +45,14 @@
   </style>
   <script>
     if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}
-    // Pick a random mid-range brand color as [r,g,b] 0-1 for emissive
+    // Brand colors at low emissive intensity — half brightness to avoid neon glow
     window.__heroColor = (function(){
       var p = [
-        [0.42, 0.48, 0.20],  // muted-olive   #6B7A32
-        [0.60, 0.42, 0.26],  // clay-brown    #9A6B43
-        [0.66, 0.72, 0.54],  // light-sage    #A8B88A
-        [0.54, 0.53, 0.47],  // stone-gray    #8A8678
-        [0.85, 0.79, 0.61]   // sand-beige    #D8C99B
+        [0.21, 0.24, 0.10],  // muted-olive   #6B7A32
+        [0.30, 0.21, 0.13],  // clay-brown    #9A6B43
+        [0.33, 0.36, 0.27],  // light-sage    #A8B88A
+        [0.27, 0.27, 0.24],  // stone-gray    #8A8678
+        [0.43, 0.40, 0.31]   // sand-beige    #D8C99B
       ];
       return p[Math.floor(Math.random()*p.length)];
     })();
@@ -89,7 +89,7 @@
           camera-controls disable-zoom disable-pan
           interaction-prompt="none"
           shadow-intensity="0"
-          exposure="1.0"
+          exposure="0.7"
           min-camera-orbit="auto 65deg auto"
           max-camera-orbit="auto 115deg auto"
           style="width:min(520px,86vw);height:360px;background:transparent;--poster-color:transparent;display:block;">
@@ -115,9 +115,8 @@
             mv.addEventListener('pointerup',onRelease);
             mv.addEventListener('pointercancel',onRelease);
             mv.addEventListener('load',function(){
-              // Apply brand color via emissive (base texture is black so baseColorFactor × black = black)
               try {
-                var col = window.__heroColor || [0.60, 0.42, 0.26];
+                var col = window.__heroColor || [0.30, 0.21, 0.13];
                 var mat = mv.model.materials[0];
                 mat.pbrMetallicRoughness.setMetallicFactor(0);
                 mat.pbrMetallicRoughness.setRoughnessFactor(1.0);
