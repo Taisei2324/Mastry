@@ -45,21 +45,22 @@
   </style>
   <script>
     if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}
+    // Mastry brand palette — exact hex values from mastry-colors.css
     window.__heroColor = (function(){
       var p = [
-        [0.62, 0.36, 0.08],
-        [0.88, 0.68, 0.22],
-        [0.86, 0.65, 0.22],
-        [0.84, 0.60, 0.14],
-        [0.72, 0.26, 0.08],
-        [0.44, 0.14, 0.04],
-        [0.34, 0.40, 0.07],
-        [0.30, 0.38, 0.06],
-        [0.86, 0.66, 0.20],
-        [0.18, 0.22, 0.04],
-        [0.88, 0.70, 0.26],
-        [0.58, 0.42, 0.10],
-        [0.68, 0.32, 0.07]
+        [0.420, 0.478, 0.196],  // muted-olive   #6B7A32
+        [0.957, 0.910, 0.757],  // warm-cream    #F4E8C1
+        [0.969, 0.953, 0.910],  // bone-white    #F7F3E8
+        [0.847, 0.788, 0.608],  // sand-beige    #D8C99B
+        [0.604, 0.420, 0.263],  // clay-brown    #9A6B43
+        [0.169, 0.129, 0.094],  // dark-espresso #2B2118
+        [0.149, 0.227, 0.125],  // deep-forest   #263A20
+        [0.122, 0.165, 0.110],  // charcoal-green #1F2A1C
+        [0.973, 0.945, 0.863],  // soft-ivory    #F8F1DC
+        [0.071, 0.078, 0.059],  // warm-black    #12140F
+        [0.980, 0.973, 0.937],  // off-white     #FAF8EF
+        [0.659, 0.722, 0.541],  // light-sage    #A8B88A
+        [0.541, 0.525, 0.471]   // stone-gray    #8A8678
       ];
       return p[Math.floor(Math.random()*p.length)];
     })();
@@ -123,20 +124,14 @@
             mv.addEventListener('pointerup',onRelease);
             mv.addEventListener('pointercancel',onRelease);
             mv.addEventListener('load',function(){
-              var col = window.__heroColor || [0.84,0.60,0.14];
+              var col = window.__heroColor || [0.604,0.420,0.263];
               try{
                 var mats = mv.model.materials;
-                // material 0 = front face cap -> colored matte
-                var pbr0 = mats[0].pbrMetallicRoughness;
-                pbr0.setBaseColorFactor([col[0],col[1],col[2],1]);
-                pbr0.setMetallicFactor(0);
-                pbr0.setRoughnessFactor(0.65);
-                // remaining materials = side walls / depth -> matte black
-                for(var m=1;m<mats.length;m++){
+                for(var m=0;m<mats.length;m++){
                   var pbr = mats[m].pbrMetallicRoughness;
-                  pbr.setBaseColorFactor([0.02,0.02,0.02,1]);
+                  pbr.setBaseColorFactor([col[0],col[1],col[2],1]);
                   pbr.setMetallicFactor(0);
-                  pbr.setRoughnessFactor(0.8);
+                  pbr.setRoughnessFactor(0.65);
                 }
               }catch(e){}
               var orbit=mv.getCameraOrbit();
