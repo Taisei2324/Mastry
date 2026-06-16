@@ -48,15 +48,15 @@
     .ls-ref { width: 100%; height: auto; display: block; visibility: hidden; pointer-events: none; }
     .ls-shad { position: absolute; inset: 0; opacity: 0; transition: opacity .4s ease; pointer-events: none; }
     .ls-shad img { width: 100%; height: auto; display: block; }
-    .ls-shad-1 { transform: translate(2px, 2px); }
-    .ls-shad-2 { transform: translate(4px, 4px); }
-    .ls-shad-3 { transform: translate(6px, 6px); }
-    .ls-shad-4 { transform: translate(8px, 8px); }
+    .ls-shad-1 { transform: translate(4px, 4px); }
+    .ls-shad-2 { transform: translate(8px, 8px); }
+    .ls-shad-3 { transform: translate(12px, 12px); }
+    .ls-shad-4 { transform: translate(16px, 16px); }
     .ls-slices { position: absolute; inset: 0; display: flex; align-items: center; }
     .ls-sl { position: relative; height: 100%; overflow: visible; transform-origin: center center; will-change: transform, opacity, filter; }
     .ls-clip { position: absolute; inset: 0; overflow: hidden; }
-    .ls-clip img { position: absolute; top: 0; display: block; height: auto; filter: invert(1); }
-    .ls-final { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; filter: invert(1); transition: opacity 200ms ease; }
+    .ls-clip img { position: absolute; top: 0; display: block; height: auto; }
+    .ls-final { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 200ms ease; }
     #lsBottom { position: absolute; bottom: 26px; left: 0; right: 0; z-index: 3; display: flex; align-items: center; justify-content: center; gap: 16px; }
     #lsBottom span { font-family:'Inter',sans-serif; font-size:10px; font-weight:300; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.38); }
     #lsIcon { animation: lsPulse 1.4s ease-in-out infinite; }
