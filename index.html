@@ -29,10 +29,12 @@
     .ls-ref{width:100%;height:auto;display:block;visibility:hidden;pointer-events:none;}
     .ls-shad{position:absolute;inset:0;opacity:0;transition:opacity .4s ease;pointer-events:none;}
     .ls-shad-color{position:absolute;inset:0;-webkit-mask:url('images/loading screen.png') top left/100% auto no-repeat;mask:url('images/loading screen.png') top left/100% auto no-repeat;}
-    .ls-shad-r{transform:translate(-5px,0px);}
-    .ls-shad-c{transform:translate(5px,0px);}
-    #lsGrid{position:absolute;inset:0;overflow:visible;}
-    .ls-block{position:absolute;background:url('images/loading screen.png') no-repeat;will-change:transform,opacity;}
+    .ls-shad-r{transform:translate(-4px,0px);}
+    .ls-shad-c{transform:translate(4px,0px);}
+    .ls-slices{position:absolute;inset:0;display:flex;align-items:center;}
+    .ls-sl{position:relative;height:100%;overflow:visible;transform-origin:center center;will-change:transform,opacity,filter;}
+    .ls-clip{position:absolute;inset:0;overflow:hidden;}
+    .ls-clip img{position:absolute;top:0;display:block;height:auto;}
     .ls-final{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity 200ms ease;}
     #lsBottom{position:absolute;bottom:26px;left:0;right:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:16px;}
     #lsBottom span{font-family:'Inter',sans-serif;font-size:10px;font-weight:300;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.38);}
@@ -181,110 +183,31 @@
     <div class="ls-haze"></div>
     <div class="ls-center" id="lsCenter">
       <img src="images/loading screen.png" class="ls-ref" alt="" />
-      <!-- left ghost: very deep dark navy -->
-      <div class="ls-shad ls-shad-r" id="lsShadR"><div class="ls-shad-color" style="background:#000E6B;"></div></div>
-      <!-- right ghost: vivid primary blue -->
-      <div class="ls-shad ls-shad-c" id="lsShadC"><div class="ls-shad-color" style="background:#0033FF;"></div></div>
-      <div id="lsGrid"></div>
+      <div class="ls-shad ls-shad-r" id="lsShadR"><div class="ls-shad-color" style="background:#5C0000;"></div></div>
+      <div class="ls-shad ls-shad-c" id="lsShadC"><div class="ls-shad-color" style="background:#0022CC;"></div></div>
+      <div class="ls-slices" id="lsSlices"></div>
       <img src="images/loading screen.png" class="ls-final" id="lsFinal" alt="" />
     </div>
-    <div id="lsBottom"><span>Loading</span><span id="lsIcon">◈</span></div>
+    <div id="lsBottom"><span>Loading assets. Please do not close this page.</span><span id="lsIcon">◈</span></div>
   </div>
   <script>
   (function(){
-    var ls=document.getElementById('loadingScreen');
-    var center=document.getElementById('lsCenter');
-    var gridEl=document.getElementById('lsGrid');
-    var shadR=document.getElementById('lsShadR');
-    var shadC=document.getElementById('lsShadC');
-    var finalImg=document.getElementById('lsFinal');
-
-    var COLS=10,ROWS=6;
-    var blocks=[];
-
-    for(var r=0;r<ROWS;r++){
-      for(var c=0;c<COLS;c++){
-        var d=document.createElement('div');
-        d.className='ls-block';
-        d.style.width=(100/COLS)+'%';
-        d.style.height=(100/ROWS)+'%';
-        d.style.left=(c*100/COLS)+'%';
-        d.style.top=(r*100/ROWS)+'%';
-        d.style.backgroundSize=(COLS*100)+'% '+(ROWS*100)+'%';
-        var bx=COLS>1?(c*100/(COLS-1)):0;
-        var by=ROWS>1?(r*100/(ROWS-1)):0;
-        d.style.backgroundPosition=bx.toFixed(2)+'% '+by.toFixed(2)+'%';
-        gridEl.appendChild(d);
-        var ang=Math.random()*6.2832;
-        var dist=260+Math.random()*420;
-        blocks.push({
-          el:d,
-          ix:Math.cos(ang)*dist,
-          iy:Math.sin(ang)*dist,
-          ir:(Math.random()-0.5)*110
-        });
-      }
+    var ls=document.getElementById('loadingScreen'),slicesEl=document.getElementById('lsSlices'),N=6,DURATION=1900,HOLD=520;
+    function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
+    function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
+    function buildSlices(){slicesEl.innerHTML='';for(var i=0;i<N;i++){var sl=document.createElement('div');sl.className='ls-sl';sl.style.flex='0 0 calc(100% / '+N+')';var clip=document.createElement('div');clip.className='ls-clip';var img=document.createElement('img');img.src='images/loading screen.png';img.alt='';img.style.left=(i*-100)+'%';img.style.width=(N*100)+'%';clip.appendChild(img);sl.appendChild(clip);slicesEl.appendChild(sl);}}
+    var raf=null,startTime=null,shadShown=false,animDone=false;
+    function renderFrame(now){
+      if(!startTime)startTime=now;
+      var t=clamp((now-startTime)/DURATION,0,1),wave=t*(N-1),spread=1-easeInOut(clamp((t-.20)/.62,0,1));
+      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShadR').style.opacity='0.75';document.getElementById('lsShadC').style.opacity='0.75';}
+      var slices=slicesEl.querySelectorAll('.ls-sl');
+      for(var i=0;i<slices.length;i++){var sl=slices[i],dist=Math.abs(i-wave),peak=Math.exp(-(dist*dist)/2.0),scale=1+peak*0.55,pull=i-wave,xSpread=pull*3*spread,rise=-peak*8;sl.style.opacity=clamp(t*5-i*.04,0,1);sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';sl.style.zIndex=String(Math.round(peak*1000));sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';}
+      if(t<1){raf=requestAnimationFrame(renderFrame);}else{var settled=slicesEl.querySelectorAll('.ls-sl');for(var j=0;j<settled.length;j++){settled[j].style.transition='transform 240ms ease-out, filter 240ms ease-out';settled[j].style.transform='translateX(0) translateY(0) scale(1)';settled[j].style.filter='blur(0px)';}setTimeout(function(){slicesEl.style.transition='opacity 220ms ease';slicesEl.style.opacity='0';document.getElementById('lsFinal').style.opacity='1';setTimeout(function(){animDone=true;hide();},HOLD);},260);}
     }
-
-    shadR.style.opacity='0.72';
-    shadC.style.opacity='0.72';
-
-    var ASSEMBLE_DUR=1100;
-    var t0=null,pageLoaded=false,fadingOut=false;
-
-    function easeOut(t){return 1-Math.pow(1-t,3);}
-
-    function tick(now){
-      if(!t0) t0=now;
-      var elapsed=now-t0;
-      var p=Math.min(elapsed/ASSEMBLE_DUR,1);
-      var e=easeOut(p);
-
-      // breathing scale
-      var breath=1+Math.sin(elapsed/580)*0.032;
-      center.style.transform='scale('+breath.toFixed(4)+')';
-
-      // chromatic aberration slow oscillation
-      var ab=4+Math.sin(elapsed/280)*2.5;
-      shadR.style.transform='translate('+(-ab).toFixed(1)+'px,0)';
-      shadC.style.transform='translate('+(ab).toFixed(1)+'px,0)';
-
-      // assemble blocks
-      for(var i=0;i<blocks.length;i++){
-        var b=blocks[i];
-        var tx=b.ix*(1-e);
-        var ty=b.iy*(1-e);
-        var rot=b.ir*(1-e);
-        var op=0.05+0.95*e;
-        b.el.style.transform='translate('+tx.toFixed(1)+'px,'+ty.toFixed(1)+'px) rotate('+rot.toFixed(1)+'deg)';
-        b.el.style.opacity=op.toFixed(3);
-      }
-
-      // once assembled and page ready, fade out
-      if(p>=1&&pageLoaded&&!fadingOut){
-        fadingOut=true;
-        for(var i=0;i<blocks.length;i++){
-          blocks[i].el.style.transition='opacity 280ms ease';
-          blocks[i].el.style.opacity='0';
-        }
-        setTimeout(function(){
-          finalImg.style.opacity='1';
-          shadR.style.transition='opacity 500ms ease';shadR.style.opacity='0';
-          shadC.style.transition='opacity 500ms ease';shadC.style.opacity='0';
-        },200);
-        setTimeout(function(){
-          ls.classList.add('hidden');
-          setTimeout(function(){ls.remove();},800);
-        },700);
-        return;
-      }
-
-      requestAnimationFrame(tick);
-    }
-
-    setTimeout(function(){requestAnimationFrame(tick);},80);
-    window.addEventListener('load',function(){setTimeout(function(){pageLoaded=true;},400);});
-    setTimeout(function(){pageLoaded=true;},9000);
+    function hide(){if(!animDone)return;ls.classList.add('hidden');setTimeout(function(){ls.remove();},800);}
+    buildSlices();setTimeout(function(){raf=requestAnimationFrame(renderFrame);},80);
+    window.addEventListener('load',function(){setTimeout(hide,3400);});setTimeout(hide,8000);
   })();
   </script>
 </body>
