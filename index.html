@@ -45,6 +45,24 @@
   </style>
   <script>
     if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('mobile.html');}
+    window.__heroColor = (function(){
+      var p = [
+        [0.62, 0.36, 0.08],
+        [0.88, 0.68, 0.22],
+        [0.86, 0.65, 0.22],
+        [0.84, 0.60, 0.14],
+        [0.72, 0.26, 0.08],
+        [0.44, 0.14, 0.04],
+        [0.34, 0.40, 0.07],
+        [0.30, 0.38, 0.06],
+        [0.86, 0.66, 0.20],
+        [0.18, 0.22, 0.04],
+        [0.88, 0.70, 0.26],
+        [0.58, 0.42, 0.10],
+        [0.68, 0.32, 0.07]
+      ];
+      return p[Math.floor(Math.random()*p.length)];
+    })();
   </script>
 </head>
 <body>
@@ -105,10 +123,17 @@
             mv.addEventListener('pointerup',onRelease);
             mv.addEventListener('pointercancel',onRelease);
             mv.addEventListener('load',function(){
+              var col = window.__heroColor || [0.62,0.36,0.08];
               try{
                 var mats=mv.model.materials;
-                for(var m=0;m<mats.length;m++){
-                  mats[m].pbrMetallicRoughness.setBaseColorFactor([0,0,0,1]);
+                if(mats.length===1){
+                  mats[0].pbrMetallicRoughness.setBaseColorFactor([col[0],col[1],col[2],1]);
+                } else {
+                  // First material = front face (colored), rest = black depth fills
+                  mats[0].pbrMetallicRoughness.setBaseColorFactor([col[0],col[1],col[2],1]);
+                  for(var m=1;m<mats.length;m++){
+                    mats[m].pbrMetallicRoughness.setBaseColorFactor([0,0,0,1]);
+                  }
                 }
               }catch(e){}
               var orbit=mv.getCameraOrbit();
@@ -173,8 +198,8 @@
     <div class="ls-haze"></div>
     <div class="ls-center" id="lsCenter">
       <img src="images/loading screen.png" class="ls-ref" alt="" />
-      <div class="ls-shad ls-shad-r" id="lsShadR"><div class="ls-shad-color" style="background:#FF2200;"></div></div>
-      <div class="ls-shad ls-shad-c" id="lsShadC"><div class="ls-shad-color" style="background:#00DFFF;"></div></div>
+      <div class="ls-shad ls-shad-r" id="lsShadR"><div class="ls-shad-color" style="background:#5C0000;"></div></div>
+      <div class="ls-shad ls-shad-c" id="lsShadC"><div class="ls-shad-color" style="background:#003030;"></div></div>
       <div class="ls-slices" id="lsSlices"></div>
       <img src="images/loading screen.png" class="ls-final" id="lsFinal" alt="" />
     </div>
@@ -190,7 +215,7 @@
     function renderFrame(now){
       if(!startTime)startTime=now;
       var t=clamp((now-startTime)/DURATION,0,1),wave=t*(N-1),spread=1-easeInOut(clamp((t-.20)/.62,0,1));
-      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShadR').style.opacity='0.75';document.getElementById('lsShadC').style.opacity='0.75';}
+      if(!shadShown&&t>.12){shadShown=true;document.getElementById('lsShadR').style.opacity='0.65';document.getElementById('lsShadC').style.opacity='0.65';}
       var slices=slicesEl.querySelectorAll('.ls-sl');
       for(var i=0;i<slices.length;i++){var sl=slices[i],dist=Math.abs(i-wave),peak=Math.exp(-(dist*dist)/2.0),scale=1+peak*0.55,pull=i-wave,xSpread=pull*3*spread,rise=-peak*8;sl.style.opacity=clamp(t*5-i*.04,0,1);sl.style.transform='translateX('+xSpread+'px) translateY('+rise+'px) scale('+scale+')';sl.style.zIndex=String(Math.round(peak*1000));sl.style.filter='blur('+((1-peak)*spread*0.8).toFixed(2)+'px)';}
       if(t<1){raf=requestAnimationFrame(renderFrame);}else{var settled=slicesEl.querySelectorAll('.ls-sl');for(var j=0;j<settled.length;j++){settled[j].style.transition='transform 240ms ease-out, filter 240ms ease-out';settled[j].style.transform='translateX(0) translateY(0) scale(1)';settled[j].style.filter='blur(0px)';}setTimeout(function(){slicesEl.style.transition='opacity 220ms ease';slicesEl.style.opacity='0';document.getElementById('lsFinal').style.opacity='1';setTimeout(function(){animDone=true;hide();},HOLD);},260);}
