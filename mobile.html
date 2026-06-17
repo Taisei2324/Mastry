@@ -48,7 +48,7 @@
     /* HERO */
     .m-hero{position:relative;width:100%;margin-top:var(--nav-h);background:#0d0d0d;}
     .m-hero__img{width:100%;height:auto;display:block;}
-    .m-hero__logo{position:absolute;bottom:-26px;left:-30px;width:160px;height:118px;background:transparent;--poster-color:transparent;display:block;pointer-events:auto;}
+    .m-hero__logo{position:absolute;bottom:-7px;left:-11px;width:160px;height:118px;background:transparent;--poster-color:transparent;display:block;pointer-events:auto;}
     /* Text below hero image — compact */
     .m-hero__content{padding:16px 20px 20px;background:#0d0d0d;}
     .m-hero__eyebrow{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:6px;display:block;}
@@ -185,12 +185,10 @@
     </button>
   </nav>
 
-  <!-- HERO -->
   <section id="home">
     <div class="m-hero">
       <img src="" alt="Mastry" class="m-hero__img" id="heroImg" />
       <script>(function(){var h=['images/wider and newer web hero.png','images/perfect web hero.png','images/image web hero temple.png','images/web hero half & half.png','images/web hero new striking.png'];document.getElementById('heroImg').src=h[Math.floor(Math.random()*h.length)];})();</script>
-
       <model-viewer id="heroModel"
         src="images/blackfill web hero logo/floating_web_hero_logo2_1.glb"
         alt="Island 2 Island."
@@ -221,7 +219,6 @@
       })();
       </script>
     </div>
-
     <div class="m-hero__content">
       <span class="m-hero__eyebrow">Chios, Greece × Japan</span>
       <h1 class="m-hero__title">Resin.<br>Water.<br>Nothing else.</h1>
@@ -233,14 +230,12 @@
     </div>
   </section>
 
-  <!-- STRIP -->
   <div class="m-strip">
     <div class="m-strip__track">
       <span>Mastic from Chios</span><span class="m-dot">◈</span><span>Assembled in Japan</span><span class="m-dot">◈</span><span>Zero sugar</span><span class="m-dot">◈</span><span>100% natural flavours</span><span class="m-dot">◈</span><span>2,500 years of heritage</span><span class="m-dot">◈</span><span>mastry.jp</span><span class="m-dot">◈</span><span>Mastic from Chios</span><span class="m-dot">◈</span><span>Assembled in Japan</span><span class="m-dot">◈</span><span>Zero sugar</span><span class="m-dot">◈</span><span>100% natural flavours</span><span class="m-dot">◈</span><span>2,500 years of heritage</span><span class="m-dot">◈</span><span>mastry.jp</span><span class="m-dot">◈</span>
     </div>
   </div>
 
-  <!-- PRODUCTS -->
   <section class="m-products" id="products">
     <div class="m-section-header">
       <span class="m-eyebrow">Chapter two</span>
@@ -248,39 +243,20 @@
       <p class="m-lead">Four expressions. One rare ingredient.</p>
     </div>
     <div class="m-catalog-scroll">
-      <div class="m-card" onclick="addToCart(1,'Mastry Original',2.62)">
-        <img src="images/brand new original catalog.png" alt="Mastry Original" class="m-card__img" />
-        <div class="m-card__body"><span class="m-card__tag">Original</span><h3 class="m-card__name">Mastry<br>Original</h3><p class="m-card__desc">Pure Chios Mastic. Delicate pine and cedar notes.</p><div class="m-card__footer"><span class="m-card__price">$2.62 / ¥360</span><span class="m-card__add">+ Add</span></div></div>
-      </div>
-      <div class="m-card" onclick="addToCart(2,'Mastry Yuzu',2.84)">
-        <img src="images/Mastry ad yuzu.png" alt="Mastry Yuzu" class="m-card__img" />
-        <div class="m-card__body"><span class="m-card__tag">Signature</span><h3 class="m-card__name">Mastry<br>Yuzu</h3><p class="m-card__desc">Mastic meets Japanese yuzu citrus. Floral and tart.</p><div class="m-card__footer"><span class="m-card__price">$2.84 / ¥360</span><span class="m-card__add">+ Add</span></div></div>
-      </div>
-      <div class="m-card" onclick="addToCart(3,'Mastry Hinoki',2.62)">
-        <img src="images/hinoki mastry ad.png" alt="Mastry Hinoki" class="m-card__img" />
-        <div class="m-card__body"><span class="m-card__tag">Limited</span><h3 class="m-card__name">Mastry<br>Hinoki</h3><p class="m-card__desc">Mastic with Japanese cypress. Earthy and meditative.</p><div class="m-card__footer"><span class="m-card__price">$2.62 / ¥360</span><span class="m-card__add">+ Add</span></div></div>
-      </div>
-      <div class="m-card" onclick="addToCart(4,'Mastry Ume',2.84)">
-        <img src="images/Ume mastry Ad.png" alt="Mastry Ume" class="m-card__img" />
-        <div class="m-card__body"><span class="m-card__tag">Seasonal</span><h3 class="m-card__name">Mastry<br>Ume</h3><p class="m-card__desc">Mastic and Japanese plum blossom. Gently floral.</p><div class="m-card__footer"><span class="m-card__price">$2.84 / ¥360</span><span class="m-card__add">+ Add</span></div></div>
-      </div>
+      <div class="m-card" onclick="addToCart(1,'Mastry Original',2.62)"><img src="images/brand new original catalog.png" alt="Mastry Original" class="m-card__img" /><div class="m-card__body"><span class="m-card__tag">Original</span><h3 class="m-card__name">Mastry<br>Original</h3><p class="m-card__desc">Pure Chios Mastic. Delicate pine and cedar notes.</p><div class="m-card__footer"><span class="m-card__price">$2.62 / ¥360</span><span class="m-card__add">+ Add</span></div></div></div>
+      <div class="m-card" onclick="addToCart(2,'Mastry Yuzu',2.84)"><img src="images/Mastry ad yuzu.png" alt="Mastry Yuzu" class="m-card__img" /><div class="m-card__body"><span class="m-card__tag">Signature</span><h3 class="m-card__name">Mastry<br>Yuzu</h3><p class="m-card__desc">Mastic meets Japanese yuzu citrus. Floral and tart.</p><div class="m-card__footer"><span class="m-card__price">$2.84 / ¥360</span><span class="m-card__add">+ Add</span></div></div></div>
+      <div class="m-card" onclick="addToCart(3,'Mastry Hinoki',2.62)"><img src="images/hinoki mastry ad.png" alt="Mastry Hinoki" class="m-card__img" /><div class="m-card__body"><span class="m-card__tag">Limited</span><h3 class="m-card__name">Mastry<br>Hinoki</h3><p class="m-card__desc">Mastic with Japanese cypress. Earthy and meditative.</p><div class="m-card__footer"><span class="m-card__price">$2.62 / ¥360</span><span class="m-card__add">+ Add</span></div></div></div>
+      <div class="m-card" onclick="addToCart(4,'Mastry Ume',2.84)"><img src="images/Ume mastry Ad.png" alt="Mastry Ume" class="m-card__img" /><div class="m-card__body"><span class="m-card__tag">Seasonal</span><h3 class="m-card__name">Mastry<br>Ume</h3><p class="m-card__desc">Mastic and Japanese plum blossom. Gently floral.</p><div class="m-card__footer"><span class="m-card__price">$2.84 / ¥360</span><span class="m-card__add">+ Add</span></div></div></div>
     </div>
   </section>
 
-  <!-- JAPAN -->
   <section id="explore">
     <div class="m-photo">
       <img src="images/ad 5.png" alt="Mastry in Japan" class="m-photo__img" />
-      <div class="m-photo__content">
-        <span class="m-eyebrow">Chapter one · Assembled in Japan</span>
-        <h2 class="m-photo__title">Born in<br><em>Japan.</em></h2>
-        <p class="m-photo__sub">Sourced from pristine mountain springs. Carbonated and bottled to Japanese quality standards.</p>
-        <span class="m-photo__caption">Mt. Fuji · Yamanashi, Japan</span>
-      </div>
+      <div class="m-photo__content"><span class="m-eyebrow">Chapter one · Assembled in Japan</span><h2 class="m-photo__title">Born in<br><em>Japan.</em></h2><p class="m-photo__sub">Sourced from pristine mountain springs. Carbonated and bottled to Japanese quality standards.</p><span class="m-photo__caption">Mt. Fuji · Yamanashi, Japan</span></div>
     </div>
   </section>
 
-  <!-- BOTTLE -->
   <section class="m-bottle">
     <img src="images/mastry ad.png" alt="Mastry bottle" class="m-bottle__img" />
     <div class="m-bottle__text">
@@ -296,37 +272,24 @@
     </div>
   </section>
 
-  <!-- GREECE LIFE -->
   <section>
     <div class="m-photo">
       <img src="images/ad 3.png" alt="Chios, Greece" class="m-photo__img" />
-      <div class="m-photo__content">
-        <span class="m-eyebrow">Chapter three · Chios, Greece</span>
-        <h2 class="m-photo__title">Ancient<br>resin.</h2>
-        <p class="m-photo__sub">Pistacia lentiscus trees weep a tear of resin every morning. Harvested by hand. The same ritual for 2,500 years.</p>
-        <span class="m-photo__caption">Chios, Greece · Mastic harvest</span>
-      </div>
+      <div class="m-photo__content"><span class="m-eyebrow">Chapter three · Chios, Greece</span><h2 class="m-photo__title">Ancient<br>resin.</h2><p class="m-photo__sub">Pistacia lentiscus trees weep a tear of resin every morning. Harvested by hand. The same ritual for 2,500 years.</p><span class="m-photo__caption">Chios, Greece · Mastic harvest</span></div>
     </div>
   </section>
 
-  <!-- GREECE ACROPOLIS -->
   <section id="greece">
     <div class="m-photo">
       <img src="images/ad 4.png" alt="Mastry — Acropolis" class="m-photo__img" />
-      <div class="m-photo__content">
-        <span class="m-eyebrow">Rooted in Greece</span>
-        <h2 class="m-photo__title">Rooted in<br>Greece.</h2>
-        <p class="m-photo__sub">Mastic has been harvested on the island of Chios for over 2,500 years. It can only grow here, nowhere else on earth.</p>
-        <span class="m-photo__caption">Acropolis · Athens, Greece</span>
-      </div>
+      <div class="m-photo__content"><span class="m-eyebrow">Rooted in Greece</span><h2 class="m-photo__title">Rooted in<br>Greece.</h2><p class="m-photo__sub">Mastic has been harvested on the island of Chios for over 2,500 years. It can only grow here, nowhere else on earth.</p><span class="m-photo__caption">Acropolis · Athens, Greece</span></div>
     </div>
   </section>
 
-  <!-- ABOUT -->
   <section class="m-about" id="about">
     <span class="m-eyebrow">Chapter four</span>
     <h2 class="m-title" style="margin-top:8px;">Two worlds.<br>One water.</h2>
-    <p class="m-lead" style="margin-top:10px;">Mastry was born from a single question: what happens when the rarest natural resin on earth meets the world's most refined water culture?</p>
+    <p class="m-lead" style="margin-top:10px;">Mastry was born from a single question: what happens when the rarest natural resin on earth meets the world’s most refined water culture?</p>
     <div class="m-stats">
       <div class="m-stat"><div><span class="m-stat__num" data-target="0">0</span><span class="m-stat__unit">g</span></div><div class="m-stat__label">Sugar — always</div></div>
       <div class="m-stat"><div><span class="m-stat__num" data-target="100">0</span><span class="m-stat__unit">%</span></div><div class="m-stat__label">Natural flavours</div></div>
@@ -335,11 +298,10 @@
     </div>
   </section>
 
-  <!-- ORDER -->
   <section class="m-order" id="order">
     <span class="m-eyebrow">Chapter five</span>
     <h2 class="m-title" style="margin-top:8px;">Order<br>Mastry.</h2>
-    <p class="m-lead" style="margin-top:10px;">International shipping available. We'll confirm within 24 hours.</p>
+    <p class="m-lead" style="margin-top:10px;">International shipping available. We’ll confirm within 24 hours.</p>
     <form class="m-form" id="orderForm">
       <div class="m-field"><label class="m-label" for="fname">Full name</label><input class="m-input" type="text" id="fname" placeholder="Your name" required autocomplete="name" /></div>
       <div class="m-field"><label class="m-label" for="femail">Email</label><input class="m-input" type="email" id="femail" placeholder="your@email.com" required autocomplete="email" /></div>
@@ -380,12 +342,11 @@
     <div class="m-success__box">
       <span class="m-success__icon">◈</span>
       <h3 class="m-success__title">Order received.</h3>
-      <p class="m-success__text">Thank you for choosing Mastry. We'll confirm within 24 hours.</p>
+      <p class="m-success__text">Thank you for choosing Mastry. We’ll confirm within 24 hours.</p>
       <button class="m-btn m-btn--dark" onclick="closeSuccess()">Continue</button>
     </div>
   </div>
 
-  <!-- LOADING SCREEN -->
   <div id="loadingScreen" aria-hidden="true">
     <div class="ls-bg"></div>
     <div class="ls-vignette"></div>
