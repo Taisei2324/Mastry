@@ -14,46 +14,38 @@
     body{font-family:'Inter',sans-serif;background:#0d0d0d;color:#f5f0e8;overflow-x:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
     :root{--sage:#4a6040;--cream:#f5f0e8;--muted:rgba(245,240,232,0.55);--border:rgba(245,240,232,0.12);--nav-h:56px;}
 
-    /* NAV */
     .m-nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);display:flex;align-items:center;padding:0 16px;padding-top:env(safe-area-inset-top);background:rgba(13,13,13,0.96);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:100;}
     .m-nav__back{background:none;border:none;color:var(--cream);padding:8px 8px 8px 0;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;gap:6px;text-decoration:none;font-weight:600;letter-spacing:0.04em;font-size:0.8rem;}
     .m-nav__title{flex:1;text-align:center;font-size:0.95rem;font-weight:900;letter-spacing:0.22em;color:var(--cream);}
 
-    /* HEADER */
     .m-header{padding:36px 20px 24px;margin-top:var(--nav-h);border-bottom:1px solid var(--border);}
-    .m-header__eyebrow{font-size:0.65rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--sage);margin-bottom:10px;display:block;}
     .m-header__title{font-size:2.4rem;font-weight:900;line-height:1.0;letter-spacing:-0.03em;color:var(--cream);}
 
-    /* GRID */
     .m-merch{padding:24px 16px calc(48px + env(safe-area-inset-bottom));}
     .m-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
-    /* CARD */
-    .m-card{background:#141414;border:1px solid var(--border);overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .18s;}
+    .m-card{background:#141414;border:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .18s;}
     .m-card:active{opacity:0.7;}
     .m-card__thumb{width:100%;aspect-ratio:1/1;overflow:hidden;background:#111;}
     .m-card__thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-    .m-card__body{padding:12px 12px 14px;}
+    .m-card__body{padding:12px;}
     .m-card__name{font-size:0.82rem;font-weight:800;color:var(--cream);letter-spacing:0.01em;margin-bottom:4px;}
     .m-card__price{font-size:0.72rem;color:var(--sage);font-weight:600;}
 
-    /* LIGHTBOX */
     .lb{display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.93);flex-direction:column;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom);}
     .lb.open{display:flex;}
     .lb__header{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));background:rgba(13,13,13,0.9);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);flex-shrink:0;}
     .lb__title{font-size:0.85rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--cream);}
     .lb__price{font-size:0.78rem;font-weight:600;color:var(--sage);}
-    .lb__close{background:none;border:none;color:var(--muted);font-size:1.8rem;line-height:1;cursor:pointer;padding:0 4px;touch-action:manipulation;}
+    .lb__close{background:none;border:none;color:var(--muted);font-size:1.8rem;line-height:1;cursor:pointer;padding:0 4px;}
     .lb__imgs{display:flex;flex-direction:column;gap:0;flex:1;}
     .lb__img{width:100%;display:block;}
-    .lb__img--contain{object-fit:contain;background:#111;padding:16px;}
     .lb__footer{padding:20px 16px;border-top:1px solid var(--border);flex-shrink:0;}
-    .lb__btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;background:var(--sage);color:#fff;font-family:inherit;font-size:0.78rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;border:none;cursor:pointer;touch-action:manipulation;transition:opacity .2s;}
+    .lb__btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;background:var(--sage);color:#fff;font-family:inherit;font-size:0.78rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;border:none;cursor:pointer;transition:opacity .2s;}
     .lb__btn:active{opacity:0.75;}
 
-    /* FOOTER */
-    .m-footer{padding:24px 20px;border-top:1px solid var(--border);text-align:center;}
-    .m-footer__copy{font-size:0.65rem;color:rgba(255,255,255,0.25);line-height:1.7;}
+    .m-footer{padding:20px 16px;border-top:1px solid var(--border);text-align:center;}
+    .m-footer__copy{font-size:0.63rem;color:rgba(255,255,255,0.2);}
   </style>
 </head>
 <body>
@@ -68,140 +60,69 @@
   </nav>
 
   <div class="m-header">
-    <span class="m-header__eyebrow">Mastry Collection</span>
     <h1 class="m-header__title">Merch.</h1>
   </div>
 
   <section class="m-merch">
     <div class="m-grid">
-
       <div class="m-card" onclick="openLB(0)">
         <div class="m-card__thumb"><img src="images/island_front_left_chest_mockup.png" alt="Island Tee" loading="lazy" /></div>
-        <div class="m-card__body">
-          <div class="m-card__name">Island Tee</div>
-          <div class="m-card__price">$38</div>
-        </div>
+        <div class="m-card__body"><div class="m-card__name">Island Tee</div><div class="m-card__price">$38</div></div>
       </div>
-
       <div class="m-card" onclick="openLB(1)">
         <div class="m-card__thumb"><img src="images/hoodie mastry.png" alt="Mastry Hoodie" loading="lazy" /></div>
-        <div class="m-card__body">
-          <div class="m-card__name">Mastry Hoodie</div>
-          <div class="m-card__price">$68</div>
-        </div>
+        <div class="m-card__body"><div class="m-card__name">Mastry Hoodie</div><div class="m-card__price">$68</div></div>
       </div>
-
       <div class="m-card" onclick="openLB(2)">
-        <div class="m-card__thumb"><img src="images/hat merch.png" alt="Mastry Hat" loading="lazy" /></div>
-        <div class="m-card__body">
-          <div class="m-card__name">Mastry Hat</div>
-          <div class="m-card__price">$34</div>
-        </div>
+        <div class="m-card__thumb"><img src="images/side merch hat.png" alt="Mastry Hat" loading="lazy" /></div>
+        <div class="m-card__body"><div class="m-card__name">Mastry Hat</div><div class="m-card__price">$34</div></div>
       </div>
-
     </div>
   </section>
 
-  <footer class="m-footer">
-    <p class="m-footer__copy">Mastry · Ships within 5 business days<br>hello@mastry.jp</p>
-  </footer>
+  <footer class="m-footer"><p class="m-footer__copy">© 2026 Mastry • hello@mastry.jp</p></footer>
 
-  <!-- LIGHTBOX -->
   <div class="lb" id="lb">
     <div class="lb__header">
-      <div>
-        <div class="lb__title" id="lbTitle"></div>
-        <div class="lb__price" id="lbPrice"></div>
-      </div>
+      <div><div class="lb__title" id="lbTitle"></div><div class="lb__price" id="lbPrice"></div></div>
       <button class="lb__close" onclick="closeLB()">&times;</button>
     </div>
     <div class="lb__imgs" id="lbImgs"></div>
-    <div class="lb__footer">
-      <button class="lb__btn" onclick="orderItem()">Order This Item</button>
-    </div>
+    <div class="lb__footer"><button class="lb__btn" onclick="orderItem()">Order</button></div>
   </div>
 
-  <div id="successMsg" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;padding:32px;">
-    <div style="background:#111;border:1px solid var(--border);padding:40px 28px;text-align:center;max-width:320px;width:100%;">
+  <div id="successMsg" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:32px;">
+    <div style="background:#111;border:1px solid var(--border);padding:40px 28px;text-align:center;max-width:320px;">
       <div style="font-size:2rem;color:var(--sage);margin-bottom:14px;">&#9672;</div>
-      <h3 style="font-size:1.4rem;font-weight:900;color:var(--cream);margin-bottom:10px;">Order received.</h3>
-      <p style="font-size:0.83rem;color:var(--muted);line-height:1.7;margin-bottom:24px;">Thank you. We’ll confirm your merch order within 24 hours at hello@mastry.jp</p>
+      <h3 style="font-size:1.3rem;font-weight:900;color:var(--cream);margin-bottom:12px;">Order received.</h3>
+      <p style="font-size:0.78rem;color:var(--muted);line-height:1.6;margin-bottom:20px;">We’ll confirm at hello@mastry.jp</p>
       <button onclick="closeSuccess()" style="width:100%;min-height:48px;background:var(--sage);color:#fff;font-family:inherit;font-size:0.75rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;border:none;cursor:pointer;">Continue</button>
     </div>
   </div>
 
   <script>
-    if(!/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){
-      window.location.replace('index.html');
-    }
-
-    var items = [
-      {
-        name: 'Island Tee',
-        price: '$38',
-        imgs: [
-          {src:'images/island_front_left_chest_mockup.png', contain:false},
-          {src:'images/island_front_back_combined_landscape.jpg', contain:false}
-        ]
-      },
-      {
-        name: 'Mastry Hoodie',
-        price: '$68',
-        imgs: [
-          {src:'images/hoodie mastry.png', contain:false},
-          {src:'images/hoodie_front_back_color_matched_side_by_side.jpg', contain:false}
-        ]
-      },
-      {
-        name: 'Mastry Hat',
-        price: '$34',
-        imgs: [
-          {src:'images/hat merch.png', contain:false},
-          {src:'images/side merch hat.png', contain:false}
-        ]
-      }
+    if(!/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent))window.location.replace('index.html');
+    var items=[
+      {name:'Island Tee',price:'$38',imgs:[{src:'images/island_front_left_chest_mockup.png'},{src:'images/shirt back merch real.png'}]},
+      {name:'Mastry Hoodie',price:'$68',imgs:[{src:'images/hoodie mastry.png'},{src:'images/hoodie_front_back_color_matched_side_by_side.jpg'}]},
+      {name:'Mastry Hat',price:'$34',imgs:[{src:'images/side merch hat.png'},{src:'images/hat merch.png'}]}
     ];
-
-    var currentItem = 0;
-
+    var currentItem=0;
     function openLB(idx){
-      currentItem = idx;
-      var item = items[idx];
-      document.getElementById('lbTitle').textContent = item.name;
-      document.getElementById('lbPrice').textContent = item.price;
-      var imgs = document.getElementById('lbImgs');
-      imgs.innerHTML = item.imgs.map(function(im){
-        return '<img class="lb__img' + (im.contain ? ' lb__img--contain' : '') + '" src="' + im.src + '" alt="" loading="lazy" />';
-      }).join('');
-      var lb = document.getElementById('lb');
+      currentItem=idx;
+      var item=items[idx];
+      document.getElementById('lbTitle').textContent=item.name;
+      document.getElementById('lbPrice').textContent=item.price;
+      var imgs=document.getElementById('lbImgs');
+      imgs.innerHTML=item.imgs.map(function(im){return '<img class="lb__img" src="'+im.src+'" alt="" loading="lazy" />'}).join('');
+      var lb=document.getElementById('lb');
       lb.classList.add('open');
-      lb.scrollTop = 0;
-      document.body.style.overflow = 'hidden';
+      lb.scrollTop=0;
+      document.body.style.overflow='hidden';
     }
-
-    function closeLB(){
-      document.getElementById('lb').classList.remove('open');
-      document.body.style.overflow = '';
-    }
-
-    function orderItem(){
-      closeLB();
-      var s = document.getElementById('successMsg');
-      s.style.display = 'flex';
-    }
-
-    function closeSuccess(){
-      document.getElementById('successMsg').style.display = 'none';
-    }
-
-    // Close lightbox on back swipe
-    var touchStartX = 0;
-    document.getElementById('lb').addEventListener('touchstart', function(e){
-      touchStartX = e.touches[0].clientX;
-    }, {passive:true});
-    document.getElementById('lb').addEventListener('touchend', function(e){
-      if(e.changedTouches[0].clientX - touchStartX > 80) closeLB();
-    }, {passive:true});
+    function closeLB(){document.getElementById('lb').classList.remove('open');document.body.style.overflow='';}
+    function orderItem(){closeLB();document.getElementById('successMsg').style.display='flex';}
+    function closeSuccess(){document.getElementById('successMsg').style.display='none';}
   </script>
 </body>
 </html>
