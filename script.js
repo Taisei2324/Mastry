@@ -195,6 +195,56 @@
     }).observe(canvas);
   }
 
+  /* ── scenery rotation ── */
+  var sceneryFrame = document.getElementById("sceneryFrame");
+  if (sceneryFrame) {
+    var slides = sceneryFrame.querySelectorAll(".scenery__slide");
+    var dotsWrap = document.getElementById("sceneryDots");
+    var current = 0;
+    var timer = null;
+    var HOLD = 5500;
+
+    slides.forEach(function (s, i) {
+      var d = document.createElement("button");
+      d.setAttribute("role", "tab");
+      d.setAttribute("aria-label", "Slide " + (i + 1));
+      if (i === 0) d.classList.add("is-active");
+      d.addEventListener("click", function () { go(i); restart(); });
+      dotsWrap.appendChild(d);
+    });
+    var dots = dotsWrap.querySelectorAll("button");
+
+    function go(i) {
+      current = (i + slides.length) % slides.length;
+      slides.forEach(function (s, k) { s.classList.toggle("is-active", k === current); });
+      dots.forEach(function (d, k) { d.classList.toggle("is-active", k === current); });
+      /* nudge the next image to start fetching before it's shown */
+      var next = slides[(current + 1) % slides.length].querySelector("img");
+      if (next && next.loading === "lazy") next.loading = "eager";
+    }
+    function restart() {
+      if (timer) clearInterval(timer);
+      if (!reduceMotion) timer = setInterval(function () { go(current + 1); }, HOLD);
+    }
+    restart();
+
+    /* once the page is loaded, fetch the remaining slides in the background */
+    window.addEventListener("load", function () {
+      slides.forEach(function (s) {
+        var img = s.querySelector("img");
+        if (img.loading === "lazy") img.loading = "eager";
+      });
+    });
+
+    sceneryFrame.addEventListener("mouseenter", function () { if (timer) clearInterval(timer); });
+    sceneryFrame.addEventListener("mouseleave", restart);
+    /* don't rotate while off-screen */
+    new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) restart();
+      else if (timer) clearInterval(timer);
+    }).observe(sceneryFrame);
+  }
+
   /* ── notify form (static site — no backend) ── */
   var form = document.getElementById("findForm");
   var email = document.getElementById("findEmail");
