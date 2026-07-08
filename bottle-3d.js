@@ -43,11 +43,15 @@
     x.fillStyle = "rgba(255,255,255,0.95)";
     x.fillRect(96, 20, 46, 170);
     x.fillRect(330, 30, 70, 150);
+    x.fillStyle = "rgba(56,62,40,0.55)";
+    x.fillRect(212, 10, 42, 210);
+    x.fillRect(462, 24, 34, 190);
     x.fillStyle = "rgba(145,150,79,0.35)";
     x.fillRect(0, 216, 512, 40);
     x.filter = "none";
     var tex = new THREE.CanvasTexture(c);
     tex.mapping = THREE.EquirectangularReflectionMapping;
+    tex.encoding = THREE.sRGBEncoding;
     return tex;
   }
 
@@ -104,6 +108,8 @@
         } catch (e) { return; }
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.12;
         renderer.domElement.style.cssText = "display:block;width:100%;height:100%;";
         host.style.display = "block";
         host.appendChild(renderer.domElement);
@@ -115,8 +121,8 @@
 
         var pmrem = new THREE.PMREMGenerator(renderer);
         scene.environment = pmrem.fromEquirectangular(makeEnvTexture()).texture;
-        scene.add(new THREE.HemisphereLight(0xffffff, 0xdad5c2, 0.65));
-        var sun = new THREE.DirectionalLight(0xffffff, 1.6);
+        scene.add(new THREE.HemisphereLight(0xffffff, 0xdad5c2, 0.6));
+        var sun = new THREE.DirectionalLight(0xffffff, 0.9);
         sun.position.set(2.5, 4, 3);
         scene.add(sun);
 
@@ -128,8 +134,9 @@
         var glass = new THREE.Mesh(
           new THREE.LatheGeometry(pts, 48),
           new THREE.MeshPhysicalMaterial({
-            color: 0xffffff, transparent: true, opacity: 0.16,
+            color: 0xffffff, transparent: true, opacity: 0.17,
             roughness: 0.04, metalness: 0, envMapIntensity: 1.5,
+            clearcoat: 1, clearcoatRoughness: 0.06,
             depthWrite: false
           })
         );
@@ -147,8 +154,8 @@
         var liquid = new THREE.Mesh(
           new THREE.LatheGeometry(lpts, 40),
           new THREE.MeshPhysicalMaterial({
-            color: 0xe9f4ee, transparent: true, opacity: 0.32,
-            roughness: 0.02, metalness: 0, envMapIntensity: 0.5,
+            color: 0xe9f4ee, transparent: true, opacity: 0.2,
+            roughness: 0.02, metalness: 0, envMapIntensity: 0.3,
             depthWrite: false
           })
         );
@@ -156,10 +163,14 @@
 
         /* wrap-around label */
         var labelMat = new THREE.MeshStandardMaterial({
-          map: makeFallbackLabel(), roughness: 0.85, metalness: 0
+          map: makeFallbackLabel(), roughness: 0.85, metalness: 0,
+          envMapIntensity: 0.25, side: THREE.DoubleSide
         });
+        /* paper wraps ~3/4 of the bottle so glass shows through the gap */
+        var LABEL_ARC = Math.PI * 1.5;
         var label = new THREE.Mesh(
-          new THREE.CylinderGeometry(LABEL_R, LABEL_R, LABEL_H, 64, 1, true),
+          new THREE.CylinderGeometry(LABEL_R, LABEL_R, LABEL_H, 64, 1, true,
+            Math.PI - LABEL_ARC / 2, LABEL_ARC),
           labelMat
         );
         label.position.y = LABEL_BOTTOM + LABEL_H / 2;
@@ -255,7 +266,7 @@
             var dy = rect.top + rect.height / 2 - vh / 2;
             group.position.x = dx * perPx;
             group.position.y = -dy * perPx;
-            var sc = Math.min(1.05, Math.max(0.4, rect.height * perPx / (BOTTLE_H + 0.5)));
+            var sc = Math.min(1.05, Math.max(0.4, rect.height * perPx / (BOTTLE_H + 0.35)));
             group.scale.setScalar(sc);
             return rect.bottom > -60 && rect.top < vh + 60;
           }
