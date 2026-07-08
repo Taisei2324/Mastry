@@ -51,8 +51,12 @@
       if (s.prog) s.el.style.setProperty("--p", Math.min(1, near * 1.6).toFixed(3));
     });
   }
-  if (!calmScroll) {
-    document.querySelectorAll("[data-speed],[data-drift],[data-rotate],[data-zoom],[data-tilt],[data-progress]")
+  /* phones keep only the horizontal word-bands sliding with scroll; everything else stays still */
+  var stageSelector = calmScroll
+    ? ".driftline [data-drift]"
+    : "[data-speed],[data-drift],[data-rotate],[data-zoom],[data-tilt],[data-progress]";
+  if (!reduceMotion) {
+    document.querySelectorAll(stageSelector)
       .forEach(function (el) {
         stage.push({
           el: el,
