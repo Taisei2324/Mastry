@@ -202,7 +202,7 @@
     var dotsWrap = document.getElementById("sceneryDots");
     var current = 0;
     var timer = null;
-    var HOLD = 5500;
+    var HOLD = 2600;
 
     slides.forEach(function (s, i) {
       var d = document.createElement("button");
