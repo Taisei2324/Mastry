@@ -44,6 +44,26 @@
     }
   });
 
+  /* ── scrollspy: mark the nav link for the section in view ── */
+  var spyLinks = {};
+  document.querySelectorAll('.nav__links a[href^="#"]').forEach(function (a) {
+    spyLinks[a.getAttribute("href").slice(1)] = a;
+  });
+  var spyObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      var link = spyLinks[entry.target.id];
+      if (!link) return;
+      if (entry.isIntersecting) {
+        Object.keys(spyLinks).forEach(function (k) { spyLinks[k].classList.remove("active"); });
+        link.classList.add("active");
+      }
+    });
+  }, { rootMargin: "-35% 0px -55% 0px" });
+  Object.keys(spyLinks).forEach(function (id) {
+    var sec = document.getElementById(id);
+    if (sec) spyObserver.observe(sec);
+  });
+
   /* ── scroll reveals ── */
   var revealObserver = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
