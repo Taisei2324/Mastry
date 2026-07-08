@@ -232,18 +232,54 @@
   </div>
 </section>
 
-<!-- ══ Find ══ -->
-<section class="find section" id="find">
-  <div class="find__card reveal">
-    <p class="section__eyebrow">First pour — 先行</p>
-    <h2 class="section__title">Be first in line.</h2>
-    <p class="find__sub">Mastry reaches shelves in Tokyo and Athens soon.
-    Leave an address and we'll tell you the moment the first crate lands.</p>
-    <form class="find__form" id="findForm" novalidate>
-      <input type="email" id="findEmail" placeholder="your@email.com" aria-label="Email address" required />
-      <button class="btn btn--solid" type="submit">Notify me</button>
+<!-- ══ Order / Contact ══ -->
+<section class="order section" id="find">
+  <div class="order__inner">
+    <div class="order__left reveal">
+      <p class="section__eyebrow">Order — 注文</p>
+      <h2 class="section__title">Order<br /><em>Mastry.</em></h2>
+      <p class="order__sub">Tell us what you'd like and where it's going.
+      We'll confirm by email within a day.</p>
+      <dl class="order__info">
+        <div><dt>Email</dt><dd>hello@mastry.jp</dd></div>
+        <div><dt>Origin</dt><dd>Chios, Greece × Japan</dd></div>
+        <div><dt>Ships from</dt><dd>Japan · 3–5 business days</dd></div>
+      </dl>
+    </div>
+
+    <form class="order__form reveal" id="orderForm" novalidate="novalidate">
+      <div class="fg">
+        <label for="fname">Full name</label>
+        <input type="text" id="fname" placeholder="Your name" autocomplete="name" required />
+      </div>
+      <div class="fg">
+        <label for="femail">Email</label>
+        <input type="email" id="femail" placeholder="your@email.com" autocomplete="email" required />
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label for="fproduct">Flavour</label>
+          <select id="fproduct" required>
+            <option value="">Select</option>
+            <option>Original Mastic</option>
+            <option>Yuzu Mastic</option>
+            <option>Ume Mastic</option>
+            <option>Hinoki Mastic</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="fqty">Quantity</label>
+          <input type="number" id="fqty" min="1" max="48" value="1" required />
+        </div>
+      </div>
+      <div class="fg">
+        <label for="faddress">Delivery address</label>
+        <textarea id="faddress" rows="3" placeholder="Street, City, Country" required></textarea>
+      </div>
+      <button class="btn btn--solid" type="submit">Place order</button>
+      <p class="order__note">International shipping available worldwide.</p>
+      <p class="order__ok" id="orderOk" hidden>ありがとう — order received. We'll confirm at hello@mastry.jp.</p>
     </form>
-    <p class="find__ok" id="findOk" hidden>ありがとう — you're on the list. Talk soon.</p>
   </div>
 </section>
 

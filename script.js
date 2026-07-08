@@ -248,18 +248,30 @@
     }).observe(sceneryFrame);
   }
 
-  /* ── notify form (static site — no backend) ── */
-  var form = document.getElementById("findForm");
-  var email = document.getElementById("findEmail");
-  var ok = document.getElementById("findOk");
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    if (!email.value || email.value.indexOf("@") < 1) {
-      email.focus();
-      email.style.borderColor = "#9A6B43"; /* clay-brown */
-      return;
-    }
-    form.hidden = true;
-    ok.hidden = false;
-  });
+  /* ── order form (static site — no backend) ── */
+  var orderForm = document.getElementById("orderForm");
+  if (orderForm) {
+    var orderOk = document.getElementById("orderOk");
+    var required = orderForm.querySelectorAll("[required]");
+    orderForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var valid = true;
+      required.forEach(function (field) {
+        var empty = !field.value.trim();
+        var bad = field.type === "email" && field.value.indexOf("@") < 1;
+        if (empty || bad) {
+          valid = false;
+          field.style.borderBottomColor = "#9A6B43"; /* clay-brown */
+          if (valid === false && field === required[0]) field.focus();
+        } else {
+          field.style.borderBottomColor = "";
+        }
+      });
+      if (!valid) return;
+      orderForm.querySelectorAll(".fg, .fg-row, .btn, .order__note").forEach(function (el) {
+        el.style.display = "none";
+      });
+      orderOk.hidden = false;
+    });
+  }
 })();
