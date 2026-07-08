@@ -1,128 +1,221 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Merch — Mastry</title>
-  <link rel="icon" href="images/better web logo.png" type="image/png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    html{-webkit-text-size-adjust:100%;overflow-x:hidden;}
-    body{font-family:'Inter',sans-serif;background:#0d0d0d;color:#f5f0e8;overflow-x:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
-    :root{--sage:#4a6040;--cream:#f5f0e8;--muted:rgba(245,240,232,0.55);--border:rgba(245,240,232,0.12);--nav-h:56px;}
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Merch — MASTRY</title>
+<meta name="description" content="Mastry objects — the Island Tee, Mastry Hoodie and Mastry Hat. Wear the collaboration between Chios and Japan." />
+<link rel="icon" href="images/seal-transparent.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+<style>
+/* ── merch-only styles, on the shared palette ── */
+.merch{max-width:1300px;margin:0 auto;padding-top:calc(var(--nav-h) + clamp(50px,8vw,90px));}
+.merch__head{text-align:center;margin-bottom:clamp(40px,6vw,70px);}
+.merch__sub{max-width:52ch;margin:0 auto;color:var(--ink-soft);font-size:.98rem;}
+.merch__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(18px,2.6vw,34px);}
+.mcard{
+  background:var(--paper-deep);border:1px solid var(--hairline);border-radius:18px;overflow:hidden;
+  cursor:pointer;transition:transform .4s var(--ease),box-shadow .4s;text-align:left;padding:0;font-family:var(--sans);
+}
+.mcard:hover{transform:translateY(-6px);box-shadow:0 24px 50px rgba(38,52,28,.12);}
+.mcard__thumb{aspect-ratio:1/1;overflow:hidden;background:#fff;}
+.mcard__thumb img{width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease);}
+.mcard:hover .mcard__thumb img{transform:scale(1.04);}
+.mcard__body{padding:20px 22px 24px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+.mcard__name{font-family:var(--serif);font-weight:500;font-size:1.35rem;color:var(--ink);}
+.mcard__price{font-size:.78rem;font-weight:600;letter-spacing:.12em;color:var(--olive);}
+.merch__note{
+  text-align:center;margin-top:clamp(40px,6vw,64px);font-size:.78rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);
+}
 
-    .m-nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);display:flex;align-items:center;padding:0 16px;padding-top:env(safe-area-inset-top);background:rgba(13,13,13,0.96);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:100;}
-    .m-nav__back{background:none;border:none;color:var(--cream);padding:8px 8px 8px 0;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;gap:6px;text-decoration:none;font-weight:600;letter-spacing:0.04em;font-size:0.8rem;}
-    .m-nav__title{flex:1;text-align:center;font-size:0.95rem;font-weight:900;letter-spacing:0.22em;color:var(--cream);}
+/* lightbox */
+.lb{
+  position:fixed;inset:0;z-index:800;background:rgba(29,46,24,.55);
+  display:none;align-items:center;justify-content:center;padding:20px;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+}
+.lb.open{display:flex;}
+.lb__card{
+  background:var(--paper);border-radius:22px;max-width:920px;width:100%;max-height:90vh;
+  overflow-y:auto;padding:clamp(20px,3vw,36px);
+}
+.lb__top{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:18px;}
+.lb__name{font-family:var(--serif);font-weight:500;font-size:1.7rem;}
+.lb__price{font-size:.8rem;font-weight:600;letter-spacing:.12em;color:var(--olive);white-space:nowrap;}
+.lb__close{
+  background:none;border:0;cursor:pointer;font-size:1.7rem;line-height:1;color:var(--muted);
+  padding:2px 8px;transition:color .2s;
+}
+.lb__close:hover{color:var(--ink);}
+.lb__imgs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+.lb__imgs img{width:100%;border-radius:14px;border:1px solid var(--hairline);background:#fff;}
+.lb__actions{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+.lb__hint{font-size:.78rem;color:var(--muted);}
+.lb__ok{font-family:var(--jp);font-weight:400;color:var(--olive-deep);font-size:.95rem;}
 
-    .m-header{padding:36px 20px 24px;margin-top:var(--nav-h);border-bottom:1px solid var(--border);}
-    .m-header__title{font-size:2.4rem;font-weight:900;line-height:1.0;letter-spacing:-0.03em;color:var(--cream);}
-
-    .m-merch{padding:24px 16px calc(48px + env(safe-area-inset-bottom));}
-    .m-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-
-    .m-card{background:#141414;border:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .18s;}
-    .m-card:active{opacity:0.7;}
-    .m-card__thumb{width:100%;aspect-ratio:1/1;overflow:hidden;background:#111;}
-    .m-card__thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-    .m-card__body{padding:12px;}
-    .m-card__name{font-size:0.82rem;font-weight:800;color:var(--cream);letter-spacing:0.01em;margin-bottom:4px;}
-    .m-card__price{font-size:0.72rem;color:var(--sage);font-weight:600;}
-
-    .lb{display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.93);flex-direction:column;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom);}
-    .lb.open{display:flex;}
-    .lb__header{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));background:rgba(13,13,13,0.9);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);flex-shrink:0;}
-    .lb__title{font-size:0.85rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--cream);}
-    .lb__price{font-size:0.78rem;font-weight:600;color:var(--sage);}
-    .lb__close{background:none;border:none;color:var(--muted);font-size:1.8rem;line-height:1;cursor:pointer;padding:0 4px;}
-    .lb__imgs{display:flex;flex-direction:column;gap:0;flex:1;}
-    .lb__img{width:100%;display:block;}
-    .lb__footer{padding:20px 16px;border-top:1px solid var(--border);flex-shrink:0;}
-    .lb__btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;background:var(--sage);color:#fff;font-family:inherit;font-size:0.78rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;border:none;cursor:pointer;transition:opacity .2s;}
-    .lb__btn:active{opacity:0.75;}
-
-    .m-footer{padding:20px 16px;border-top:1px solid var(--border);text-align:center;}
-    .m-footer__copy{font-size:0.63rem;color:rgba(255,255,255,0.2);}
-  </style>
+@media (max-width:900px){
+  .merch__grid{grid-template-columns:1fr 1fr;}
+}
+@media (max-width:600px){
+  .merch__grid{grid-template-columns:1fr;}
+  .lb__imgs{grid-template-columns:1fr;}
+}
+</style>
 </head>
 <body>
 
-  <nav class="m-nav">
-    <a href="mobile.html" class="m-nav__back">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      Back
-    </a>
-    <span class="m-nav__title">MERCH</span>
-    <div style="width:56px;"></div>
-  </nav>
+<div id="progress" aria-hidden="true"></div>
 
-  <div class="m-header">
-    <h1 class="m-header__title">Merch.</h1>
+<!-- ══ Nav (shared look) ══ -->
+<header class="nav solid" id="nav">
+  <a class="nav__logo" href="index.html">MASTRY<span class="nav__logo-jp">マストリー</span></a>
+  <nav class="nav__links" id="navLinks" aria-label="Main">
+    <a href="index.html#story">Story</a>
+    <a href="index.html#flavours">Flavours</a>
+    <a href="index.html#seal">The Seal</a>
+    <a href="index.html#ritual">Ritual</a>
+    <a href="merch.html" aria-current="page">Merch</a>
+  </nav>
+  <a class="nav__cta" href="index.html#find">Find Mastry</a>
+  <button class="nav__burger" id="burger" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span>
+  </button>
+</header>
+
+<main class="merch section">
+  <div class="merch__head">
+    <p class="section__eyebrow">Objects — 物</p>
+    <h1 class="section__title">Wear the <em>collaboration.</em></h1>
+    <p class="merch__sub">Three quiet objects carrying the Mastry mark —
+    made in small runs, like the water itself.</p>
   </div>
 
-  <section class="m-merch">
-    <div class="m-grid">
-      <div class="m-card" onclick="openLB(0)">
-        <div class="m-card__thumb"><img src="images/island_front_left_chest_mockup.png" alt="Island Tee" loading="lazy" /></div>
-        <div class="m-card__body"><div class="m-card__name">Island Tee</div><div class="m-card__price">$38</div></div>
-      </div>
-      <div class="m-card" onclick="openLB(1)">
-        <div class="m-card__thumb"><img src="images/hoodie mastry.png" alt="Mastry Hoodie" loading="lazy" /></div>
-        <div class="m-card__body"><div class="m-card__name">Mastry Hoodie</div><div class="m-card__price">$68</div></div>
-      </div>
-      <div class="m-card" onclick="openLB(2)">
-        <div class="m-card__thumb"><img src="images/side merch hat.png" alt="Mastry Hat" loading="lazy" /></div>
-        <div class="m-card__body"><div class="m-card__name">Mastry Hat</div><div class="m-card__price">$34</div></div>
-      </div>
-    </div>
-  </section>
+  <div class="merch__grid" id="merchGrid">
+    <button class="mcard" data-item="0">
+      <span class="mcard__thumb"><img src="images/island_front_left_chest_mockup.png" alt="Island Tee — front, left chest logo" /></span>
+      <span class="mcard__body"><span class="mcard__name">Island Tee</span><span class="mcard__price">$38</span></span>
+    </button>
+    <button class="mcard" data-item="1">
+      <span class="mcard__thumb"><img src="images/hoodie%20mastry.png" alt="Mastry Hoodie — front" /></span>
+      <span class="mcard__body"><span class="mcard__name">Mastry Hoodie</span><span class="mcard__price">$68</span></span>
+    </button>
+    <button class="mcard" data-item="2">
+      <span class="mcard__thumb"><img src="images/side%20merch%20hat.png" alt="Mastry Hat — side view" /></span>
+      <span class="mcard__body"><span class="mcard__name">Mastry Hat</span><span class="mcard__price">$34</span></span>
+    </button>
+  </div>
 
-  <footer class="m-footer"><p class="m-footer__copy">© 2026 Mastry • hello@mastry.jp</p></footer>
+  <p class="merch__note">Small runs · ships from Japan · hello@mastry.jp</p>
+</main>
 
-  <div class="lb" id="lb">
-    <div class="lb__header">
-      <div><div class="lb__title" id="lbTitle"></div><div class="lb__price" id="lbPrice"></div></div>
-      <button class="lb__close" onclick="closeLB()">&times;</button>
+<!-- ══ Lightbox ══ -->
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-labelledby="lbName">
+  <div class="lb__card">
+    <div class="lb__top">
+      <div><h2 class="lb__name" id="lbName"></h2></div>
+      <span class="lb__price" id="lbPrice"></span>
+      <button class="lb__close" id="lbClose" aria-label="Close">&times;</button>
     </div>
     <div class="lb__imgs" id="lbImgs"></div>
-    <div class="lb__footer"><button class="lb__btn" onclick="orderItem()">Order</button></div>
-  </div>
-
-  <div id="successMsg" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:32px;">
-    <div style="background:#111;border:1px solid var(--border);padding:40px 28px;text-align:center;max-width:320px;">
-      <div style="font-size:2rem;color:var(--sage);margin-bottom:14px;">&#9672;</div>
-      <h3 style="font-size:1.3rem;font-weight:900;color:var(--cream);margin-bottom:12px;">Order received.</h3>
-      <p style="font-size:0.78rem;color:var(--muted);line-height:1.6;margin-bottom:20px;">We’ll confirm at hello@mastry.jp</p>
-      <button onclick="closeSuccess()" style="width:100%;min-height:48px;background:var(--sage);color:#fff;font-family:inherit;font-size:0.75rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;border:none;cursor:pointer;">Continue</button>
+    <div class="lb__actions">
+      <span class="lb__hint" id="lbHint">Front &amp; back shown · free returns</span>
+      <span class="lb__ok" id="lbOk" hidden>ありがとう — order received. We'll confirm at hello@mastry.jp</span>
+      <button class="btn btn--solid" id="lbOrder">Order</button>
     </div>
   </div>
+</div>
 
-  <script>
-    if(!/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent))window.location.replace('index.html');
-    var items=[
-      {name:'Island Tee',price:'$38',imgs:[{src:'images/island_front_left_chest_mockup.png'},{src:'images/shirt back merch real.png'}]},
-      {name:'Mastry Hoodie',price:'$68',imgs:[{src:'images/hoodie mastry.png'},{src:'images/hoodie_front_back_color_matched_side_by_side.jpg'}]},
-      {name:'Mastry Hat',price:'$34',imgs:[{src:'images/side merch hat.png'},{src:'images/hat merch.png'}]}
-    ];
-    var currentItem=0;
-    function openLB(idx){
-      currentItem=idx;
-      var item=items[idx];
-      document.getElementById('lbTitle').textContent=item.name;
-      document.getElementById('lbPrice').textContent=item.price;
-      var imgs=document.getElementById('lbImgs');
-      imgs.innerHTML=item.imgs.map(function(im){return '<img class="lb__img" src="'+im.src+'" alt="" loading="lazy" />'}).join('');
-      var lb=document.getElementById('lb');
-      lb.classList.add('open');
-      lb.scrollTop=0;
-      document.body.style.overflow='hidden';
-    }
-    function closeLB(){document.getElementById('lb').classList.remove('open');document.body.style.overflow='';}
-    function orderItem(){closeLB();document.getElementById('successMsg').style.display='flex';}
-    function closeSuccess(){document.getElementById('successMsg').style.display='none';}
-  </script>
+<!-- ══ Footer (shared look) ══ -->
+<footer class="footer">
+  <div class="footer__top">
+    <a class="footer__logo" href="index.html">MASTRY</a>
+    <nav class="footer__links" aria-label="Footer">
+      <a href="index.html#story">Story</a>
+      <a href="index.html#flavours">Flavours</a>
+      <a href="index.html#seal">The Seal</a>
+      <a href="index.html#ritual">Ritual</a>
+      <a href="merch.html">Merch</a>
+    </nav>
+  </div>
+  <div class="footer__bottom">
+    <p>Mastic from Chios, Greece · Assembled in Japan</p>
+    <p>© 2026 Mastry. Sparkling water with mastic.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var ITEMS = [
+    { name: "Island Tee", price: "$38",
+      imgs: ["images/island_front_left_chest_mockup.png", "images/shirt%20back%20merch%20real.png"] },
+    { name: "Mastry Hoodie", price: "$68",
+      imgs: ["images/hoodie%20mastry.png", "images/hoodie_front_back_color_matched_side_by_side.jpg"] },
+    { name: "Mastry Hat", price: "$34",
+      imgs: ["images/side%20merch%20hat.png", "images/hat%20merch.png"] }
+  ];
+
+  /* progress hairline */
+  var progress = document.getElementById("progress");
+  window.addEventListener("scroll", function () {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    progress.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + "%";
+  }, { passive: true });
+
+  /* mobile menu */
+  var burger = document.getElementById("burger");
+  var navLinks = document.getElementById("navLinks");
+  burger.addEventListener("click", function () {
+    var open = navLinks.classList.toggle("open");
+    burger.classList.toggle("open", open);
+    burger.setAttribute("aria-expanded", open);
+  });
+
+  /* lightbox */
+  var lb = document.getElementById("lb");
+  var lbName = document.getElementById("lbName");
+  var lbPrice = document.getElementById("lbPrice");
+  var lbImgs = document.getElementById("lbImgs");
+  var lbOk = document.getElementById("lbOk");
+  var lbHint = document.getElementById("lbHint");
+  var lbOrder = document.getElementById("lbOrder");
+
+  function openLB(i) {
+    var item = ITEMS[i];
+    lbName.textContent = item.name;
+    lbPrice.textContent = item.price;
+    lbImgs.innerHTML = item.imgs.map(function (src) {
+      return '<img src="' + src + '" alt="' + item.name + '" loading="lazy" />';
+    }).join("");
+    lbOk.hidden = true;
+    lbHint.hidden = false;
+    lbOrder.hidden = false;
+    lb.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+  function closeLB() {
+    lb.classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  document.querySelectorAll(".mcard").forEach(function (card) {
+    card.addEventListener("click", function () { openLB(+card.dataset.item); });
+  });
+  document.getElementById("lbClose").addEventListener("click", closeLB);
+  lb.addEventListener("click", function (e) { if (e.target === lb) closeLB(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeLB(); });
+
+  lbOrder.addEventListener("click", function () {
+    lbOrder.hidden = true;
+    lbHint.hidden = true;
+    lbOk.hidden = false;
+  });
+})();
+</script>
 </body>
 </html>
