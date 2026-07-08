@@ -164,8 +164,8 @@
       var glassGeo = new THREE.LatheGeometry(pts, 144);
 
       var back = new THREE.Mesh(glassGeo, new THREE.MeshPhysicalMaterial({
-        color: 0xd6e6da, roughness: 0.07, metalness: 0, transparent: true, opacity: 0.17,
-        side: THREE.BackSide, envMapIntensity: 1.2, depthWrite: false
+        color: 0xc4dccc, roughness: 0.07, metalness: 0, transparent: true, opacity: 0.26,
+        side: THREE.BackSide, envMapIntensity: 1.4, depthWrite: false
       }));
       back.renderOrder = 1;
       parent.add(back);
@@ -203,9 +203,9 @@
       parent.add(label);
 
       var front = new THREE.Mesh(glassGeo, new THREE.MeshPhysicalMaterial({
-        color: 0xe2efe5, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.21,
+        color: 0xd6e8dc, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.3,
         clearcoat: 1, clearcoatRoughness: 0.05, side: THREE.FrontSide,
-        envMapIntensity: 2.1, depthWrite: false
+        envMapIntensity: 2.6, depthWrite: false
       }));
       front.renderOrder = 5;
       parent.add(front);
@@ -214,7 +214,7 @@
       var fresnel = new THREE.Mesh(glassGeo, new THREE.ShaderMaterial({
         transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide,
         vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
-        fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.4); float hot = pow(d, 7.0); vec3 tint = vec3(0.86, 0.95, 0.89); gl_FragColor = vec4(tint * f * 0.8 + vec3(1.0) * hot * 0.7, f * 0.7 + hot * 0.5); }'
+        fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.1); float hot = pow(d, 6.0); vec3 tint = vec3(0.82, 0.94, 0.86); gl_FragColor = vec4(tint * f * 1.1 + vec3(1.0) * hot * 0.85, f * 0.85 + hot * 0.6); }'
       }));
       fresnel.renderOrder = 6;
       parent.add(fresnel);
