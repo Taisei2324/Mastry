@@ -3,6 +3,11 @@
   "use strict";
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion) {
+    document.querySelectorAll("model-viewer[auto-rotate]").forEach(function (mv) {
+      mv.removeAttribute("auto-rotate");
+    });
+  }
 
   /* ── loader ── */
   var loader = document.getElementById("loader");

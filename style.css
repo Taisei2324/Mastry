@@ -212,6 +212,32 @@ input,select,textarea{accent-color:var(--olive);}
   writing-mode:vertical-rl;font-family:var(--jp);font-weight:300;
   font-size:.72rem;letter-spacing:.5em;color:var(--muted);z-index:3;
 }
+/* ── the floating 3D island seal ── */
+.hero__mark3d{
+  position:absolute;z-index:3;top:6%;left:-6%;
+  width:clamp(130px,14vw,200px);aspect-ratio:1;
+}
+.hero__mark3d model-viewer{
+  width:100%;height:100%;background:transparent;--poster-color:transparent;
+  cursor:grab;animation:markfloat 7s var(--ease) infinite;
+}
+.hero__mark3d model-viewer:active{cursor:grabbing;}
+/* graceful fallback while the library loads (or if it can't) */
+.hero__mark3d model-viewer:not(:defined){
+  display:block;opacity:.85;
+  background:center/70% no-repeat url("images/island_exact_logo_holes_preserved.svg");
+}
+.hero__mark3d-shadow{
+  position:absolute;left:50%;bottom:-9%;width:58%;height:12px;
+  transform:translateX(-50%);pointer-events:none;
+  background:radial-gradient(ellipse at center,rgba(38,52,28,.16),transparent 68%);
+  animation:markshadow 7s var(--ease) infinite;
+}
+@keyframes markfloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-15px);}}
+@keyframes markshadow{
+  0%,100%{transform:translateX(-50%) scale(1);opacity:.6;}
+  50%{transform:translateX(-50%) scale(.78);opacity:.3;}
+}
 .hero__scrollcue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);}
 .hero__scrollcue span{
   display:block;width:1px;height:52px;background:var(--hairline);position:relative;overflow:hidden;
@@ -533,6 +559,7 @@ input,select,textarea{accent-color:var(--olive);}
   .hero__copy{display:flex;flex-direction:column;align-items:center;order:2;}
   .hero__stage{order:1;height:min(52vh,480px);}
   .hero__vertical{display:none;}
+  .hero__mark3d{top:0;left:2%;width:clamp(96px,17vw,140px);}
   .hero__sub{margin-left:auto;margin-right:auto;}
   .flavours__stage{grid-template-columns:1fr;}
   .flavours__bottlewrap{height:min(56vh,480px);}
@@ -567,6 +594,8 @@ input,select,textarea{accent-color:var(--olive);}
   .hero__scrollcue{display:none;}
   #bubbles{display:none;}
   .hero__blob{animation:none;}
+  .hero__mark3d model-viewer{animation:none;}
+  .hero__mark3d-shadow{animation:none;}
   .flavours__halo::after{animation:none;}
   .reveal--fade{opacity:1;transition:none;}
   .nav.hidden{transform:none;}
