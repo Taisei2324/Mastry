@@ -139,6 +139,13 @@ input,select,textarea{accent-color:var(--olive);}
 .section__title em{font-style:italic;color:var(--olive-deep);}
 .section__title--light{color:var(--paper);}
 .section__title--light em{color:var(--resin);}
+/* scroll-drawn rule under titles tagged data-progress (--p: 0 → 1 as they near centre) */
+.section__title[data-progress]::after{
+  content:"";display:block;width:74px;height:2px;background:var(--olive);
+  margin:20px auto 0;transform:scaleX(var(--p,1));transform-origin:center;
+}
+.seal .section__title[data-progress]::after{background:var(--resin);margin-left:0;transform-origin:left;}
+.order .section__title[data-progress]::after{margin-left:0;transform-origin:left;}
 
 .btn{
   display:inline-block;font-size:.8rem;font-weight:600;letter-spacing:.08em;text-decoration:none;
@@ -395,6 +402,8 @@ input,select,textarea{accent-color:var(--olive);}
 .scenery__frame{
   position:relative;width:100%;height:clamp(320px,58vw,72vh);overflow:hidden;
   background:var(--paper-deep);border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);
+  /* wipes open from a window to full-bleed as it approaches centre (--p set by scroll engine) */
+  clip-path:inset(calc((1 - var(--p,1)) * 9%) calc((1 - var(--p,1)) * 12%) round calc((1 - var(--p,1)) * 32px));
 }
 .scenery__slide{
   position:absolute;left:0;right:0;top:-48px;bottom:-48px;   /* headroom for scroll parallax */

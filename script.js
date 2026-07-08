@@ -33,23 +33,31 @@
       var mid = s.top + s.h / 2 - center;          /* px from viewport centre */
       var range = vh / 2 + s.h / 2;
       var p = Math.max(-1, Math.min(1, mid / range)); /* -1 entering … 0 centred … 1 leaving */
+      var near = 1 - Math.abs(p);                     /* 0 at edges … 1 dead centre */
       var t = "";
+      if (s.tilt) t += "perspective(900px) rotateX(" + (p * s.tilt).toFixed(2) + "deg) ";
       if (s.speed) t += "translateY(" + (mid * s.speed).toFixed(1) + "px) ";
       if (s.drift) t += "translateX(" + (p * s.drift).toFixed(1) + "px) ";
+      if (s.zoom) t += "scale(" + (s.zoom + (1 - s.zoom) * near).toFixed(3) + ") ";
       if (s.rot) t += "rotate(" + (p * s.rot).toFixed(2) + "deg)";
-      s.el.style.transform = t;
+      if (t) s.el.style.transform = t;
+      if (s.prog) s.el.style.setProperty("--p", Math.min(1, near * 1.6).toFixed(3));
     });
   }
   if (!reduceMotion) {
-    document.querySelectorAll("[data-speed],[data-drift],[data-rotate]").forEach(function (el) {
-      stage.push({
-        el: el,
-        speed: parseFloat(el.dataset.speed) || 0,
-        drift: parseFloat(el.dataset.drift) || 0,
-        rot: parseFloat(el.dataset.rotate) || 0,
-        top: 0, h: 0
+    document.querySelectorAll("[data-speed],[data-drift],[data-rotate],[data-zoom],[data-tilt],[data-progress]")
+      .forEach(function (el) {
+        stage.push({
+          el: el,
+          speed: parseFloat(el.dataset.speed) || 0,
+          drift: parseFloat(el.dataset.drift) || 0,
+          rot: parseFloat(el.dataset.rotate) || 0,
+          zoom: parseFloat(el.dataset.zoom) || 0,
+          tilt: parseFloat(el.dataset.tilt) || 0,
+          prog: el.hasAttribute("data-progress"),
+          top: 0, h: 0
+        });
       });
-    });
     window.addEventListener("resize", measureStage);
     window.addEventListener("load", measureStage);  /* re-measure once images have sized the page */
     measureStage();
