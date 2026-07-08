@@ -60,17 +60,6 @@
     </div>
     <div class="hero__stage">
       <span class="hero__vertical" aria-hidden="true">ギリシャと日本の出会い</span>
-      <div class="hero__mark3d" data-speed="0.1">
-        <model-viewer id="sealModel"
-          src="images/island_logo_holes_preserved_puffy_3d.glb"
-          alt="The Mastry island seal, floating as a 3D emblem"
-          auto-rotate rotation-per-second="18deg" auto-rotate-delay="0"
-          camera-controls disable-zoom disable-pan disable-tap
-          interaction-prompt="none" touch-action="pan-y"
-          shadow-intensity="0" exposure="1.05"
-          camera-orbit="20deg 78deg 105%" loading="eager"></model-viewer>
-        <span class="hero__mark3d-shadow" aria-hidden="true"></span>
-      </div>
       <div class="hero__blob" aria-hidden="true"></div>
       <canvas id="bubbles" aria-hidden="true"></canvas>
       <img class="hero__bottle" id="heroBottle" src="images/brand%20new%20original%20catalog.png" alt="Mastry sparkling water — original mastic bottle" />
@@ -203,28 +192,51 @@
     <h2 class="section__title reveal" data-progress>The world on <em>every label.</em></h2>
   </div>
   <div class="scenery__frame" id="sceneryFrame" data-progress>
-    <figure class="scenery__slide is-active" data-speed="-0.05">
-      <img src="images/web%20hero%20half%20&amp;%20half.png" alt="Ink drawing of a long bridge joining a Japanese pavilion to Greek temples across a bay" />
-      <figcaption><span>01 — 橋</span>One bridge, two shores.</figcaption>
-    </figure>
-    <figure class="scenery__slide" data-speed="-0.05">
-      <img src="images/perfect%20web%20hero.png" alt="Ink drawing of Mount Fuji with a torii gate and a boatman on still water" loading="lazy" />
-      <figcaption><span>02 — 富士</span>The water under Fuji.</figcaption>
-    </figure>
-    <figure class="scenery__slide" data-speed="-0.05">
-      <img src="images/web%20hero%20new%20striking.png" alt="Ink drawing of a strait between a Japanese pavilion and a Greek colonnade" loading="lazy" />
-      <figcaption><span>03 — 海峡</span>Pavilion on one cape, Parthenon on the other.</figcaption>
-    </figure>
-    <figure class="scenery__slide" data-speed="-0.05">
-      <img src="images/image%20web%20hero%20temple.png" alt="Ink drawing of a ferryman rowing from a torii gate toward a Greek acropolis" loading="lazy" />
-      <figcaption><span>04 — 渡し</span>The ferryman knows the route by heart.</figcaption>
-    </figure>
-    <figure class="scenery__slide" data-speed="-0.05">
-      <img src="images/wider%20and%20newer%20web%20hero.png" alt="A Mastry bottle on a wet rock at sunrise, Mount Fuji across the lake" loading="lazy" />
-      <figcaption><span>05 — 夜明け</span>First light, first pour.</figcaption>
-    </figure>
+    <div class="scenery__track" id="sceneryTrack">
+      <figure class="scenery__slide">
+        <img src="images/web%20hero%20half%20&amp;%20half.png" alt="Ink drawing of a long bridge joining a Japanese pavilion to Greek temples across a bay" />
+        <figcaption><span>01 — 橋</span>One bridge, two shores.</figcaption>
+      </figure>
+      <figure class="scenery__slide">
+        <img src="images/perfect%20web%20hero.png" alt="Ink drawing of Mount Fuji with a torii gate and a boatman on still water" loading="lazy" />
+        <figcaption><span>02 — 富士</span>The water under Fuji.</figcaption>
+      </figure>
+      <figure class="scenery__slide">
+        <img src="images/web%20hero%20new%20striking.png" alt="Ink drawing of a strait between a Japanese pavilion and a Greek colonnade" loading="lazy" />
+        <figcaption><span>03 — 海峡</span>Pavilion on one cape, Parthenon on the other.</figcaption>
+      </figure>
+      <figure class="scenery__slide">
+        <img src="images/image%20web%20hero%20temple.png" alt="Ink drawing of a ferryman rowing from a torii gate toward a Greek acropolis" loading="lazy" />
+        <figcaption><span>04 — 渡し</span>The ferryman knows the route by heart.</figcaption>
+      </figure>
+      <figure class="scenery__slide">
+        <img src="images/wider%20and%20newer%20web%20hero.png" alt="A Mastry bottle on a wet rock at sunrise, Mount Fuji across the lake" loading="lazy" />
+        <figcaption><span>05 — 夜明け</span>First light, first pour.</figcaption>
+      </figure>
+    </div>
     <div class="scenery__dots" id="sceneryDots" role="tablist" aria-label="Scenery slides"></div>
   </div>
+</section>
+
+<!-- ══ Island ══ -->
+<section class="island" aria-label="The Mastry island mark, in three dimensions">
+  <p class="island__eyebrow reveal">島 — The mark, made real</p>
+  <div class="island__stage" data-speed="-0.045">
+    <model-viewer id="sealModel"
+      src="images/island_logo_holes_preserved_puffy_3d.glb"
+      alt="The Mastry island emblem floating above still water — drag to spin it"
+      auto-rotate rotation-per-second="13deg" auto-rotate-delay="0"
+      camera-controls disable-zoom disable-pan disable-tap
+      interaction-prompt="none" touch-action="pan-y"
+      shadow-intensity="0" exposure="1.08"
+      camera-orbit="0deg 85deg 108%"></model-viewer>
+  </div>
+  <div class="island__sea" aria-hidden="true">
+    <span class="island__shadow"></span>
+    <span class="island__ripple"></span>
+    <span class="island__ripple island__ripple--late"></span>
+  </div>
+  <p class="island__caption reveal">The island from every label, floating over its own water.<em>— take it for a spin.</em></p>
 </section>
 
 <!-- ══ Ritual ══ -->

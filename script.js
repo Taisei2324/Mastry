@@ -292,55 +292,67 @@
     }).observe(canvas);
   }
 
-  /* ── scenery rotation ── */
+  /* ── scenery filmstrip: slides horizontally, one frame every 5s, endless loop ── */
   var sceneryFrame = document.getElementById("sceneryFrame");
   if (sceneryFrame) {
-    var slides = sceneryFrame.querySelectorAll(".scenery__slide");
+    var track = document.getElementById("sceneryTrack");
+    var slides = Array.prototype.slice.call(track.children);
+    var n = slides.length;
+    track.appendChild(slides[0].cloneNode(true));   /* seam for the seamless wrap */
     var dotsWrap = document.getElementById("sceneryDots");
     var current = 0;
     var timer = null;
-    var HOLD = 2600;
+    var HOLD = 5000;
 
     slides.forEach(function (s, i) {
       var d = document.createElement("button");
       d.setAttribute("role", "tab");
       d.setAttribute("aria-label", "Slide " + (i + 1));
       if (i === 0) d.classList.add("is-active");
-      d.addEventListener("click", function () { go(i); restart(); });
+      d.addEventListener("click", function () { snapIfWrapped(); go(i); restart(); });
       dotsWrap.appendChild(d);
     });
     var dots = dotsWrap.querySelectorAll("button");
 
+    function setX(instant) {
+      if (instant) track.style.transition = "none";
+      track.style.transform = "translateX(" + (-current * 100) + "%)";
+      if (instant) { void track.offsetWidth; track.style.transition = ""; }
+    }
     function go(i) {
-      current = (i + slides.length) % slides.length;
-      slides.forEach(function (s, k) { s.classList.toggle("is-active", k === current); });
-      dots.forEach(function (d, k) { d.classList.toggle("is-active", k === current); });
-      /* nudge the next image to start fetching before it's shown */
-      var next = slides[(current + 1) % slides.length].querySelector("img");
+      current = i;
+      setX(false);
+      var active = current % n;
+      dots.forEach(function (d, k) { d.classList.toggle("is-active", k === active); });
+      /* nudge the next image to start fetching before it slides in */
+      var next = track.children[(current + 1) % track.children.length].querySelector("img");
       if (next && next.loading === "lazy") next.loading = "eager";
     }
+    /* after the seam clone slides in, silently reset to the real first slide */
+    function snapIfWrapped() {
+      if (current >= n) { current = 0; setX(true); }
+    }
+    track.addEventListener("transitionend", function (e) {
+      if (e.target === track && e.propertyName === "transform") snapIfWrapped();
+    });
     function restart() {
       if (timer) clearInterval(timer);
-      /* rotation stays on under reduced motion — slides cut instead of fading,
-         since the reduced-motion CSS removes the crossfade transition */
-      timer = setInterval(function () { go(current + 1); }, HOLD);
+      timer = setInterval(function () { snapIfWrapped(); go(current + 1); }, HOLD);
     }
 
-    /* land on a different scene each page load */
-    go(Math.floor(Math.random() * slides.length));
+    go(0);
     restart();
 
     /* once the page is loaded, fetch the remaining slides in the background */
     window.addEventListener("load", function () {
-      slides.forEach(function (s) {
-        var img = s.querySelector("img");
+      track.querySelectorAll("img").forEach(function (img) {
         if (img.loading === "lazy") img.loading = "eager";
       });
     });
 
     sceneryFrame.addEventListener("mouseenter", function () { if (timer) clearInterval(timer); });
     sceneryFrame.addEventListener("mouseleave", restart);
-    /* don't rotate while off-screen */
+    /* don't advance while off-screen */
     new IntersectionObserver(function (entries) {
       if (entries[0].isIntersecting) restart();
       else if (timer) clearInterval(timer);

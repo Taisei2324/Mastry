@@ -158,7 +158,7 @@ input,select,textarea{accent-color:var(--olive);}
 .btn--ghost:hover{background:var(--ink);color:var(--paper);transform:translateY(-2px);}
 
 /* reveal on scroll */
-.reveal{opacity:0;transform:translateY(26px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+.reveal{opacity:0;transform:translateX(-34px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
 .reveal.in{opacity:1;transform:none;}
 /* opacity-only reveal for elements the scroll engine moves */
 .reveal--fade{opacity:0;transition:opacity 1.1s var(--ease);}
@@ -212,32 +212,8 @@ input,select,textarea{accent-color:var(--olive);}
   writing-mode:vertical-rl;font-family:var(--jp);font-weight:300;
   font-size:.72rem;letter-spacing:.5em;color:var(--muted);z-index:3;
 }
-/* ── the floating 3D island seal ── */
-.hero__mark3d{
-  position:absolute;z-index:3;top:6%;left:-6%;
-  width:clamp(130px,14vw,200px);aspect-ratio:1;
-}
-.hero__mark3d model-viewer{
-  width:100%;height:100%;background:transparent;--poster-color:transparent;
-  cursor:grab;animation:markfloat 7s var(--ease) infinite;
-}
-.hero__mark3d model-viewer:active{cursor:grabbing;}
-/* graceful fallback while the library loads (or if it can't) */
-.hero__mark3d model-viewer:not(:defined){
-  display:block;opacity:.85;
-  background:center/70% no-repeat url("images/island_exact_logo_holes_preserved.svg");
-}
-.hero__mark3d-shadow{
-  position:absolute;left:50%;bottom:-9%;width:58%;height:12px;
-  transform:translateX(-50%);pointer-events:none;
-  background:radial-gradient(ellipse at center,rgba(38,52,28,.16),transparent 68%);
-  animation:markshadow 7s var(--ease) infinite;
-}
-@keyframes markfloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-15px);}}
-@keyframes markshadow{
-  0%,100%{transform:translateX(-50%) scale(1);opacity:.6;}
-  50%{transform:translateX(-50%) scale(.78);opacity:.3;}
-}
+/* model-viewer, everywhere: no focus box, no loading bar, nothing but the model */
+model-viewer{outline:none;background:transparent;--poster-color:transparent;--progress-bar-color:transparent;--progress-bar-height:0px;}
 .hero__scrollcue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);}
 .hero__scrollcue span{
   display:block;width:1px;height:52px;background:var(--hairline);position:relative;overflow:hidden;
@@ -428,22 +404,19 @@ input,select,textarea{accent-color:var(--olive);}
 .scenery__frame{
   position:relative;width:100%;height:clamp(320px,58vw,72vh);overflow:hidden;
   background:var(--paper-deep);border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);
-  /* wipes open from a window to full-bleed as it approaches centre (--p set by scroll engine) */
-  clip-path:inset(calc((1 - var(--p,1)) * 9%) calc((1 - var(--p,1)) * 12%) round calc((1 - var(--p,1)) * 32px));
+  /* opens horizontally, from a centre window out to full-bleed (--p set by scroll engine) */
+  clip-path:inset(0 calc((1 - var(--p,1)) * 14%) round calc((1 - var(--p,1)) * 28px));
 }
-.scenery__slide{
-  position:absolute;left:0;right:0;top:-48px;bottom:-48px;   /* headroom for scroll parallax */
-  opacity:0;transition:opacity .7s var(--ease);
-  pointer-events:none;
+.scenery__track{
+  display:flex;height:100%;will-change:transform;
+  transition:transform .95s cubic-bezier(.66,.05,.28,.99);
 }
-.scenery__slide.is-active{opacity:1;pointer-events:auto;}
+.scenery__slide{position:relative;flex:0 0 100%;height:100%;}
 .scenery__slide img{
   width:100%;height:100%;object-fit:cover;object-position:center;
 }
-.scenery__slide.is-active img{animation:drift 4s var(--ease) forwards;}
-@keyframes drift{from{transform:scale(1.06);}to{transform:scale(1);}}
 .scenery__slide figcaption{
-  position:absolute;left:clamp(20px,5vw,60px);bottom:calc(48px + clamp(18px,4vw,44px));
+  position:absolute;left:clamp(20px,5vw,60px);bottom:clamp(18px,4vw,44px);
   background:rgba(249,245,233,.9);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
   border:1px solid var(--hairline);border-radius:14px;padding:14px 22px;
   font-family:var(--serif);font-size:clamp(1rem,1.6vw,1.25rem);font-style:italic;color:var(--ink);
@@ -463,6 +436,67 @@ input,select,textarea{accent-color:var(--olive);}
 }
 .scenery__dots button.is-active{background:var(--olive);}
 .scenery__dots button:hover{background:var(--olive-deep);}
+
+/* ═══ ISLAND — the 3D mark floating over its own water ═══ */
+.island{
+  position:relative;overflow:hidden;text-align:center;
+  padding:clamp(80px,10vw,140px) 20px clamp(70px,9vw,120px);
+  background:linear-gradient(180deg,var(--paper) 0%,#EDF4F2 72%,var(--paper) 100%);
+}
+.island__eyebrow{
+  font-size:.72rem;font-weight:600;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--jp-blue);margin-bottom:clamp(26px,3.6vw,46px);
+}
+.island__stage{
+  position:relative;z-index:2;width:min(680px,88vw);aspect-ratio:5/3;
+  margin:0 auto calc(-1 * clamp(26px,3.4vw,44px));
+}
+.island__stage model-viewer{
+  width:100%;height:100%;cursor:grab;
+  animation:islefloat 8s var(--ease) infinite;
+}
+.island__stage model-viewer:active{cursor:grabbing;}
+.island__stage model-viewer:not(:defined){
+  display:block;opacity:.85;
+  background:center/58% no-repeat url("images/island_exact_logo_holes_preserved.svg");
+}
+/* the waterline: full-bleed horizon with a tinted shallows gradient */
+.island__sea{
+  position:relative;display:block;height:clamp(70px,9vw,110px);
+  margin:0 calc(50% - 50vw);
+  border-top:1px solid var(--hairline);
+  background:linear-gradient(180deg,rgba(109,157,170,.11),rgba(109,157,170,0) 82%);
+}
+.island__shadow{
+  position:absolute;left:50%;top:0;width:min(300px,44vw);height:26px;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(ellipse at center,rgba(58,84,92,.22),transparent 66%);
+  animation:isleshadow 8s var(--ease) infinite;
+}
+.island__ripple{
+  position:absolute;left:50%;top:0;width:min(340px,50vw);height:34px;
+  border:1px solid rgba(109,157,170,.5);border-radius:50%;
+  transform:translate(-50%,-50%) scale(.3);opacity:0;
+  animation:ripple 7s linear infinite;
+}
+.island__ripple--late{animation-delay:3.5s;}
+.island__caption{
+  position:relative;z-index:2;margin-top:clamp(26px,3.4vw,40px);
+  font-family:var(--serif);font-style:italic;
+  font-size:clamp(1.05rem,1.8vw,1.35rem);color:var(--ink-soft);
+}
+.island__caption em{display:block;font-style:italic;font-size:.85em;color:var(--jp-blue);margin-top:6px;}
+@keyframes islefloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-16px);}}
+@keyframes isleshadow{
+  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.85;}
+  50%{transform:translate(-50%,-50%) scale(.78);opacity:.5;}
+}
+@keyframes ripple{
+  0%{transform:translate(-50%,-50%) scale(.3);opacity:0;}
+  12%{opacity:.65;}
+  70%{opacity:0;}
+  100%{transform:translate(-50%,-50%) scale(1);opacity:0;}
+}
 
 /* ═══ RITUAL ═══ */
 .ritual{background:var(--wash-sage);}
@@ -559,7 +593,6 @@ input,select,textarea{accent-color:var(--olive);}
   .hero__copy{display:flex;flex-direction:column;align-items:center;order:2;}
   .hero__stage{order:1;height:min(52vh,480px);}
   .hero__vertical{display:none;}
-  .hero__mark3d{top:0;left:2%;width:clamp(96px,17vw,140px);}
   .hero__sub{margin-left:auto;margin-right:auto;}
   .flavours__stage{grid-template-columns:1fr;}
   .flavours__bottlewrap{height:min(56vh,480px);}
@@ -594,8 +627,10 @@ input,select,textarea{accent-color:var(--olive);}
   .hero__scrollcue{display:none;}
   #bubbles{display:none;}
   .hero__blob{animation:none;}
-  .hero__mark3d model-viewer{animation:none;}
-  .hero__mark3d-shadow{animation:none;}
+  .island__stage model-viewer{animation:none;}
+  .island__shadow{animation:none;}
+  .island__ripple{display:none;}
+  .scenery__track{transition:none;}
   .flavours__halo::after{animation:none;}
   .reveal--fade{opacity:1;transition:none;}
   .nav.hidden{transform:none;}
