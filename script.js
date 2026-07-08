@@ -3,6 +3,8 @@
   "use strict";
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  /* phones get a calmer page: no scroll-driven transforms, ambient animation only */
+  var calmScroll = reduceMotion || window.matchMedia("(max-width: 760px)").matches;
   if (reduceMotion) {
     document.querySelectorAll("model-viewer[auto-rotate]").forEach(function (mv) {
       mv.removeAttribute("auto-rotate");
@@ -49,7 +51,7 @@
       if (s.prog) s.el.style.setProperty("--p", Math.min(1, near * 1.6).toFixed(3));
     });
   }
-  if (!reduceMotion) {
+  if (!calmScroll) {
     document.querySelectorAll("[data-speed],[data-drift],[data-rotate],[data-zoom],[data-tilt],[data-progress]")
       .forEach(function (el) {
         stage.push({
@@ -89,7 +91,7 @@
     var h = document.documentElement.scrollHeight - vh;
     progress.style.width = (h > 0 ? (y / h) * 100 : 0) + "%";
     /* hero: bottle sinks + tilts, copy lifts + fades, side text and cue drift */
-    if (!reduceMotion && y < vh) {
+    if (!calmScroll && y < vh) {
       if (heroBottle) heroBottle.style.transform =
         "translateY(" + (y * 0.14).toFixed(1) + "px) rotate(" + (y * 0.006).toFixed(2) + "deg)";
       if (heroCopy) {
