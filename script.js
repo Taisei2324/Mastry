@@ -226,6 +226,9 @@
       if (timer) clearInterval(timer);
       if (!reduceMotion) timer = setInterval(function () { go(current + 1); }, HOLD);
     }
+
+    /* land on a different scene each page load */
+    go(Math.floor(Math.random() * slides.length));
     restart();
 
     /* once the page is loaded, fetch the remaining slides in the background */
