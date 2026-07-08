@@ -173,29 +173,38 @@
   document.querySelectorAll(".stats__num").forEach(function (el) { statObserver.observe(el); });
 
   /* ── flavour switcher ── */
+  var JA = (document.documentElement.lang || "").indexOf("ja") === 0;
   var FLAVOURS = {
     original: {
       jp: "マスティック",
       desc: "The unfiltered taste of Chios. Cool resin, white flowers and clean sea air, carried on fine, persistent bubbles.",
       notes: ["mastic resin", "cedar & pine", "sea air"],
+      descJa: "ヒオスそのままの味わい。冷たい樹脂、白い花、澄んだ潮風 — きめ細かく続く泡にのせて。",
+      notesJa: ["マスティック樹脂", "杉と松", "潮風"],
       wash: "#F7F4D8", accent: "#91964F", deep: "#596532"          /* mastic-milk / mastic-olive / mastic-deep */
     },
     yuzu: {
       jp: "ゆず・マスティック",
       desc: "Winter citrus from the orchards of Kōchi meets Aegean resin — bright zest up front, a slow honeyed finish.",
       notes: ["yuzu zest", "honeyed citrus", "resin finish"],
+      descJa: "高知の畑の冬柑橘と、エーゲ海の樹脂。はじける皮の香りのあと、蜂蜜のような余韻がゆっくりと。",
+      notesJa: ["柚子の皮", "蜂蜜のような柑橘", "樹脂の余韻"],
       wash: "#FFF9E8", accent: "#C6A548", deep: "#856623"          /* sun-pale / sun-muted / sun-earth */
     },
     ume: {
       jp: "うめ・マスティック",
       desc: "Japanese plum blossom — softly tart, quietly floral. The gentlest bottle in the line, made for before dinner.",
       notes: ["ume plum", "blossom", "soft tartness"],
+      descJa: "梅の花のように、やわらかな酸味とひかえめな花の香り。食前のための、いちばん穏やかな一本。",
+      notesJa: ["梅", "花の香り", "やさしい酸味"],
       wash: "#F6EEE7", accent: "#C3936C", deep: "#714A2E"          /* clay-dust / clay-sun / clay-earth */
     },
     hinoki: {
       jp: "ヒノキ・マスティック",
       desc: "Cypress calm. A walk through a wet forest shrine — green, resinous, and clean all the way down.",
       notes: ["hinoki cypress", "forest floor", "cool resin"],
+      descJa: "檜の静けさ。雨上がりの森の参道を歩くように — 緑と樹脂、最後まで清らか。",
+      notesJa: ["檜", "森の香り", "冷たい樹脂"],
       wash: "#EEF5EA", accent: "#527748", deep: "#314C2B"          /* forest-milk / forest-pine / forest-bark */
     }
   };
@@ -225,8 +234,8 @@
     detail.style.opacity = 0;
     setTimeout(function () {
       fJp.textContent = f.jp;
-      fDesc.textContent = f.desc;
-      fNotes.innerHTML = f.notes.map(function (n) { return "<li>" + n + "</li>"; }).join("");
+      fDesc.textContent = JA ? f.descJa : f.desc;
+      fNotes.innerHTML = (JA ? f.notesJa : f.notes).map(function (n) { return "<li>" + n + "</li>"; }).join("");
       detail.style.transition = "opacity .5s ease";
       detail.style.opacity = 1;
     }, reduceMotion ? 0 : 180);
