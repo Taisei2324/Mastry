@@ -316,7 +316,9 @@
     }
     function restart() {
       if (timer) clearInterval(timer);
-      if (!reduceMotion) timer = setInterval(function () { go(current + 1); }, HOLD);
+      /* rotation stays on under reduced motion — slides cut instead of fading,
+         since the reduced-motion CSS removes the crossfade transition */
+      timer = setInterval(function () { go(current + 1); }, HOLD);
     }
 
     /* land on a different scene each page load */
