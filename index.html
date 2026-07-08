@@ -68,7 +68,7 @@
 </section>
 
 <!-- ══ Marquee ══ -->
-<div class="marquee" aria-hidden="true">
+<div class="marquee" aria-hidden="true" data-drift="-70">
   <div class="marquee__track">
     <span>Sparkling water with mastic · <em class="mk-jp">炭酸水</em> · <em class="mk-gr">ΧΙΟΣ</em> · zero sugar · <em class="mk-craft">職人技</em> · since antiquity · <em class="mk-resin">マスティック</em> ·&nbsp;</span>
     <span>Sparkling water with mastic · <em class="mk-jp">炭酸水</em> · <em class="mk-gr">ΧΙΟΣ</em> · zero sugar · <em class="mk-craft">職人技</em> · since antiquity · <em class="mk-resin">マスティック</em> ·&nbsp;</span>
@@ -81,7 +81,7 @@
   <h2 class="section__title reveal">A resin the Aegean has guarded<br /><em>for three thousand years.</em></h2>
 
   <div class="story__grid">
-    <article class="story__col reveal">
+    <article class="story__col reveal--fade" data-speed="0.045">
       <p class="story__label">Χίος — Greece</p>
       <h3 class="story__head">The tears of Chios</h3>
       <p>When the bark of the mastic tree is scored, it weeps slow drops of resin
@@ -91,10 +91,10 @@
     </article>
     <div class="story__divider" aria-hidden="true">
       <span class="story__divider-line"></span>
-      <img src="images/seal-transparent.png" alt="" class="story__divider-seal" />
+      <img src="images/seal-transparent.png" alt="" class="story__divider-seal" data-rotate="55" />
       <span class="story__divider-line"></span>
     </div>
-    <article class="story__col reveal">
+    <article class="story__col reveal--fade" data-speed="-0.045">
       <p class="story__label story__label--jp">日本 — Japan</p>
       <h3 class="story__head">The craft of clarity</h3>
       <p>Soft Japanese water, fine persistent carbonation, and the restraint to
@@ -104,13 +104,19 @@
     </article>
   </div>
 
-  <ul class="stats reveal" aria-label="What's inside">
+  <ul class="stats reveal--fade" data-speed="0.06" aria-label="What's inside">
     <li><span class="stats__num" data-count="0">0</span><span class="stats__cap">sugar</span></li>
     <li><span class="stats__num" data-count="0">0</span><span class="stats__cap">calories</span></li>
     <li><span class="stats__num" data-count="3">0</span><span class="stats__cap">ingredients</span></li>
     <li><span class="stats__num" data-count="24">0</span><span class="stats__cap">mastic villages</span></li>
   </ul>
 </section>
+
+<!-- ══ Driftline ══ -->
+<div class="driftline" aria-hidden="true">
+  <span data-drift="-160">Mastic · Χίος · マスティック · Mastic · Χίος · マスティック</span>
+  <span data-drift="130">Sparkling · 炭酸水 · Ύδωρ · Sparkling · 炭酸水 · 水</span>
+</div>
 
 <!-- ══ Flavours ══ -->
 <section class="flavours section" id="flavours">
@@ -120,7 +126,7 @@
   </div>
 
   <div class="flavours__stage">
-    <div class="flavours__bottlewrap">
+    <div class="flavours__bottlewrap" data-speed="-0.045">
       <div class="flavours__halo" aria-hidden="true"></div>
       <img class="flavours__bottle is-active" src="images/brand%20new%20original%20catalog.png" alt="Mastry Original Mastic bottle" data-flavour="original" />
       <img class="flavours__bottle" src="images/Mastry%20ad%20yuzu.png" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" />
@@ -128,7 +134,7 @@
       <img class="flavours__bottle" src="images/hinoki%20mastry%20ad.png" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" />
     </div>
 
-    <div class="flavours__panel">
+    <div class="flavours__panel" data-speed="0.03">
       <div class="flavours__list" role="tablist" aria-label="Flavours">
         <button class="flavours__tab is-active" role="tab" aria-selected="true" data-flavour="original">
           <span class="flavours__no">01</span><span class="flavours__name">Original Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
@@ -160,14 +166,14 @@
 <section class="seal section" id="seal">
   <div class="seal__inner">
     <div class="seal__figure reveal">
-      <div class="seal__paper">
+      <div class="seal__paper" data-speed="-0.04">
         <img src="images/seal-transparent.png" alt="The Mastry seal — a Greek column and a torii gate above seigaiha waves" />
       </div>
     </div>
     <div class="seal__copy">
       <p class="section__eyebrow section__eyebrow--light reveal">The seal — 印</p>
       <h2 class="section__title section__title--light reveal">Everything we believe,<br /><em>in one circle.</em></h2>
-      <ol class="seal__legend">
+      <ol class="seal__legend" data-speed="0.035">
         <li class="reveal"><span>Ionic column</span>The Greek shore — where the resin is born.</li>
         <li class="reveal"><span>Torii gate</span>The Japanese shore — where the water is made.</li>
         <li class="reveal"><span>The tree</span>Pistacia lentiscus, the mastic tree of Chios.</li>
@@ -185,23 +191,23 @@
     <h2 class="section__title reveal">The world on <em>every label.</em></h2>
   </div>
   <div class="scenery__frame" id="sceneryFrame">
-    <figure class="scenery__slide is-active">
+    <figure class="scenery__slide is-active" data-speed="-0.05">
       <img src="images/web%20hero%20half%20&amp;%20half.png" alt="Ink drawing of a long bridge joining a Japanese pavilion to Greek temples across a bay" />
       <figcaption><span>01 — 橋</span>One bridge, two shores.</figcaption>
     </figure>
-    <figure class="scenery__slide">
+    <figure class="scenery__slide" data-speed="-0.05">
       <img src="images/perfect%20web%20hero.png" alt="Ink drawing of Mount Fuji with a torii gate and a boatman on still water" loading="lazy" />
       <figcaption><span>02 — 富士</span>The water under Fuji.</figcaption>
     </figure>
-    <figure class="scenery__slide">
+    <figure class="scenery__slide" data-speed="-0.05">
       <img src="images/web%20hero%20new%20striking.png" alt="Ink drawing of a strait between a Japanese pavilion and a Greek colonnade" loading="lazy" />
       <figcaption><span>03 — 海峡</span>Pavilion on one cape, Parthenon on the other.</figcaption>
     </figure>
-    <figure class="scenery__slide">
+    <figure class="scenery__slide" data-speed="-0.05">
       <img src="images/image%20web%20hero%20temple.png" alt="Ink drawing of a ferryman rowing from a torii gate toward a Greek acropolis" loading="lazy" />
       <figcaption><span>04 — 渡し</span>The ferryman knows the route by heart.</figcaption>
     </figure>
-    <figure class="scenery__slide">
+    <figure class="scenery__slide" data-speed="-0.05">
       <img src="images/wider%20and%20newer%20web%20hero.png" alt="A Mastry bottle on a wet rock at sunrise, Mount Fuji across the lake" loading="lazy" />
       <figcaption><span>05 — 夜明け</span>First light, first pour.</figcaption>
     </figure>
@@ -215,17 +221,17 @@
   <p class="section__eyebrow reveal">The ritual — 作法</p>
   <h2 class="section__title reveal">Drink it <em>slowly.</em></h2>
   <div class="ritual__grid">
-    <article class="ritual__step reveal">
+    <article class="ritual__step reveal--fade" data-speed="0.02">
       <span class="ritual__no">01</span>
       <h3>Chill, never freeze</h3>
       <p>Four degrees. Cold enough to tighten the bubbles, warm enough that the resin still speaks.</p>
     </article>
-    <article class="ritual__step reveal">
+    <article class="ritual__step reveal--fade" data-speed="0.055">
       <span class="ritual__no">02</span>
       <h3>Pour against the glass</h3>
       <p>Tilt and pour slowly down the side. The carbonation is fine — treat it like something rationed.</p>
     </article>
-    <article class="ritual__step reveal">
+    <article class="ritual__step reveal--fade" data-speed="0.09">
       <span class="ritual__no">03</span>
       <h3>Pair across the map</h3>
       <p>Original with sashimi or mezze. Yuzu with anything fried. Ume before dinner, Hinoki after it.</p>
@@ -237,7 +243,7 @@
 <!-- ══ Order / Contact ══ -->
 <section class="order section" id="find">
   <div class="order__inner">
-    <div class="order__left reveal">
+    <div class="order__left reveal--fade" data-speed="0.03">
       <p class="section__eyebrow">Order — 注文</p>
       <h2 class="section__title">Order<br /><em>Mastry.</em></h2>
       <p class="order__sub">Tell us what you'd like and where it's going.
@@ -249,7 +255,7 @@
       </dl>
     </div>
 
-    <form class="order__form reveal" id="orderForm" novalidate="novalidate">
+    <form class="order__form reveal--fade" data-speed="-0.035" id="orderForm" novalidate="novalidate">
       <div class="fg">
         <label for="fname">Full name</label>
         <input type="text" id="fname" placeholder="Your name" autocomplete="name" required />

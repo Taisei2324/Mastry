@@ -12,19 +12,83 @@
   /* safety: never trap the user behind the loader */
   setTimeout(function () { loader.classList.add("done"); }, 3500);
 
-  /* ── nav ── */
+  /* ── scroll engine: data-speed (parallax Y), data-drift (X scrub), data-rotate ──
+     Layout positions are cached (not read per frame) so scrolling stays 60fps. */
+  var stage = [];
+  function measureStage() {
+    stage.forEach(function (s) { s.el.style.transform = ""; });
+    var sy = window.scrollY;
+    stage.forEach(function (s) {
+      var r = s.el.getBoundingClientRect();
+      s.top = r.top + sy;
+      s.h = r.height;
+    });
+    choreograph();
+  }
+  function choreograph() {
+    if (!stage.length) return;
+    var vh = window.innerHeight;
+    var center = window.scrollY + vh / 2;
+    stage.forEach(function (s) {
+      var mid = s.top + s.h / 2 - center;          /* px from viewport centre */
+      var range = vh / 2 + s.h / 2;
+      var p = Math.max(-1, Math.min(1, mid / range)); /* -1 entering … 0 centred … 1 leaving */
+      var t = "";
+      if (s.speed) t += "translateY(" + (mid * s.speed).toFixed(1) + "px) ";
+      if (s.drift) t += "translateX(" + (p * s.drift).toFixed(1) + "px) ";
+      if (s.rot) t += "rotate(" + (p * s.rot).toFixed(2) + "deg)";
+      s.el.style.transform = t;
+    });
+  }
+  if (!reduceMotion) {
+    document.querySelectorAll("[data-speed],[data-drift],[data-rotate]").forEach(function (el) {
+      stage.push({
+        el: el,
+        speed: parseFloat(el.dataset.speed) || 0,
+        drift: parseFloat(el.dataset.drift) || 0,
+        rot: parseFloat(el.dataset.rotate) || 0,
+        top: 0, h: 0
+      });
+    });
+    window.addEventListener("resize", measureStage);
+    window.addEventListener("load", measureStage);  /* re-measure once images have sized the page */
+    measureStage();
+  }
+
+  /* ── nav + hero scroll choreography ── */
   var nav = document.getElementById("nav");
   var progress = document.getElementById("progress");
   var heroBottle = document.getElementById("heroBottle");
+  var heroCopy = document.querySelector(".hero__copy");
+  var heroVertical = document.querySelector(".hero__vertical");
+  var scrollCue = document.querySelector(".hero__scrollcue");
+  var lastY = 0;
 
   function onScroll() {
     var y = window.scrollY;
+    var vh = window.innerHeight;
     nav.classList.toggle("solid", y > 40);
-    var h = document.documentElement.scrollHeight - window.innerHeight;
-    progress.style.width = (h > 0 ? (y / h) * 100 : 0) + "%";
-    if (heroBottle && !reduceMotion && y < window.innerHeight) {
-      heroBottle.style.transform = "translateY(" + y * 0.12 + "px)";
+    /* hide nav scrolling down, reveal scrolling up */
+    if (!reduceMotion) {
+      if (y > 480 && y > lastY + 2) nav.classList.add("hidden");
+      else if (y < lastY - 2 || y <= 480) nav.classList.remove("hidden");
     }
+    var h = document.documentElement.scrollHeight - vh;
+    progress.style.width = (h > 0 ? (y / h) * 100 : 0) + "%";
+    /* hero: bottle sinks + tilts, copy lifts + fades, side text and cue drift */
+    if (!reduceMotion && y < vh) {
+      if (heroBottle) heroBottle.style.transform =
+        "translateY(" + (y * 0.14).toFixed(1) + "px) rotate(" + (y * 0.006).toFixed(2) + "deg)";
+      if (heroCopy) {
+        heroCopy.style.transform = "translateY(" + (y * 0.07).toFixed(1) + "px)";
+        heroCopy.style.opacity = Math.max(0, 1 - y / (vh * 0.85)).toFixed(3);
+      }
+      if (heroVertical) heroVertical.style.transform =
+        "translateY(calc(-50% + " + (y * 0.12).toFixed(1) + "px))";
+      if (scrollCue) scrollCue.style.opacity = Math.max(0, 1 - y / (vh * 0.3)).toFixed(3);
+    }
+    choreograph();
+    lastY = y;
   }
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
@@ -73,7 +137,7 @@
       }
     });
   }, { threshold: 0.15, rootMargin: "0px 0px -40px 0px" });
-  document.querySelectorAll(".reveal").forEach(function (el) { revealObserver.observe(el); });
+  document.querySelectorAll(".reveal, .reveal--fade").forEach(function (el) { revealObserver.observe(el); });
 
   /* ── stat counters ── */
   var statObserver = new IntersectionObserver(function (entries) {
