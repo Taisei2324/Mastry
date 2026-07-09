@@ -93,7 +93,7 @@
       this._spinSpeed = this._num('spin-speed', 1);
       this._offsetX = this._num('offset-x', 1.55);
       this._pourEnabled = this.getAttribute('pour') !== '0';
-      if (this._drops) this._drops.count = Math.round(this._condensation * 55);
+      if (this._drops) this._drops.count = Math.min(240, Math.round(this._condensation * 70));
     }
 
     /* ---------- scene ---------- */
@@ -405,28 +405,24 @@
     }
 
     _buildCondensation(parent) {
-      var MAX = 620;
-      var mat = new THREE.MeshBasicMaterial({ map: dropletTexture(), transparent: true, depthWrite: false });
-      var mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.032, 0.038), mat, MAX);
+      // real droplets: tiny glass hemispheres that condense, grow, run down the
+      // glass under gravity, and shrink away once they reach the bottom
+      var MAX = 240;
+      var mesh = new THREE.InstancedMesh(
+        new THREE.SphereGeometry(1, 8, 6),
+        new THREE.MeshPhysicalMaterial({
+          color: 0xeef6f0, transparent: true, opacity: 0.55,
+          roughness: 0.04, metalness: 0, envMapIntensity: 2.4,
+          clearcoat: 1, clearcoatRoughness: 0.04, depthWrite: false
+        }), MAX);
       mesh.renderOrder = 6;
       parent.add(mesh);
       this._drops = mesh;
       this._dropData = [];
       var dummy = new THREE.Object3D();
       for (var i = 0; i < MAX; i++) {
-        var y = 0.18 + Math.random() * 2.5;
-        // fewer drops over the label band
-        if (y > 0.66 && y < 1.88 && Math.random() < 0.55) y = Math.random() < 0.5 ? 0.2 + Math.random() * 0.45 : 1.9 + Math.random() * 0.75;
-        var d = {
-          a: Math.random() * Math.PI * 2,
-          y: y,
-          s: 0.45 + Math.random() * 1.25,
-          runner: i < 7,           // first few are animated "runners"
-          st: 0.18 + Math.random() * 0.62, // stiction — how much tilt before it starts sliding
-          moving: false,
-          v: 0.10 + Math.random() * 0.25
-        };
-        if (d.runner) { d.s = 1.7 + Math.random() * 0.6; d.y = 2.2 + Math.random() * 0.6; d.st = 0; }
+        var d = this._spawnDrop(i < 12);
+        d.sc = d.target * (0.35 + Math.random() * 0.65); // page opens mid-condensation
         this._dropData.push(d);
         this._placeDrop(dummy, d, i);
       }
@@ -434,12 +430,29 @@
       this._dropDummy = dummy;
     }
 
+    _spawnDrop(runner) {
+      var y = 0.2 + Math.random() * 2.5;
+      // fewer drops over the label band
+      if (y > 0.66 && y < 1.84 && Math.random() < 0.7) y = Math.random() < 0.5 ? 0.2 + Math.random() * 0.44 : 1.86 + Math.random() * 0.8;
+      return {
+        a: Math.random() * Math.PI * 2,
+        y: y,
+        target: runner ? 0.024 + Math.random() * 0.016 : 0.006 + Math.random() * 0.013,
+        sc: 0.0015,                            // condenses in from almost nothing
+        grow: 0.10 + Math.random() * 0.22,     // relative growth per second
+        st: runner ? 0.02 : 0.3 + Math.random() * 0.6, // stiction before it slides
+        v: 0.15 + Math.random() * 0.3,
+        wob: Math.random() * Math.PI * 2,
+        sliding: false, dying: false, runner: runner
+      };
+    }
+
     _placeDrop(dummy, d, i) {
-      var r = radiusAt(d.y) + 0.006;
+      var r = radiusAt(d.y) + d.sc * 0.18;
       dummy.position.set(Math.cos(d.a) * r, d.y, Math.sin(d.a) * r);
-      var stretch = (d.runner || d.moving) ? 1.8 : 1.15;
-      dummy.scale.set(d.s, d.s * stretch, d.s);
       dummy.lookAt(Math.cos(d.a) * (r + 1), d.y, Math.sin(d.a) * (r + 1));
+      var sag = d.sliding ? 1.65 : 1.0 + (d.sc / (d.target || 1)) * 0.3; // heavy drops sag, runners stretch
+      dummy.scale.set(d.sc, d.sc * sag, d.sc * 0.5); // flattened against the glass
       dummy.updateMatrix();
       this._drops.setMatrixAt(i, dummy.matrix);
     }
@@ -637,26 +650,34 @@
       }
       this._bubbles.instanceMatrix.needsUpdate = true;
 
-      // condensation — droplets obey gravity in bottle space: tilt the bottle and they slide downhill
+      // condensation — droplet lifecycle: condense in, grow until heavy, run
+      // downhill (meandering) under bottle-space gravity, vanish at the bottom
       this._bottle.getWorldQuaternion(_q1);
-      _v1.set(0, -1, 0).applyQuaternion(_q1.invert()); // world-down expressed in bottle-local axes
-      var mobility = smoothstep(0.10, 0.85, Math.abs(this._root.rotation.z)) + Math.min(0.5, Math.abs(vel) * 0.0012);
+      _v1.set(0, -1, 0).applyQuaternion(_q1.invert()); // world-down in bottle-local axes
+      var agitation = smoothstep(0.10, 0.85, Math.abs(this._root.rotation.z)) + Math.min(0.6, Math.abs(vel) * 0.0015);
       var dd = this._dropData;
       for (var j = 0; j < dd.length; j++) {
         var d = dd[j];
-        var free = d.runner ? Math.max(0.35, mobility) : Math.max(0, mobility - d.st);
-        if (free > 0.01) {
+        if (d.dying) {
+          d.sc -= (d.target || 0.01) * dt * 3.2; // soaks away
+          if (d.sc <= 0.0015) dd[j] = d = this._spawnDrop(d.runner);
+          this._placeDrop(dummy, d, j);
+          continue;
+        }
+        if (d.sc < d.target) d.sc = Math.min(d.target, d.sc + d.target * d.grow * dt);
+        // fully grown drops get heavy enough to creep even on a still bottle
+        var heavy = (d.sc >= d.target * 0.98) ? (d.runner ? 0.22 : 0.03) : 0;
+        var free = Math.max(0, agitation - d.st) + heavy;
+        d.sliding = free > 0.02;
+        if (d.sliding) {
+          d.wob += dt * 3;
           var rr = Math.max(0.15, radiusAt(d.y) + 0.006);
           var ga = _v1.x * (-Math.sin(d.a)) + _v1.z * Math.cos(d.a); // downhill around the barrel
-          d.a += (ga / rr) * free * d.v * dt * 2.4;
+          d.a += ((ga / rr) * free * d.v + Math.sin(d.wob) * 0.10 * free) * dt * 2.4; // meanders as it runs
           d.y += _v1.y * free * d.v * dt * 2.4;
-          if (d.y < 0.15 || d.y > 3.0) { d.y = 0.3 + Math.random() * 2.4; d.a = Math.random() * Math.PI * 2; }
-          d.moving = true;
-          this._placeDrop(dummy, d, j);
-        } else if (d.moving) {
-          d.moving = false;
-          this._placeDrop(dummy, d, j);
+          if (d.y < 0.16 || d.y > 3.0) { d.dying = true; d.y = Math.min(3.0, Math.max(0.16, d.y)); }
         }
+        this._placeDrop(dummy, d, j);
       }
       this._drops.instanceMatrix.needsUpdate = true;
 
@@ -794,29 +815,6 @@
     g.pos.push(vs[vi], vs[vi + 1], vs[vi + 2]);
     var ni = (parseInt(a[2] || a[0], 10) - 1) * 3;
     g.nor.push(ns[ni] || 0, ns[ni + 1] || 0, ns[ni + 2] === undefined ? 1 : ns[ni + 2]);
-  }
-
-  // flat 2D droplet sprite: gradient body, shaded lower rim, bright highlight
-  var _dropTex = null;
-  function dropletTexture() {
-    if (_dropTex) return _dropTex;
-    var cv = document.createElement('canvas');
-    cv.width = cv.height = 64;
-    var g = cv.getContext('2d');
-    var grad = g.createRadialGradient(32, 36, 4, 32, 32, 30);
-    grad.addColorStop(0, 'rgba(235,244,240,0.10)');
-    grad.addColorStop(0.55, 'rgba(226,238,233,0.30)');
-    grad.addColorStop(0.85, 'rgba(255,255,255,0.60)');
-    grad.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = grad;
-    g.beginPath(); g.arc(32, 32, 30, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = 'rgba(88,98,88,0.28)';
-    g.lineWidth = 3;
-    g.beginPath(); g.arc(32, 33, 26, Math.PI * 0.18, Math.PI * 0.82); g.stroke();
-    g.fillStyle = 'rgba(255,255,255,0.95)';
-    g.beginPath(); g.ellipse(24, 21, 5.5, 9, -0.5, 0, Math.PI * 2); g.fill();
-    _dropTex = new THREE.CanvasTexture(cv);
-    return _dropTex;
   }
 
   customElements.define('bottle-3d', Bottle3D);

@@ -236,6 +236,10 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   height:400svh;position:relative;
   background:linear-gradient(180deg,var(--wash-sky) 0%,var(--paper) 36%);
 }
+/* desktop wheels cover distance fast — give the sequence a longer runway */
+@media (min-width:1001px){
+  .heropin{height:600svh;}
+}
 .heropin__sticky{
   position:sticky;top:0;height:100svh;overflow:hidden;
   display:flex;align-items:center;justify-content:center;
