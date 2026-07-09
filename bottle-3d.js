@@ -524,6 +524,26 @@
       };
       window.addEventListener('scroll', this._onScroll, { passive: true });
       window.addEventListener('wheel', this._onWheel, { passive: true });
+      // drag to spin, with flick inertia
+      this._spinVel = 0;
+      var dragging = false, lastX = 0, lastT = 0;
+      this.addEventListener('pointerdown', function (e) {
+        dragging = true; lastX = e.clientX; lastT = performance.now();
+        self._spinVel = 0;
+        if (self.setPointerCapture && e.pointerId !== undefined) {
+          try { self.setPointerCapture(e.pointerId); } catch (_) {}
+        }
+      });
+      window.addEventListener('pointermove', function (e) {
+        if (!dragging) return;
+        var now = performance.now();
+        var dx = e.clientX - lastX;
+        self._rotY += dx * 0.012;                                  // direct spin under the cursor
+        self._spinVel = (dx / Math.max(1, now - lastT)) * 12;      // flick momentum
+        lastX = e.clientX; lastT = now;
+      });
+      window.addEventListener('pointerup', function () { dragging = false; });
+      window.addEventListener('pointercancel', function () { dragging = false; });
       this._ro = new ResizeObserver(function () { self._resize(); });
       this._ro.observe(this);
       // perf guards: don't render when the tab is hidden or the element is offscreen
@@ -569,6 +589,8 @@
       this._rotY += -vel * 0.0035 * dt * 60 * 0.016;
       var idle = 0.12 * this._spinSpeed;
       this._rotY += idle * dt;
+      this._rotY += this._spinVel * dt;                 // flick inertia from drag
+      this._spinVel *= Math.pow(0.12, dt);              // spins down gradually
       this._spin.rotation.y = this._rotY;
 
       // drift up-right / down-left with velocity, springing back
