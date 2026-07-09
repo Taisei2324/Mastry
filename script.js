@@ -217,7 +217,7 @@
   var detail = document.getElementById("flavourDetail");
 
   var currentFlavour = "original"; // matches the is-active markup default
-  var bottleTimer = null;
+  var bottleTimer = null, bottleTimer2 = null;
   function selectFlavour(key) {
     var f = FLAVOURS[key];
     if (!f || key === currentFlavour) return;
@@ -230,15 +230,28 @@
       t.classList.toggle("is-active", on);
       t.setAttribute("aria-selected", on);
     });
-    /* bottle swaps out-then-in: the old photo fully disappears, then the new
-       one appears — no two frames ever overlap, so nothing visibly shifts */
-    clearTimeout(bottleTimer);
-    bottles.forEach(function (b) { b.classList.remove("is-active"); });
-    bottleTimer = setTimeout(function () {
+    /* three-beat swap: evaporate the old bottle upward, hold the stage
+       clearly empty, then condense the new bottle down into place */
+    clearTimeout(bottleTimer); clearTimeout(bottleTimer2);
+    if (reduceMotion) {
       bottles.forEach(function (b) {
+        b.classList.remove("is-leaving");
         b.classList.toggle("is-active", b.dataset.flavour === key);
       });
-    }, reduceMotion ? 0 : 240);
+    } else {
+      bottles.forEach(function (b) {
+        b.classList.toggle("is-leaving", b.classList.contains("is-active"));
+        b.classList.remove("is-active");
+      });
+      bottleTimer = setTimeout(function () {
+        bottles.forEach(function (b) { b.classList.remove("is-leaving"); });
+      }, 340);
+      bottleTimer2 = setTimeout(function () {
+        bottles.forEach(function (b) {
+          b.classList.toggle("is-active", b.dataset.flavour === key);
+        });
+      }, 620);
+    }
     detail.style.opacity = 0;
     setTimeout(function () {
       fJp.textContent = f.jp;

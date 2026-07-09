@@ -369,14 +369,25 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   animation:spinslow 70s linear infinite;
 }
 @keyframes spinslow{to{transform:rotate(360deg);}}
+/* flavour swap: the old bottle evaporates upward into blur, the stage sits
+   visibly empty for a beat, then the new bottle condenses down into place */
 .flavours__bottle{
   position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
-  mix-blend-mode:multiply;opacity:0;transform:translateY(14px) scale(.99);
-  transition:opacity .22s var(--ease),transform .22s var(--ease);
-  filter:drop-shadow(0 34px 34px rgba(38,52,28,.13));
+  mix-blend-mode:multiply;opacity:0;transform:translateY(26px) scale(.985);
+  filter:blur(10px) drop-shadow(0 34px 34px rgba(38,52,28,.13));
+  transition:opacity .42s var(--ease),transform .42s var(--ease),filter .42s var(--ease);
+  will-change:opacity,transform,filter;
   pointer-events:none;
 }
-.flavours__bottle.is-active{opacity:1;transform:none;}
+.flavours__bottle.is-active{
+  opacity:1;transform:none;
+  filter:blur(0) drop-shadow(0 34px 34px rgba(38,52,28,.13));
+}
+.flavours__bottle.is-leaving{
+  opacity:0;transform:translateY(-30px) scale(.97);
+  filter:blur(10px) drop-shadow(0 34px 34px rgba(38,52,28,.13));
+  transition-duration:.3s;
+}
 
 .flavours__list{display:flex;flex-direction:column;border-top:1px solid var(--hairline);}
 .flavours__tab{
