@@ -99,7 +99,7 @@ input,select,textarea{accent-color:var(--olive);}
   margin-right:auto;display:flex;align-items:baseline;gap:12px;text-decoration:none;color:var(--ink);
   font-weight:700;font-size:1.05rem;letter-spacing:.3em;
 }
-.nav__logo-jp{font-family:var(--jp);font-weight:300;font-size:.62rem;letter-spacing:.28em;color:var(--muted);}
+.nav__logo-jp{font-family:var(--jp);font-weight:300;font-size:.62rem;letter-spacing:.28em;color:var(--muted);white-space:nowrap;}
 .nav__links{display:flex;gap:36px;}
 .nav__links a{
   font-size:.78rem;font-weight:500;letter-spacing:.08em;text-decoration:none;color:var(--muted);
@@ -626,6 +626,8 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   .nav__links a{padding:18px clamp(20px,5vw,64px);border-top:1px solid var(--hairline);font-size:.9rem;}
   .nav__cta{display:none;}
   .nav__burger{display:block;}
+  .nav{gap:20px;}
+  .nav__logo-jp{display:none;}
   .stats{grid-template-columns:repeat(2,1fr);row-gap:40px;}
   .ritual__grid{grid-template-columns:1fr;}
   .find__form{flex-direction:column;}

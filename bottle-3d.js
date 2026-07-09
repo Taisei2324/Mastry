@@ -198,7 +198,7 @@
       var label = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, labelH, 128, 1, true),
         new THREE.MeshStandardMaterial({ map: tex, bumpMap: tex, bumpScale: 0.012, roughness: 0.55, metalness: 0 }));
       label.position.y = labelC;
-      label.rotation.y = Math.PI * 0.62; // seam to the back, artwork centre facing camera
+      label.rotation.y = Math.PI; // full-wrap label: artwork centre (MASTRY) faces the camera, seam at the back
       label.renderOrder = 3;
       parent.add(label);
 
