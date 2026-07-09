@@ -586,20 +586,21 @@
       }
 
       // twist: scroll up → twist right, scroll down → twist left (reversed)
-      this._rotY += -vel * 0.0035 * dt * 60 * 0.016;
+      this._rotY += -vel * 0.0018 * dt * 60 * 0.016;
       var idle = 0.12 * this._spinSpeed;
       this._rotY += idle * dt;
       this._rotY += this._spinVel * dt;                 // flick inertia from drag
       this._spinVel *= Math.pow(0.12, dt);              // spins down gradually
       this._spin.rotation.y = this._rotY;
 
-      // drift up-right / down-left with velocity, springing back
-      var targY = Math.max(-0.6, Math.min(0.6, -vel * 0.010));
-      var targX = Math.max(-0.38, Math.min(0.38, -vel * 0.0055));
-      var targTilt = Math.max(-0.16, Math.min(0.16, vel * 0.0011));
-      this._driftY = lerp(this._driftY, targY, 1 - Math.pow(0.004, dt));
-      this._driftX = lerp(this._driftX, targX, 1 - Math.pow(0.004, dt));
-      this._tiltV = lerp(this._tiltV, targTilt, 1 - Math.pow(0.004, dt));
+      // gentle drift with velocity — heavily damped so wheel notches read as
+      // one continuous glide instead of dart-and-snap-back
+      var targY = Math.max(-0.16, Math.min(0.16, -vel * 0.0028));
+      var targX = Math.max(-0.09, Math.min(0.09, -vel * 0.0015));
+      var targTilt = Math.max(-0.045, Math.min(0.045, vel * 0.0003));
+      this._driftY = lerp(this._driftY, targY, 1 - Math.pow(0.05, dt));
+      this._driftX = lerp(this._driftX, targX, 1 - Math.pow(0.05, dt));
+      this._tiltV = lerp(this._tiltV, targTilt, 1 - Math.pow(0.05, dt));
 
       // finale: cap off, tilt, pour — with a pour budget: once ~500ml is out, settle back upright
       var capGoal = this._pourEnabled ? smoothstep(0.34, 0.58, p) : 0;
@@ -769,6 +770,14 @@
         stream.material.opacity = Math.max(0, stream.material.opacity - 0.08);
         core.material.opacity = Math.max(0, core.material.opacity - 0.12);
         if (stream.material.opacity <= 0.01) { stream.visible = false; core.visible = false; }
+        return;
+      }
+      this._streamSkip = !this._streamSkip;
+      if (this._streamSkip && this._stream.visible) {
+        // rebuild the tube every other frame — halves geometry churn, no visible cost
+        var k0 = Math.min(1, (tiltT - 0.55) * 3.5);
+        stream.material.opacity = Math.min(0.55, stream.material.opacity + 0.05) * k0;
+        core.material.opacity = Math.min(0.9, core.material.opacity + 0.08) * k0;
         return;
       }
       var t0 = this._clock.elapsedTime;
