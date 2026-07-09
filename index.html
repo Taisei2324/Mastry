@@ -68,6 +68,8 @@
       <div class="hero__blob" aria-hidden="true"></div>
       <canvas id="bubbles" aria-hidden="true"></canvas>
       <img class="hero__bottle" id="heroBottle" src="images/brand%20new%20original%20catalog.png" alt="Mastry sparkling water — original mastic bottle" />
+      <bottle-3d class="hero__bottle3d" label-src="assets/label.jpg" cap-src="assets/cap.obj"
+        condensation="2" spin-speed="1" offset-x="0" aria-hidden="true"></bottle-3d>
     </div>
   </div>
   <div class="hero__scrollcue" aria-hidden="true"><span></span></div>
@@ -343,8 +345,5 @@
 <script src="script.js"></script>
 <script src="https://unpkg.com/three@0.147.0/build/three.min.js"></script>
 <script src="bottle-3d.js"></script>
-<bottle-3d label-src="assets/label.jpg" cap-src="assets/cap.obj"
-  condensation="2" spin-speed="1" offset-x="1.55"
-  style="position:absolute;top:0;left:0;width:100%;height:100vh;z-index:5;pointer-events:none"></bottle-3d>
 </body>
 </html>
