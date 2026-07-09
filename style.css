@@ -251,6 +251,9 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   position:relative;width:min(600px,92vw);height:min(80svh,780px);
   display:flex;align-items:center;justify-content:center;
 }
+@media (max-width:760px){
+  .heropin__stage{width:min(430px,88vw);height:min(60svh,520px);}
+}
 .herowords{
   min-height:88svh;display:flex;align-items:center;justify-content:center;text-align:center;
   padding:clamp(90px,14vh,160px) clamp(20px,6vw,90px) clamp(60px,8vh,110px);

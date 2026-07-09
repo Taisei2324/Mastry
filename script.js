@@ -51,9 +51,10 @@
       if (s.prog) s.el.style.setProperty("--p", Math.min(1, near * 1.6).toFixed(3));
     });
   }
-  /* phones keep only the horizontal word-bands sliding with scroll; everything else stays still */
+  /* phones get the full scroll choreography except data-rotate (the spinning
+     seal read as too busy mid-screen on mobile) */
   var stageSelector = calmScroll
-    ? ".driftline [data-drift]"
+    ? "[data-speed],[data-drift],[data-zoom],[data-tilt],[data-progress]"
     : "[data-speed],[data-drift],[data-rotate],[data-zoom],[data-tilt],[data-progress]";
   if (!reduceMotion) {
     document.querySelectorAll(stageSelector)

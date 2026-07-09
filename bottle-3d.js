@@ -560,9 +560,10 @@
       var dpr = Math.min(2, window.devicePixelRatio || 1);
       this._renderer.setPixelRatio(dpr);
       this._renderer.setSize(w, h, false);
+      this._narrow = w < 720;
+      this._camera.position.z = this._narrow ? 8.3 : 7.4; // step back on phones
       this._camera.aspect = w / h;
       this._camera.updateProjectionMatrix();
-      this._narrow = w < 720;
     }
 
     /* ---------- per-frame ---------- */
