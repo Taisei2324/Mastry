@@ -252,7 +252,7 @@
     _buildCap(parent) {
       // user-supplied max-LOD OBJ cap (assets/cap.obj); procedural fallback below.
       // Spinning parts go in this._cap; tamper ring + bridges stay fixed on the neck.
-      this._capBaseY = 2.93; // sits over the wider lip bead of the user's bottle
+      this._capBaseY = 3.0; // skirt starts at the lip bead; dome fully covers the 3.26 mouth
       this._parentForCap = parent;
       var cap = new THREE.Group();
       cap.position.y = this._capBaseY;
@@ -273,7 +273,7 @@
     _assembleCap(text) {
       var groups = parseOBJGroups(text);
       if (!groups.length) return this._buildProceduralCap();
-      var S = 0.0146; // model Ø31.8 mm, sized over this bottle's Ø0.43 lip bead
+      var S = 0.0152; // model Ø31.8 mm, sized so the dome clears the glass mouth
       var green = new THREE.MeshStandardMaterial({ color: 0x2e8f5e, metalness: 0.85, roughness: 0.34, envMapIntensity: 1.25 });
       var greenDark = new THREE.MeshStandardMaterial({ color: 0x1f6b47, metalness: 0.85, roughness: 0.42, envMapIntensity: 1.1 });
       var bareAlu = new THREE.MeshStandardMaterial({ color: 0xd8dadb, metalness: 1.0, roughness: 0.24, envMapIntensity: 1.5 });
