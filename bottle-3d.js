@@ -7,12 +7,22 @@
   'use strict';
   if (customElements.get('bottle-3d')) return;
 
-  // Bottle silhouette: [radius, y] pairs, base y=0, top y≈3.26
+  // Bottle silhouette: [radius, y] pairs, base y=0, top y≈3.26.
+  // Sampled from the user's Blender model ("bottle only reset .blend"):
+  // slim body, long shoulder taper, lip bead at the mouth.
   var PROFILE = [
-    [0.001, 0.0], [0.30, 0.0], [0.44, 0.03], [0.475, 0.12], [0.492, 0.40],
-    [0.492, 1.85], [0.47, 2.02], [0.40, 2.25], [0.30, 2.50], [0.215, 2.72],
-    [0.175, 2.88], [0.17, 3.05], [0.17, 3.14], [0.185, 3.17], [0.185, 3.24],
-    [0.165, 3.26]
+    [0.001, 0.0], [0.3963, 0.0291], [0.4282, 0.0873], [0.4439, 0.1455],
+    [0.4551, 0.2037], [0.4592, 0.262], [0.4598, 0.3202], [0.4602, 0.3784],
+    [0.4608, 0.4948], [0.4616, 0.6112], [0.4624, 0.7859], [0.4634, 0.9023],
+    [0.4643, 1.0187], [0.4651, 1.1934], [0.4659, 1.3098], [0.4665, 1.4262],
+    [0.4673, 1.4845], [0.4679, 1.5427], [0.4677, 1.6009], [0.4666, 1.6591],
+    [0.4607, 1.7173], [0.4551, 1.7755], [0.4473, 1.8337], [0.437, 1.892],
+    [0.4239, 1.9502], [0.4075, 2.0084], [0.4028, 2.0666], [0.3755, 2.1248],
+    [0.3556, 2.183], [0.3332, 2.2995], [0.3096, 2.3577], [0.2862, 2.4741],
+    [0.2641, 2.5323], [0.2446, 2.5905], [0.2292, 2.6487], [0.219, 2.707],
+    [0.2127, 2.7652], [0.2021, 2.8234], [0.1977, 2.8816], [0.1893, 2.9398],
+    [0.2098, 2.998], [0.2168, 3.0562], [0.2037, 3.1145], [0.2052, 3.1727],
+    [0.2011, 3.2309]
   ];
   var H = 3.26, CY = H / 2;
 
@@ -194,8 +204,8 @@
       tex.encoding = THREE.sRGBEncoding;
       tex.wrapS = THREE.RepeatWrapping;
       tex.anisotropy = this._renderer.capabilities.getMaxAnisotropy();
-      var labelH = 1.22, labelC = 1.27;
-      var label = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, labelH, 128, 1, true),
+      var labelH = 1.1, labelC = 1.2; // ends before the shoulder taper begins
+      var label = new THREE.Mesh(new THREE.CylinderGeometry(0.478, 0.478, labelH, 128, 1, true),
         new THREE.MeshStandardMaterial({ map: tex, bumpMap: tex, bumpScale: 0.012, roughness: 0.55, metalness: 0 }));
       label.position.y = labelC;
       label.rotation.y = Math.PI; // full-wrap label: artwork centre (MASTRY) faces the camera, seam at the back
@@ -220,16 +230,16 @@
       parent.add(fresnel);
 
       // mouth (visible once cap is off)
-      var mouth = new THREE.Mesh(new THREE.TorusGeometry(0.155, 0.018, 10, 40),
+      var mouth = new THREE.Mesh(new THREE.TorusGeometry(0.188, 0.018, 10, 40),
         new THREE.MeshPhysicalMaterial({ color: 0xdfe5dc, roughness: 0.1, transparent: true, opacity: 0.5, envMapIntensity: 1.6 }));
-      mouth.rotation.x = Math.PI / 2; mouth.position.y = 3.26; mouth.renderOrder = 5;
+      mouth.rotation.x = Math.PI / 2; mouth.position.y = 3.24; mouth.renderOrder = 5;
       parent.add(mouth);
       // glass threads on the neck (visible once the cap is off)
       var threadMat = new THREE.MeshPhysicalMaterial({ color: 0xe8efe8, roughness: 0.08, transparent: true, opacity: 0.45, envMapIntensity: 1.8 });
       for (var th = 0; th < 2; th++) {
-        var thread = new THREE.Mesh(new THREE.TorusGeometry(0.174, 0.007, 8, 48), threadMat);
+        var thread = new THREE.Mesh(new THREE.TorusGeometry(0.205, 0.007, 8, 48), threadMat);
         thread.rotation.x = Math.PI / 2;
-        thread.position.y = 3.06 + th * 0.08;
+        thread.position.y = 3.0 + th * 0.09;
         thread.renderOrder = 5;
         parent.add(thread);
       }
@@ -241,7 +251,7 @@
     _buildCap(parent) {
       // user-supplied max-LOD OBJ cap (assets/cap.obj); procedural fallback below.
       // Spinning parts go in this._cap; tamper ring + bridges stay fixed on the neck.
-      this._capBaseY = 3.055;
+      this._capBaseY = 2.93; // sits over the wider lip bead of the user's bottle
       this._parentForCap = parent;
       var cap = new THREE.Group();
       cap.position.y = this._capBaseY;
@@ -262,7 +272,7 @@
     _assembleCap(text) {
       var groups = parseOBJGroups(text);
       if (!groups.length) return this._buildProceduralCap();
-      var S = 0.01245; // model Ø31.8 mm → 0.396 scene units over the neck
+      var S = 0.0146; // model Ø31.8 mm, sized over this bottle's Ø0.43 lip bead
       var green = new THREE.MeshStandardMaterial({ color: 0x2e8f5e, metalness: 0.85, roughness: 0.34, envMapIntensity: 1.25 });
       var greenDark = new THREE.MeshStandardMaterial({ color: 0x1f6b47, metalness: 0.85, roughness: 0.42, envMapIntensity: 1.1 });
       var bareAlu = new THREE.MeshStandardMaterial({ color: 0xd8dadb, metalness: 1.0, roughness: 0.24, envMapIntensity: 1.5 });
