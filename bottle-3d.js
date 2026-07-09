@@ -93,7 +93,10 @@
       this._spinSpeed = this._num('spin-speed', 1);
       this._offsetX = this._num('offset-x', 1.55);
       this._pourEnabled = this.getAttribute('pour') !== '0';
-      if (this._drops) this._drops.count = Math.min(240, Math.round(this._condensation * 70));
+      if (this._drops) {
+        this._drops.count = Math.min(240, Math.round(this._condensation * 70));
+        this._drops.visible = this._drops.count > 0;
+      }
     }
 
     /* ---------- scene ---------- */
@@ -676,6 +679,7 @@
 
       // condensation — droplet lifecycle: condense in, grow until heavy, run
       // downhill (meandering) under bottle-space gravity, vanish at the bottom
+      if (this._drops.count > 0) {
       this._bottle.getWorldQuaternion(_q1);
       _v1.set(0, -1, 0).applyQuaternion(_q1.invert()); // world-down in bottle-local axes
       var agitation = smoothstep(0.10, 0.85, Math.abs(this._root.rotation.z)) + Math.min(0.6, Math.abs(vel) * 0.0015);
@@ -704,6 +708,7 @@
         this._placeDrop(dummy, d, j);
       }
       this._drops.instanceMatrix.needsUpdate = true;
+      }
 
       // pour particles
       this._updatePour(dt, tiltT);
