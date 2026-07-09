@@ -245,12 +245,12 @@
       });
       bottleTimer = setTimeout(function () {
         bottles.forEach(function (b) { b.classList.remove("is-leaving"); });
-      }, 340);
+      }, 950);
       bottleTimer2 = setTimeout(function () {
         bottles.forEach(function (b) {
           b.classList.toggle("is-active", b.dataset.flavour === key);
         });
-      }, 620);
+      }, 1800);
     }
     detail.style.opacity = 0;
     setTimeout(function () {
