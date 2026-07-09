@@ -162,6 +162,7 @@
       this._buildShadow(scene);
 
       // state
+      this._pin = this.closest('.heropin'); // pinned-hero container drives the pour timeline
       this._vel = 0; this._lastScroll = window.scrollY;
       this._rotY = 0; this._driftX = 0; this._driftY = 0; this._tiltV = 0;
       this._capT = 0; this._tiltT = 0;
@@ -540,9 +541,16 @@
       // scroll physics
       var vel = this._vel;
       this._vel *= Math.pow(0.0018, dt); // exponential decay
-      var doc = document.scrollingElement;
-      var max = Math.max(1, doc.scrollHeight - window.innerHeight);
-      var p = Math.min(1, Math.max(0, window.scrollY / max));
+      var p;
+      if (this._pin) {
+        // progress through the pinned hero (≈3 screens of scroll)
+        var span = Math.max(1, this._pin.offsetHeight - window.innerHeight);
+        p = Math.min(1, Math.max(0, (window.scrollY - this._pin.offsetTop) / span));
+      } else {
+        var doc = document.scrollingElement;
+        var max = Math.max(1, doc.scrollHeight - window.innerHeight);
+        p = Math.min(1, Math.max(0, window.scrollY / max));
+      }
 
       // twist: scroll up → twist right, scroll down → twist left (reversed)
       this._rotY += -vel * 0.0035 * dt * 60 * 0.016;
@@ -559,8 +567,8 @@
       this._tiltV = lerp(this._tiltV, targTilt, 1 - Math.pow(0.004, dt));
 
       // finale: cap off, tilt, pour — with a pour budget: once ~500ml is out, settle back upright
-      var capGoal = this._pourEnabled ? smoothstep(0.50, 0.74, p) : 0;
-      var tiltGoal = this._pourEnabled ? smoothstep(0.72, 0.96, p) : 0;
+      var capGoal = this._pourEnabled ? smoothstep(0.34, 0.58, p) : 0;
+      var tiltGoal = this._pourEnabled ? smoothstep(0.56, 0.80, p) : 0;
       if (this._level <= 0.20) tiltGoal = 0;
       if (p < 0.45 && this._tiltT < 0.15) this._level = Math.min(1, this._level + dt * 0.5); // refill on the way back up
       this._capT = lerp(this._capT, capGoal, 1 - Math.pow(0.008, dt));
@@ -673,7 +681,7 @@
       var mesh = this._pour, data = this._pourData, dummy = this._dropDummy;
       var pouring = tiltT > 0.58 && this._level > 0.20;
       if (pouring) {
-        this._level = Math.max(0.20, this._level - dt * 0.20); // visible drain over the pour
+        this._level = Math.max(0.20, this._level - dt * 0.28); // visible drain over the pour
         this._mouthAnchor.getWorldPosition(_v1);
         // direction the mouth points (local +y of bottle, incl. tilt)
         _v2.set(0, 1, 0).applyQuaternion(this._bottle.getWorldQuaternion(_q1));

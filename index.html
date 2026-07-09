@@ -45,25 +45,10 @@
 
 <main id="top">
 
-<!-- ══ Hero ══ -->
-<section class="hero">
-  <div class="hero__inner">
-    <div class="hero__copy">
-      <p class="kicker reveal">Mastic from <span class="kicker__gr">Chios, Greece</span> <span class="kicker__dot">·</span> Assembled in <span class="kicker__jp">Japan</span></p>
-      <h1 class="hero__title">
-        <span class="line"><em>Two ancient islands.</em></span>
-        <span class="line">One clear water.</span>
-      </h1>
-      <p class="hero__sub reveal">Sparkling water infused with mastic — the crystal resin
-      tapped from trees that grow nowhere on Earth but southern Chios —
-      carbonated and bottled with Japanese precision.</p>
-      <div class="hero__actions reveal">
-        <a class="btn btn--solid" href="#flavours">Explore the flavours</a>
-        <a class="btn btn--ghost" href="#story">Why mastic?</a>
-      </div>
-      <p class="hero__foot reveal">ΧΙΟΣ — 日本 &nbsp;·&nbsp; est. on two shores</p>
-    </div>
-    <div class="hero__stage">
+<!-- ══ Hero: pinned bottle — three screens of scroll open and pour it, then the words arrive ══ -->
+<section class="heropin" aria-label="The Mastry bottle — scroll to open and pour it">
+  <div class="heropin__sticky">
+    <div class="heropin__stage">
       <span class="hero__vertical" aria-hidden="true">ギリシャと日本の出会い</span>
       <div class="hero__blob" aria-hidden="true"></div>
       <canvas id="bubbles" aria-hidden="true"></canvas>
@@ -71,8 +56,27 @@
       <bottle-3d class="hero__bottle3d" label-src="assets/label-full.jpg" cap-src="assets/cap.obj"
         condensation="2" spin-speed="1" offset-x="0" aria-hidden="true"></bottle-3d>
     </div>
+    <div class="hero__scrollcue" aria-hidden="true"><span></span></div>
   </div>
-  <div class="hero__scrollcue" aria-hidden="true"><span></span></div>
+</section>
+
+<!-- ══ Hero words ══ -->
+<section class="herowords">
+  <div class="hero__copy">
+    <p class="kicker reveal">Mastic from <span class="kicker__gr">Chios, Greece</span> <span class="kicker__dot">·</span> Assembled in <span class="kicker__jp">Japan</span></p>
+    <h1 class="hero__title">
+      <span class="line"><em>Two ancient islands.</em></span>
+      <span class="line">One clear water.</span>
+    </h1>
+    <p class="hero__sub reveal">Sparkling water infused with mastic — the crystal resin
+    tapped from trees that grow nowhere on Earth but southern Chios —
+    carbonated and bottled with Japanese precision.</p>
+    <div class="hero__actions reveal">
+      <a class="btn btn--solid" href="#flavours">Explore the flavours</a>
+      <a class="btn btn--ghost" href="#story">Why mastic?</a>
+    </div>
+    <p class="hero__foot reveal">ΧΙΟΣ — 日本 &nbsp;·&nbsp; est. on two shores</p>
+  </div>
 </section>
 
 <!-- ══ Marquee ══ -->

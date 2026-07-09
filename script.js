@@ -94,16 +94,8 @@
     }
     var h = document.documentElement.scrollHeight - vh;
     progress.style.width = (h > 0 ? (y / h) * 100 : 0) + "%";
-    /* hero: bottle sinks + tilts, copy lifts + fades, side text and cue drift */
+    /* pinned hero: the 3D bottle handles its own scroll physics; only the cue fades */
     if (!calmScroll && y < vh) {
-      if (heroBottle) heroBottle.style.transform =
-        "translateY(" + (y * 0.14).toFixed(1) + "px) rotate(" + (y * 0.006).toFixed(2) + "deg)";
-      if (heroCopy) {
-        heroCopy.style.transform = "translateY(" + (y * 0.07).toFixed(1) + "px)";
-        heroCopy.style.opacity = Math.max(0, 1 - y / (vh * 0.85)).toFixed(3);
-      }
-      if (heroVertical) heroVertical.style.transform =
-        "translateY(calc(-50% + " + (y * 0.12).toFixed(1) + "px))";
       if (scrollCue) scrollCue.style.opacity = Math.max(0, 1 - y / (vh * 0.3)).toFixed(3);
     }
     choreograph();

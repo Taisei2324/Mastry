@@ -230,6 +230,31 @@ html.bottle3d-on .hero__bottle3d{opacity:1;}
 }
 /* model-viewer, everywhere: no focus box, no loading bar, nothing but the model */
 model-viewer{outline:none;background:transparent;--poster-color:transparent;--progress-bar-color:transparent;--progress-bar-height:0px;}
+/* ── pinned hero: three screens of scroll drive twist → cap-off → tilt → pour,
+      then the page releases and the words rise in ── */
+.heropin{
+  height:400svh;position:relative;
+  background:linear-gradient(180deg,var(--wash-sky) 0%,var(--paper) 36%);
+}
+.heropin__sticky{
+  position:sticky;top:0;height:100svh;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  padding-top:var(--nav-h);
+}
+.heropin__stage{
+  position:relative;width:min(600px,92vw);height:min(80svh,780px);
+  display:flex;align-items:center;justify-content:center;
+}
+.herowords{
+  min-height:88svh;display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:clamp(90px,14vh,160px) clamp(20px,6vw,90px) clamp(60px,8vh,110px);
+}
+.herowords .hero__copy{display:flex;flex-direction:column;align-items:center;}
+.herowords .hero__sub{margin-left:auto;margin-right:auto;}
+.herowords .hero__actions{justify-content:center;}
+@media (prefers-reduced-motion:reduce){
+  .heropin{height:100svh;}
+}
 .hero__scrollcue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);}
 .hero__scrollcue span{
   display:block;width:1px;height:52px;background:var(--hairline);position:relative;overflow:hidden;

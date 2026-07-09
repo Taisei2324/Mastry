@@ -46,24 +46,10 @@
 
 <main id="top">
 
-<!-- ══ Hero ══ -->
-<section class="hero">
-  <div class="hero__inner">
-    <div class="hero__copy">
-      <p class="kicker reveal"><span class="kicker__gr">ギリシャ・ヒオス島</span>のマスティック <span class="kicker__dot">·</span> <span class="kicker__jp">日本</span>で仕上げ</p>
-      <h1 class="hero__title">
-        <span class="line"><em>二つの古き島。</em></span>
-        <span class="line">一つの澄んだ水。</span>
-      </h1>
-      <p class="hero__sub reveal">南ヒオスにしか育たない木から滴る、樹脂の結晶「マスティック」。
-      その香りを、日本の精密なものづくりで、きめ細かな炭酸水に閉じ込めました。</p>
-      <div class="hero__actions reveal">
-        <a class="btn btn--solid" href="#flavours">フレーバーを見る</a>
-        <a class="btn btn--ghost" href="#story">マスティックとは</a>
-      </div>
-      <p class="hero__foot reveal">ΧΙΟΣ — 日本 &nbsp;·&nbsp; 二つの岸辺から</p>
-    </div>
-    <div class="hero__stage">
+<!-- ══ Hero: pinned bottle — three screens of scroll open and pour it, then the words arrive ══ -->
+<section class="heropin" aria-label="マストリーのボトル — スクロールで栓を開けて注ぐ">
+  <div class="heropin__sticky">
+    <div class="heropin__stage">
       <span class="hero__vertical" aria-hidden="true">ギリシャと日本の出会い</span>
       <div class="hero__blob" aria-hidden="true"></div>
       <canvas id="bubbles" aria-hidden="true"></canvas>
@@ -71,8 +57,26 @@
       <bottle-3d class="hero__bottle3d" label-src="assets/label-full.jpg" cap-src="assets/cap.obj"
         condensation="2" spin-speed="1" offset-x="0" aria-hidden="true"></bottle-3d>
     </div>
+    <div class="hero__scrollcue" aria-hidden="true"><span></span></div>
   </div>
-  <div class="hero__scrollcue" aria-hidden="true"><span></span></div>
+</section>
+
+<!-- ══ Hero words ══ -->
+<section class="herowords">
+  <div class="hero__copy">
+    <p class="kicker reveal"><span class="kicker__gr">ギリシャ・ヒオス島</span>のマスティック <span class="kicker__dot">·</span> <span class="kicker__jp">日本</span>で仕上げ</p>
+    <h1 class="hero__title">
+      <span class="line"><em>二つの古き島。</em></span>
+      <span class="line">一つの澄んだ水。</span>
+    </h1>
+    <p class="hero__sub reveal">南ヒオスにしか育たない木から滴る、樹脂の結晶「マスティック」。
+    その香りを、日本の精密なものづくりで、きめ細かな炭酸水に閉じ込めました。</p>
+    <div class="hero__actions reveal">
+      <a class="btn btn--solid" href="#flavours">フレーバーを見る</a>
+      <a class="btn btn--ghost" href="#story">マスティックとは</a>
+    </div>
+    <p class="hero__foot reveal">ΧΙΟΣ — 日本 &nbsp;·&nbsp; 二つの岸辺から</p>
+  </div>
 </section>
 
 <!-- ══ Marquee ══ -->
