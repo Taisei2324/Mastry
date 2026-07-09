@@ -371,8 +371,8 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
 @keyframes spinslow{to{transform:rotate(360deg);}}
 .flavours__bottle{
   position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
-  mix-blend-mode:multiply;opacity:0;transform:translateY(18px) scale(.985);
-  transition:opacity .7s var(--ease),transform .7s var(--ease);
+  mix-blend-mode:multiply;opacity:0;transform:translateY(14px) scale(.99);
+  transition:opacity .22s var(--ease),transform .22s var(--ease);
   filter:drop-shadow(0 34px 34px rgba(38,52,28,.13));
   pointer-events:none;
 }

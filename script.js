@@ -216,9 +216,12 @@
   var fNotes = document.getElementById("fNotes");
   var detail = document.getElementById("flavourDetail");
 
+  var currentFlavour = "original"; // matches the is-active markup default
+  var bottleTimer = null;
   function selectFlavour(key) {
     var f = FLAVOURS[key];
-    if (!f) return;
+    if (!f || key === currentFlavour) return;
+    currentFlavour = key;
     root.style.setProperty("--fl-wash", f.wash);
     root.style.setProperty("--fl-accent", f.accent);
     root.style.setProperty("--fl-deep", f.deep);
@@ -227,9 +230,15 @@
       t.classList.toggle("is-active", on);
       t.setAttribute("aria-selected", on);
     });
-    bottles.forEach(function (b) {
-      b.classList.toggle("is-active", b.dataset.flavour === key);
-    });
+    /* bottle swaps out-then-in: the old photo fully disappears, then the new
+       one appears — no two frames ever overlap, so nothing visibly shifts */
+    clearTimeout(bottleTimer);
+    bottles.forEach(function (b) { b.classList.remove("is-active"); });
+    bottleTimer = setTimeout(function () {
+      bottles.forEach(function (b) {
+        b.classList.toggle("is-active", b.dataset.flavour === key);
+      });
+    }, reduceMotion ? 0 : 240);
     detail.style.opacity = 0;
     setTimeout(function () {
       fJp.textContent = f.jp;
