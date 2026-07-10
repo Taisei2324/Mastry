@@ -1206,7 +1206,7 @@
       var ex = _v1.x + _v3.x * 0.10, ey = _v1.y + _v3.y * 0.10, ez = _v1.z + _v3.z * 0.10;
       var GP = 16;
       var v0 = (0.55 + 0.95 * ps) * (0.82 + 0.18 * flow);
-      var r0 = (0.016 + 0.062 * ps) * (0.55 + 0.45 * flow);
+      var r0 = (0.024 + 0.085 * ps) * (0.55 + 0.45 * flow); // ~40% fuller column at the lip (user: "a little thin")
       // weak pours droop off the lip; hard pours jet along the axis
       var droop = 0.55 * (1 - ps);
       _v4.set(_v2.x + _v3.x * droop, _v2.y + _v3.y * droop, _v2.z + _v3.z * droop).normalize();
