@@ -282,7 +282,7 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
 .herowords .hero__copy{
   display:flex;flex-direction:column;align-items:center;
   max-width:min(640px,58vw);
-  margin-right:clamp(60px,13vw,280px); /* nearer the centre — the glass still owns the left */
+  margin-right:clamp(40px,10vw,220px); /* nearer the centre — the bigger glass still clears it */
 }
 .herowords .hero__sub{margin-left:auto;margin-right:auto;}
 .herowords .hero__actions{justify-content:center;}
@@ -754,7 +754,7 @@ html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL f
   .herowords__pour{left:14vw;height:40%;}
   .herowords__glass{width:64px;}
   .herowords .hero__copy{max-width:none;margin-right:0;}
-  .herowords .hero__title{transform:translateX(38px);} /* clears the bigger crystal */
+  .herowords .hero__title{transform:translateX(46px);} /* clears the bigger crystal */
   /* the panorama shrinks to a sliver at phone width — run it at 175% and
      crop the sides so Fuji, the boat and the acropolis stay legible */
   .footer{overflow:hidden;}

@@ -127,11 +127,11 @@
      composite as a dark outline over the transparent canvas. MeshBasic
      can never go dark; the wet sheen comes from an additive fresnel pass
      (additive only ever brightens) drawn over the same tube geometry. */
-  var WATER_JET_TINT = 0xaed3c0;   // sheath — the in-bottle sage, unmistakable on cream
-  var WATER_CORE_TINT = 0xf2faf5;  // bright solid-liquid core
+  var WATER_JET_TINT = 0x9dc4ae;   // sheath — matched to the IN-BOTTLE pool so the jet reads as the same liquid
+  var WATER_CORE_TINT = 0xe6f3ea;  // solid-liquid core, sage-white (pure white read as a different drink)
   var WATER_DROP_TINT = 0xc4dfd0;  // droplets, satellites, splash, mist
-  var WATER_JET_OP = 0.75;         // sheath opacity at full pour
-  var WATER_CORE_OP = 0.45;        // core stays subtle so it can't white-out a thin ribbon
+  var WATER_JET_OP = 0.85;         // dense enough that no stretch of the stream reads transparent
+  var WATER_CORE_OP = 0.32;        // core stays subtle so it can't white-out a thin ribbon
   function waterJetMaterial() {
     // toneMapped:false — ACES would compress the pale sage toward the page
     // cream and the whole stream washes out (user-reported overexposure)
@@ -849,6 +849,8 @@
       var tiltGoal = this._pourEnabled ? smoothstep(0.56, 0.80, p) : 0;
       if (this._level <= 0.20) tiltGoal = 0;
       if (p < 0.45 && this._tiltT < 0.15) this._level = Math.min(1, this._level + dt * 0.5); // refill on the way back up
+      // bottle upright and full again = the story reset; the glass empties itself
+      _pourHandoff.reset = this._level > 0.95 && this._tiltT < 0.15;
       this._capT = lerp(this._capT, capGoal, 1 - Math.pow(0.008, dt));
       this._tiltT = lerp(this._tiltT, tiltGoal, 1 - Math.pow(0.008, dt));
       var capT = this._capT, tiltT = this._tiltT;
@@ -1212,9 +1214,9 @@
       // 0.176 bore), and the sqrt(v0/v) taper thins it on the way down
       var r0 = (0.036 + 0.085 * ps) * (0.72 + 0.28 * flow);
       // weak pours droop off the lip; hard pours jet along the axis
-      var droop = 0.55 * (1 - ps);
+      var droop = 0.55 * (1 - ps) + 0.15; // always some droop — bottles dump DOWN off the lip
       _v4.set(_v2.x + _v3.x * droop, _v2.y + _v3.y * droop, _v2.z + _v3.z * droop).normalize();
-      var vx = _v4.x * v0, vy = _v4.y * v0, vz = _v4.z * v0;
+      var vx = _v4.x * v0 * 0.62, vy = _v4.y * v0, vz = _v4.z * v0 * 0.62; // water dumps DOWN — little sideways throw, no screen-crossing diagonal
       // breakup length: fat fast jets hold together, thin dribbles pinch off
       // almost immediately. At full pour the jet stays coherent all the way
       // off the bottom of the frame — it hands over to the glass below
@@ -1400,7 +1402,7 @@
      radius — and the glass scene draws the ENTIRE stream from lip to cup in
      one canvas: there is no border for the water to be cut off at. One
      shared object, both elements live in this closure — no allocation. */
-  var _pourHandoff = { live: false, ps: 0, mx: 0, my: 0, vx: 0, vy: 0, g: 0, r: 0, hasBottle: false, hasGlass: false, glassActive: false, glassTop: 1e9, beat: 0, covered: false };
+  var _pourHandoff = { live: false, ps: 0, mx: 0, my: 0, vx: 0, vy: 0, g: 0, r: 0, hasBottle: false, hasGlass: false, glassActive: false, glassTop: 1e9, beat: 0, covered: false, reset: false };
   function tumblerInnerR(y) {         // inner wall radius at height y (fit to the lathe profile)
     return 0.255 + 0.045 * Math.max(0, Math.min(1, (y - 0.125) / (0.96 - 0.125)));
   }
@@ -1735,7 +1737,7 @@
       // size the camera so the tumbler renders at a chosen pixel height, then
       // park the tumbler on the pour line at the right height of the section
       // sized to hold the bottle's pour: a ~500ml bottle needs a tall glass
-      var targetPx = this._narrow ? 140 : 268;
+      var targetPx = this._narrow ? 158 : 300;
       var z = (GH * h) / (2 * 0.2867 * targetPx);
       this._camera.position.z = z;
       this._camera.aspect = w / h;
@@ -1791,6 +1793,9 @@
       // received water STAYS in the glass — it only un-pours when the user
       // actually rewinds (scrolls up), matching the bottle's refill
       else if (!_pourHandoff.hasBottle || goingUp) this._level += Math.max(diff, -dt * 0.5);
+      // when the bottle is back upright and full (the story reset), the cup
+      // empties itself so the next pour starts from a clean glass
+      if (_pourHandoff.reset && !live && this._level > 0.03) this._level = Math.max(0.02, this._level - dt * 0.6);
 
       // waterline
       var waterY = this._glass.position.y + this._waterBase + this._level * (0.97 - this._waterBase);
