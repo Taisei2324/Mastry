@@ -1238,7 +1238,7 @@
       _pourHandoff.ps = ps;
       _pourHandoff.live = true;
       if (_pourHandoff.hasGlass && _pourHandoff.glassActive &&
-          _pourHandoff.my >= _pourHandoff.glassTop + 40 &&
+          _pourHandoff.covered === true &&
           (performance.now() - _pourHandoff.beat) < 250) {
         // the glass canvas covers the mouth and is alive: it draws the whole
         // jet from here. Until then — and if it ever stalls — this scene
@@ -1384,7 +1384,7 @@
      radius — and the glass scene draws the ENTIRE stream from lip to cup in
      one canvas: there is no border for the water to be cut off at. One
      shared object, both elements live in this closure — no allocation. */
-  var _pourHandoff = { live: false, ps: 0, mx: 0, my: 0, vx: 0, vy: 0, g: 0, r: 0, hasBottle: false, hasGlass: false, glassActive: false, glassTop: 1e9, beat: 0 };
+  var _pourHandoff = { live: false, ps: 0, mx: 0, my: 0, vx: 0, vy: 0, g: 0, r: 0, hasBottle: false, hasGlass: false, glassActive: false, glassTop: 1e9, beat: 0, covered: false };
   function tumblerInnerR(y) {         // inner wall radius at height y (fit to the lathe profile)
     return 0.255 + 0.045 * Math.max(0, Math.min(1, (y - 0.125) / (0.96 - 0.125)));
   }
@@ -1747,9 +1747,12 @@
         var gr = this.getBoundingClientRect();
         _pourHandoff.glassTop = gr.top;
         // only take the stream over once this canvas actually COVERS the
-        // bottle's mouth — otherwise our jet would start mid-air below it,
-        // and no water would seem to leave the bottle
-        covers = _pourHandoff.my >= gr.top + 40;
+        // bottle's mouth — WITH HYSTERESIS: the mouth bobs, and a hard
+        // threshold made the two jets flap ownership (the stream blinked)
+        covers = this._covers ? (_pourHandoff.my >= gr.top + 12)
+                              : (_pourHandoff.my >= gr.top + 70);
+        this._covers = covers;
+        _pourHandoff.covered = covers; // single source of truth for the bottle's gate
         var w2x = (2 * this._halfW) / Math.max(1, gr.width);
         var w2y = (2 * this._halfH) / Math.max(1, gr.height);
         jet.x0 = ((_pourHandoff.mx - gr.left) / Math.max(1, gr.width) - 0.5) * 2 * this._halfW;
@@ -1763,16 +1766,26 @@
         jet.vx = 0; jet.vy = -10; jet.g = 12.5;
         jet.r0 = 0.024 + 0.018 * pour;
       }
-      // where this ballistic arc lands = where the cup wants to be
+      // where this ballistic arc lands = where the cup wants to be. The raw
+      // landing shivers with the bottle's bob and the glug, so it's low-pass
+      // filtered, and the cup GLIDES to it with a deadband — no more darting
       var fall0 = Math.max(0.01, jet.y0 - waterY);
       var vd0 = Math.max(0, -jet.vy);
       var tof0 = (Math.sqrt(vd0 * vd0 + 2 * jet.g * fall0) - vd0) / jet.g;
-      var landX = jet.x0 + jet.vx * tof0;
+      var rawLand = jet.x0 + jet.vx * tof0;
+      this._landS = this._landS === undefined ? rawLand
+                  : this._landS + (rawLand - this._landS) * (1 - Math.pow(0.2, dt));
+      var landX = this._landS;
       var fxT = live ? Math.min(0.45, Math.max(0.06, 0.5 + landX / (2 * this._halfW)))
                      : this._fxDefault;
-      this._fx += (fxT - this._fx) * (1 - Math.pow(0.03, dt));
+      var dfx = fxT - this._fx;
+      if (Math.abs(dfx) > 0.004) this._fx += dfx * (1 - Math.pow(0.45, dt));
       this._glass.position.x = (this._fx - 0.5) * 2 * this._halfW;
-      var jx = live ? landX : this._glass.position.x;
+      // the stream's tail bends INTO the cup (water guided by its own
+      // momentum) — the pour always ends inside the glass, never beside it
+      jet.cupX = this._glass.position.x;
+      jet.tofl = tof0;
+      var jx = this._glass.position.x;
       this._updateJet(covers ? pour : 0, jet, waterY, t);
       syncWaterSheen(this._stream, this._sheen);
       if (covers) this._shedSpray(dt, pour, jet, waterY);
@@ -1824,6 +1837,14 @@
         var wx = jet.x0 + jet.vx * tt
                + (Math.sin(s * 3.1 - time * 7.3) * 0.6 + Math.sin(s * 8.1 - time * 15.7) * 0.4) * wob;
         var wz = (Math.cos(s * 4.7 - time * 9.1) * 0.6 + Math.sin(s * 11.3 - time * 19.3) * 0.4) * wob * 0.8;
+        // the last stretch of the fall bends into the cup and calms down —
+        // the pour ends INSIDE the glass, never beside it
+        if (jet.cupX !== undefined && jet.tofl) {
+          var bw = Math.max(0, (tt / jet.tofl - 0.55) / 0.45);
+          bw = bw * bw * (3 - 2 * bw);
+          wx += (jet.cupX - (jet.x0 + jet.vx * jet.tofl)) * bw;
+          wz *= 1 - bw * 0.85;
+        }
         for (var j = 0; j < SEG; j++) {
           var a2 = j / SEG * Math.PI * 2;
           var nx = Math.cos(a2), nz = Math.sin(a2);
