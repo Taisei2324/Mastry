@@ -157,8 +157,8 @@
       spin.add(bottle); root.add(spin); scene.add(root);
       this._root = root; this._spin = spin; this._bottle = bottle;
 
+      this._buildCapGroups(bottle);
       this._buildBottle(bottle);
-      this._buildCap(bottle);
       this._buildBubbles(bottle);
       this._buildCondensation(bottle);
       this._buildPour(scene);
@@ -174,17 +174,100 @@
     }
 
     _buildBottle(parent) {
-      var pts = PROFILE.map(function (p) { return new THREE.Vector2(p[0], p[1]); });
-      var glassGeo = new THREE.LatheGeometry(pts, 144);
+      this._buildWater(parent);
+      // glass + label + cap come from the user's Blender GLB when provided;
+      // the runtime lathe (same silhouette) is the fallback
+      var bottleSrc = this.getAttribute('bottle-src') || this.getAttribute('bottlesrc');
+      if (bottleSrc && THREE.GLTFLoader) this._buildFromGLB(bottleSrc, parent);
+      else this._buildLatheGlass(parent);
+    }
 
+    /* glass rendered as three passes over one geometry: tinted back faces,
+       clearcoated front faces, and an additive fresnel rim */
+    _addGlassShells(parent, glassGeo) {
       var back = new THREE.Mesh(glassGeo, new THREE.MeshPhysicalMaterial({
         color: 0xc4dccc, roughness: 0.07, metalness: 0, transparent: true, opacity: 0.26,
         side: THREE.BackSide, envMapIntensity: 1.4, depthWrite: false
       }));
       back.renderOrder = 1;
       parent.add(back);
+      var front = new THREE.Mesh(glassGeo, new THREE.MeshPhysicalMaterial({
+        color: 0xd6e8dc, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.3,
+        clearcoat: 1, clearcoatRoughness: 0.05, side: THREE.FrontSide,
+        envMapIntensity: 2.6, depthWrite: false
+      }));
+      front.renderOrder = 5;
+      parent.add(front);
+      var fresnel = new THREE.Mesh(glassGeo, new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide,
+        vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+        fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.1); float hot = pow(d, 6.0); vec3 tint = vec3(0.82, 0.94, 0.86); gl_FragColor = vec4(tint * f * 1.1 + vec3(1.0) * hot * 0.85, f * 0.85 + hot * 0.6); }'
+      }));
+      fresnel.renderOrder = 6;
+      parent.add(fresnel);
+    }
 
-      // water
+    _buildFromGLB(src, parent) {
+      var self = this;
+      new THREE.GLTFLoader().load(src, function (g) {
+        g.scene.updateMatrixWorld(true);
+        var prims = [];
+        g.scene.traverse(function (o) { if (o.isMesh) prims.push(o); });
+        var box = new THREE.Box3().setFromObject(g.scene);
+        if (!prims.length || box.isEmpty()) return fail();
+        // normalize the whole model: base at y=0, total height H, centred on the axis
+        var s = H / (box.max.y - box.min.y);
+        var norm = new THREE.Matrix4().makeScale(s, s, s).multiply(
+          new THREE.Matrix4().makeTranslation(
+            -(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2));
+        prims.forEach(function (o) {
+          var geo = o.geometry.clone();
+          geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(norm, o.matrixWorld));
+          var name = ((o.material && o.material.name) || '').toLowerCase();
+          if (name.indexOf('glass') !== -1) {
+            self._addGlassShells(parent, geo);
+          } else if (name.indexOf('cap') !== -1) {
+            var cm = o.material;
+            cm.transmission = 0; // transmission breaks over the transparent canvas
+            cm.envMapIntensity = 1.3;
+            var capMesh = new THREE.Mesh(geo, cm);
+            capMesh.position.y = -self._capBaseY; // the cap group carries the animation
+            self._cap.add(capMesh);
+            self._hasGLBCap = true;
+          } else {
+            // the modelled label, UV-mapped with the real artwork
+            var lm = o.material;
+            lm.envMapIntensity = 0.3;
+            if (lm.map) lm.map.anisotropy = self._renderer.capabilities.getMaxAnisotropy();
+            var labelMesh = new THREE.Mesh(geo, lm);
+            labelMesh.renderOrder = 3;
+            parent.add(labelMesh);
+          }
+        });
+        if (!self._hasGLBCap) self._loadCapOBJ();
+      }, undefined, fail);
+      function fail() { self._buildLatheGlass(parent); }
+    }
+
+    _buildLatheGlass(parent) {
+      var pts = PROFILE.map(function (p) { return new THREE.Vector2(p[0], p[1]); });
+      this._addGlassShells(parent, new THREE.LatheGeometry(pts, 144));
+      // label: wrap texture on a PROFILE-sized cylinder
+      var tex = new THREE.TextureLoader().load((this.getAttribute('label-src') || 'assets/label.jpg'));
+      tex.encoding = THREE.sRGBEncoding;
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.anisotropy = this._renderer.capabilities.getMaxAnisotropy();
+      var labelH = 1.1, labelC = 1.2; // ends before the shoulder taper begins
+      var label = new THREE.Mesh(new THREE.CylinderGeometry(0.478, 0.478, labelH, 128, 1, true),
+        new THREE.MeshStandardMaterial({ map: tex, bumpMap: tex, bumpScale: 0.012, roughness: 0.55, metalness: 0 }));
+      label.position.y = labelC;
+      label.rotation.y = Math.PI; // full-wrap label: artwork centre (MASTRY) faces the camera, seam at the back
+      label.renderOrder = 3;
+      parent.add(label);
+      this._loadCapOBJ();
+    }
+
+    _buildWater(parent) {
       var wpts = [];
       for (var y = 0.08; y <= 2.32; y += 0.08) wpts.push(new THREE.Vector2(radiusAt(y) * 0.90, y));
       wpts.push(new THREE.Vector2(radiusAt(2.32) * 0.90, 2.32));
@@ -202,36 +285,6 @@
       top.rotation.x = -Math.PI / 2; top.position.y = 2.32; top.renderOrder = 2;
       parent.add(top);
       this._waterTop = top;
-
-      // label
-      var tex = new THREE.TextureLoader().load((this.getAttribute('label-src') || 'assets/label.jpg'));
-      tex.encoding = THREE.sRGBEncoding;
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.anisotropy = this._renderer.capabilities.getMaxAnisotropy();
-      var labelH = 1.1, labelC = 1.2; // ends before the shoulder taper begins
-      var label = new THREE.Mesh(new THREE.CylinderGeometry(0.478, 0.478, labelH, 128, 1, true),
-        new THREE.MeshStandardMaterial({ map: tex, bumpMap: tex, bumpScale: 0.012, roughness: 0.55, metalness: 0 }));
-      label.position.y = labelC;
-      label.rotation.y = Math.PI; // full-wrap label: artwork centre (MASTRY) faces the camera, seam at the back
-      label.renderOrder = 3;
-      parent.add(label);
-
-      var front = new THREE.Mesh(glassGeo, new THREE.MeshPhysicalMaterial({
-        color: 0xd6e8dc, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.3,
-        clearcoat: 1, clearcoatRoughness: 0.05, side: THREE.FrontSide,
-        envMapIntensity: 2.6, depthWrite: false
-      }));
-      front.renderOrder = 5;
-      parent.add(front);
-
-      // fresnel rim — bright glass edges where the surface turns away
-      var fresnel = new THREE.Mesh(glassGeo, new THREE.ShaderMaterial({
-        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide,
-        vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
-        fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.1); float hot = pow(d, 6.0); vec3 tint = vec3(0.82, 0.94, 0.86); gl_FragColor = vec4(tint * f * 1.1 + vec3(1.0) * hot * 0.85, f * 0.85 + hot * 0.6); }'
-      }));
-      fresnel.renderOrder = 6;
-      parent.add(fresnel);
 
       // mouth (visible once cap is off)
       var mouth = new THREE.Mesh(new THREE.TorusGeometry(0.188, 0.018, 10, 40),
@@ -252,8 +305,7 @@
       parent.add(this._mouthAnchor);
     }
 
-    _buildCap(parent) {
-      // user-supplied max-LOD OBJ cap (assets/cap.obj); procedural fallback below.
+    _buildCapGroups(parent) {
       // Spinning parts go in this._cap; tamper ring + bridges stay fixed on the neck.
       this._capBaseY = 3.0; // skirt starts at the lip bead; dome fully covers the 3.26 mouth
       this._parentForCap = parent;
@@ -265,6 +317,10 @@
       fixed.position.y = this._capBaseY;
       parent.add(fixed);
       this._capFixed = fixed;
+    }
+
+    _loadCapOBJ() {
+      // max-LOD OBJ cap (assets/cap.obj); procedural fallback below
       var self = this;
       var src = this.getAttribute('cap-src') || this.getAttribute('capsrc') || 'assets/cap.obj';
       fetch(src)
