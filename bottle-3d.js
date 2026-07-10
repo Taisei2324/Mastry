@@ -287,20 +287,37 @@
       parent.add(top);
       this._waterTop = top;
 
-      // mouth + neck threads: always present, sized to sit inside the cap
-      // (the cap carries 5% extra radial room, so nothing pokes through)
-      var mouth = new THREE.Mesh(new THREE.TorusGeometry(0.188, 0.018, 10, 40),
-        new THREE.MeshPhysicalMaterial({ color: 0xdfe5dc, roughness: 0.1, transparent: true, opacity: 0.5, envMapIntensity: 1.6 }));
-      mouth.rotation.x = Math.PI / 2; mouth.position.y = 3.24; mouth.renderOrder = 5;
-      parent.add(mouth);
-      var threadMat = new THREE.MeshPhysicalMaterial({ color: 0xe8efe8, roughness: 0.08, transparent: true, opacity: 0.45, envMapIntensity: 1.8 });
-      for (var th = 0; th < 2; th++) {
-        var thread = new THREE.Mesh(new THREE.TorusGeometry(0.198, 0.007, 8, 48), threadMat);
-        thread.rotation.x = Math.PI / 2;
-        thread.position.y = 3.0 + th * 0.09;
-        thread.renderOrder = 5;
-        parent.add(thread);
+      // screw-top neck finish: the GLB glass ends where the cap begins, so we
+      // continue it — neck wall, a true helical screw thread, and a rolled
+      // mouth lip — all sitting inside the cap until it unscrews
+      var neckPts = [
+        new THREE.Vector2(0.204, 2.96),   // blends over the glass cut
+        new THREE.Vector2(0.188, 2.995),
+        new THREE.Vector2(0.180, 3.03),
+        new THREE.Vector2(0.180, 3.19),
+        new THREE.Vector2(0.186, 3.215),
+        new THREE.Vector2(0.186, 3.25),
+        new THREE.Vector2(0.158, 3.25)    // rim turns in toward the bore
+      ];
+      this._addGlassShells(parent, new THREE.LatheGeometry(neckPts, 64));
+      // the screw imprint the cap grips: 1.75 turns of glass helix
+      var helixPts = [];
+      var H0 = 3.045, H1 = 3.175;
+      for (var hi = 0; hi <= 64; hi++) {
+        var ht = hi / 64;
+        var ang = ht * Math.PI * 2 * 1.75;
+        helixPts.push(new THREE.Vector3(Math.cos(ang) * 0.186, H0 + (H1 - H0) * ht, Math.sin(ang) * 0.186));
       }
+      var screw = new THREE.Mesh(
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helixPts), 96, 0.0085, 8, false),
+        new THREE.MeshPhysicalMaterial({ color: 0xd9e8dc, roughness: 0.08, transparent: true, opacity: 0.6, envMapIntensity: 1.6, depthWrite: false }));
+      screw.renderOrder = 5;
+      parent.add(screw);
+      // rolled lip at the mouth
+      var mouth = new THREE.Mesh(new THREE.TorusGeometry(0.176, 0.013, 10, 48),
+        new THREE.MeshPhysicalMaterial({ color: 0xdfe5dc, roughness: 0.1, transparent: true, opacity: 0.55, envMapIntensity: 1.6 }));
+      mouth.rotation.x = Math.PI / 2; mouth.position.y = 3.25; mouth.renderOrder = 5;
+      parent.add(mouth);
       this._mouthAnchor = new THREE.Object3D();
       this._mouthAnchor.position.set(0, 3.3, 0);
       parent.add(this._mouthAnchor);
