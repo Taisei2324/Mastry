@@ -121,23 +121,7 @@
       this._camera = camera;
 
       // Environment: soft studio light-box for glass/metal reflections
-      var env = new THREE.Scene();
-      var room = new THREE.Mesh(new THREE.BoxGeometry(20, 20, 20),
-        new THREE.MeshBasicMaterial({ color: 0x9a9a94, side: THREE.BackSide }));
-      env.add(room);
-      function panel(x, y, z, w, h, c) {
-        var m = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
-          new THREE.MeshBasicMaterial({ color: new THREE.Color(c[0], c[1], c[2]), side: THREE.DoubleSide }));
-        m.position.set(x, y, z); m.lookAt(0, 0, 0); env.add(m); return m;
-      }
-      panel(0, 9, 0, 8, 8, [7, 7, 6.6]);
-      panel(-8, 2, 3, 3, 9, [3.4, 3.4, 3.2]);
-      panel(8, 1, -2, 3, 9, [2.2, 2.2, 2.2]);
-      panel(0, 1, 9, 5, 2.4, [1.6, 1.6, 1.55]);
-      panel(-3, 2, 7, 0.7, 11, [10, 10, 9.5]);   // tall vertical highlight streak (hot glare band)
-      panel(4.5, 2, 6, 0.5, 11, [5.5, 5.5, 5.3]);
-      var pmrem = new THREE.PMREMGenerator(renderer);
-      scene.environment = pmrem.fromScene(env, 0.04).texture;
+      scene.environment = makeStudioEnv(renderer);
 
       scene.add(new THREE.AmbientLight(0xffffff, 0.35));
       var key = new THREE.DirectionalLight(0xfff8ee, 1.15);
@@ -764,8 +748,8 @@
       var offsetX = this._narrow ? this._offsetX * 0.25 : this._offsetX;
       var bob = Math.sin(t * 0.8) * 0.05;
       var halfW = this._camera.position.z * 0.2867 * this._camera.aspect;
-      // glass line: 30% of the viewport on desktop, 16% on phones
-      var pourX = (this._narrow ? -0.68 : -0.4) * halfW + 1.44; // mouth swings ~1.44 left of root at full tilt
+      // glass line: 30% of the viewport on desktop, 14% on phones
+      var pourX = (this._narrow ? -0.72 : -0.4) * halfW + 1.44; // mouth swings ~1.44 left of root at full tilt
       this._root.position.x = offsetX + this._driftX + tiltT * pourX;
       this._root.position.y = bob + this._driftY + tiltT * 0.55;
       this._root.rotation.z = this._tiltV + tiltT * 1.95;
@@ -1186,5 +1170,426 @@
     g.nor.push(ns[ni] || 0, ns[ni + 1] || 0, ns[ni + 2] === undefined ? 1 : ns[ni + 2]);
   }
 
+  /* shared soft studio light-box → PMREM env for glass/metal/water */
+  function makeStudioEnv(renderer) {
+    var env = new THREE.Scene();
+    env.add(new THREE.Mesh(new THREE.BoxGeometry(20, 20, 20),
+      new THREE.MeshBasicMaterial({ color: 0x9a9a94, side: THREE.BackSide })));
+    function panel(x, y, z, w, h, c) {
+      var m = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+        new THREE.MeshBasicMaterial({ color: new THREE.Color(c[0], c[1], c[2]), side: THREE.DoubleSide }));
+      m.position.set(x, y, z); m.lookAt(0, 0, 0); env.add(m); return m;
+    }
+    panel(0, 9, 0, 8, 8, [7, 7, 6.6]);
+    panel(-8, 2, 3, 3, 9, [3.4, 3.4, 3.2]);
+    panel(8, 1, -2, 3, 9, [2.2, 2.2, 2.2]);
+    panel(0, 1, 9, 5, 2.4, [1.6, 1.6, 1.55]);
+    panel(-3, 2, 7, 0.7, 11, [10, 10, 9.5]);   // tall vertical highlight streak (hot glare band)
+    panel(4.5, 2, 6, 0.5, 11, [5.5, 5.5, 5.3]);
+    var pmrem = new THREE.PMREMGenerator(renderer);
+    return pmrem.fromScene(env, 0.04).texture;
+  }
+
+  /* ══ <glass-3d> — the tumbler that catches the hero's pour. Same water,
+     same jet physics, same three-pass glass as the bottle above it. ══ */
+  var GH = 1.0;                       // tumbler height, world units
+  function tumblerInnerR(y) {         // inner wall radius at height y
+    return 0.252 + (0.296 - 0.252) * Math.max(0, Math.min(1, (y - 0.125) / (0.97 - 0.125)));
+  }
+
+  class Glass3D extends HTMLElement {
+    connectedCallback() {
+      if (this._started) return;
+      if (!window.THREE) {
+        var self0 = this;
+        setTimeout(function () { self0.connectedCallback(); }, 60);
+        return;
+      }
+      this._started = true;
+      this.style.display = 'block';
+      var canvas = document.createElement('canvas');
+      canvas.style.cssText = 'width:100%;height:100%;display:block;';
+      this.appendChild(canvas);
+      this._canvas = canvas;
+      this._reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      this._level = this._reduce ? 0.68 : 0.03;   // fill fraction of the tumbler
+      this._initScene();
+      var self = this;
+      this._ro = new ResizeObserver(function () { self._resize(); });
+      this._ro.observe(this);
+      this._onVis = function () { self._hidden = document.hidden; };
+      document.addEventListener('visibilitychange', this._onVis);
+      this._io = new IntersectionObserver(function (entries) {
+        if (entries[0]) self._offscreen = !entries[0].isIntersecting;
+      });
+      this._io.observe(this);
+      this._clock = new THREE.Clock();
+      (function loop() {
+        self._raf = requestAnimationFrame(loop);
+        self._tick();
+      })();
+    }
+
+    disconnectedCallback() {
+      cancelAnimationFrame(this._raf);
+      if (this._ro) this._ro.disconnect();
+      if (this._io) this._io.disconnect();
+      document.removeEventListener('visibilitychange', this._onVis);
+      if (this._renderer) this._renderer.dispose();
+      this._started = false;
+    }
+
+    _initScene() {
+      var renderer = new THREE.WebGLRenderer({ canvas: this._canvas, alpha: true, antialias: true });
+      renderer.setClearColor(0x000000, 0);
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      renderer.localClippingEnabled = true;
+      this._renderer = renderer;
+      var scene = new THREE.Scene();
+      this._scene = scene;
+      var camera = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
+      camera.position.set(0, 0, 8);
+      camera.lookAt(0, 0, 0);
+      this._camera = camera;
+      scene.environment = makeStudioEnv(renderer);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+      var key = new THREE.DirectionalLight(0xfff8ee, 1.15);
+      key.position.set(3, 5, 4); scene.add(key);
+      var rim = new THREE.DirectionalLight(0xe8f0ff, 0.4);
+      rim.position.set(-4, 2, -3); scene.add(rim);
+      var glint = new THREE.PointLight(0xffffff, 0.85, 30);
+      glint.position.set(2.4, 3.4, 3.2); scene.add(glint);
+
+      this._waterPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0.2);
+      var g = new THREE.Group();
+      scene.add(g);
+      this._glass = g;
+
+      // tumbler: one lathe that includes the inner wall, so the rim and the
+      // wall thickness read as real glass — clear, not the bottle's green.
+      // A glass-src GLB (the user's own render) replaces it when provided.
+      var pts = [
+        [0.00, 0.020], [0.22, 0.020], [0.270, 0.035], [0.285, 0.10],
+        [0.290, 0.35], [0.315, 0.70], [0.330, 0.97], [0.330, 1.00],
+        [0.312, 1.00], [0.300, 0.96], [0.284, 0.70], [0.262, 0.35],
+        [0.255, 0.125], [0.00, 0.125]
+      ].map(function (p) { return new THREE.Vector2(p[0], p[1]); });
+      this._tumblerShells = this._shellify(g, new THREE.LatheGeometry(pts, 64));
+      this._loadGlassSrc(g);
+
+      // soft contact shadow under the base
+      var shadow = new THREE.Mesh(new THREE.CircleGeometry(0.5, 40), new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false,
+        vertexShader: 'varying vec2 vU; void main(){ vU = uv * 2.0 - 1.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: 'varying vec2 vU; void main(){ float a = smoothstep(1.0, 0.15, length(vU)); gl_FragColor = vec4(0.12, 0.16, 0.10, a * 0.22); }'
+      }));
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.y = 0.005;
+      shadow.scale.set(1, 0.55, 1);
+      shadow.renderOrder = 0;
+      g.add(shadow);
+
+      // the water body — same material family as inside the bottle
+      var wpts = [new THREE.Vector2(0, 0.125)];
+      for (var wy = 0.125; wy <= 0.97; wy += 0.12) wpts.push(new THREE.Vector2(tumblerInnerR(wy) * 0.985, wy));
+      wpts.push(new THREE.Vector2(tumblerInnerR(0.97) * 0.985, 0.97));
+      var water = new THREE.Mesh(new THREE.LatheGeometry(wpts, 48), new THREE.MeshPhysicalMaterial({
+        color: 0xa7cbb4, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.34,
+        envMapIntensity: 1.1, depthWrite: false, side: THREE.DoubleSide,
+        clippingPlanes: [this._waterPlane]
+      }));
+      water.renderOrder = 2; g.add(water);
+      var top = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshPhysicalMaterial({
+        color: 0xdfeee6, roughness: 0.04, transparent: true, opacity: 0.30,
+        envMapIntensity: 1.3, depthWrite: false
+      }));
+      top.rotation.x = -Math.PI / 2; top.renderOrder = 2;
+      g.add(top);
+      this._waterTop = top;
+
+      // the falling jet — the same rewritten-in-place tube as the bottle's pour
+      var RINGS = this._strRings = 48, SEG = this._strSeg = 8;
+      function tubeGeo(withNormals) {
+        var geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
+        if (withNormals) geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
+        var idx = [];
+        for (var i = 0; i < RINGS - 1; i++) {
+          for (var j = 0; j < SEG; j++) {
+            var a = i * SEG + j, b = i * SEG + (j + 1) % SEG;
+            idx.push(a, a + SEG, b, b, a + SEG, b + SEG);
+          }
+        }
+        geo.setIndex(idx);
+        geo.setDrawRange(0, 0);
+        return geo;
+      }
+      var stream = new THREE.Mesh(tubeGeo(true), new THREE.MeshPhysicalMaterial({
+        color: 0xdceede, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.0,
+        envMapIntensity: 2.0, clearcoat: 1, clearcoatRoughness: 0.06, depthWrite: false
+      }));
+      stream.renderOrder = 7; stream.visible = false; stream.frustumCulled = false;
+      scene.add(stream);
+      this._stream = stream;
+      var core = new THREE.Mesh(tubeGeo(false), new THREE.MeshBasicMaterial({
+        color: 0xfbfefb, transparent: true, opacity: 0.0, depthWrite: false
+      }));
+      core.renderOrder = 8; core.visible = false; core.frustumCulled = false;
+      scene.add(core);
+      this._core = core;
+
+      // splash droplets kicked up at the impact point
+      var splash = new THREE.InstancedMesh(new THREE.SphereGeometry(0.014, 6, 6),
+        new THREE.MeshBasicMaterial({ color: 0xf6fbf6, transparent: true, opacity: 0.8, depthWrite: false }), 90);
+      splash.count = 0; splash.renderOrder = 7; splash.frustumCulled = false;
+      scene.add(splash);
+      this._splash = splash; this._splashData = []; this._splashClock = 0;
+
+      // bubbles churned under the impact, rising through the water
+      var bub = new THREE.InstancedMesh(new THREE.SphereGeometry(0.010, 6, 6),
+        new THREE.MeshBasicMaterial({ color: 0xeaf6ef, transparent: true, opacity: 0.55, depthWrite: false, clippingPlanes: [this._waterPlane] }), 70);
+      bub.count = 0; bub.renderOrder = 4; bub.frustumCulled = false;
+      scene.add(bub);
+      this._bub = bub; this._bubData = []; this._bubClock = 0;
+
+      this._dummy = new THREE.Object3D();
+      this._resize();
+    }
+
+    /* clear reflective glass: BackSide tint + FrontSide clearcoat + additive
+       fresnel rim over one geometry — the bottle's recipe, uncoloured */
+    _shellify(parent, geo) {
+      // clear glass over a light page = almost invisible body, dark edge
+      // bands where the wall goes edge-on, hot speculars from the env streaks
+      var back = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
+        color: 0x87a094, roughness: 0.06, metalness: 0, transparent: true, opacity: 0.28,
+        side: THREE.BackSide, envMapIntensity: 0.9, depthWrite: false
+      }));
+      back.renderOrder = 1; parent.add(back);
+      var front = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
+        color: 0xdfe9e2, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.14,
+        clearcoat: 1, clearcoatRoughness: 0.04, side: THREE.FrontSide,
+        envMapIntensity: 1.9, depthWrite: false
+      }));
+      front.renderOrder = 5; parent.add(front);
+      var fresnel = new THREE.Mesh(geo, new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false, blending: THREE.NormalBlending, side: THREE.FrontSide,
+        vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+        // normal blending with a DARK edge colour: reads as the thick wall of
+        // real glass against light paper; the hot term still sparkles white
+        fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.2); float hot = pow(d, 9.0); vec3 edge = vec3(0.33, 0.42, 0.37); gl_FragColor = vec4(mix(edge, vec3(1.0), hot), f * 0.6 + hot * 0.4); }'
+      }));
+      fresnel.renderOrder = 6; parent.add(fresnel);
+      return [back, front, fresnel];
+    }
+
+    /* swap the procedural tumbler for the user's rendered glass when given */
+    _loadGlassSrc(g) {
+      var src = this.getAttribute('glass-src') || this.getAttribute('glasssrc');
+      if (!src || !THREE.GLTFLoader) return;
+      var self = this;
+      new THREE.GLTFLoader().load(src, function (m) {
+        m.scene.updateMatrixWorld(true);
+        var prims = [];
+        m.scene.traverse(function (o) { if (o.isMesh) prims.push(o); });
+        var box = new THREE.Box3().setFromObject(m.scene);
+        if (!prims.length || box.isEmpty()) return;
+        // normalize: base at y=0, height GH, centred on the axis
+        var s = GH / (box.max.y - box.min.y);
+        var norm = new THREE.Matrix4().makeScale(s, s, s).multiply(
+          new THREE.Matrix4().makeTranslation(
+            -(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2));
+        self._tumblerShells.forEach(function (mesh) { g.remove(mesh); });
+        self._tumblerShells = [];
+        prims.forEach(function (o) {
+          var geo = o.geometry.clone();
+          geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(norm, o.matrixWorld));
+          self._tumblerShells = self._tumblerShells.concat(self._shellify(g, geo));
+        });
+      });
+    }
+
+    _resize() {
+      var w = this.clientWidth || 1, h = this.clientHeight || 1;
+      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      this._renderer.setPixelRatio(dpr);
+      this._renderer.setSize(w, h, false);
+      this._narrow = window.innerWidth <= 760;
+      // size the camera so the tumbler renders at a chosen pixel height, then
+      // park the tumbler on the pour line at the right height of the section
+      var targetPx = this._narrow ? 120 : 210;
+      var z = (GH * h) / (2 * 0.2867 * targetPx);
+      this._camera.position.z = z;
+      this._camera.aspect = w / h;
+      this._camera.updateProjectionMatrix();
+      var halfH = z * 0.2867, halfW = halfH * (w / h);
+      var fx = this._narrow ? 0.14 : 0.30;         // matches the bottle's pour line
+      var baseFrac = this._narrow ? 0.40 : 0.62;   // glass BOTTOM, fraction of section height
+      this._glass.position.set((fx - 0.5) * 2 * halfW, (0.5 - baseFrac) * 2 * halfH, 0);
+      this._topY = halfH + 0.4;                    // jet enters from beyond the frame
+    }
+
+    _tick() {
+      var dt = Math.min(0.05, this._clock.getDelta());
+      if (this._hidden || this._offscreen) return;
+      var t = this._clock.elapsedTime;
+
+      // fill target follows the scroll progress the page writes into --p
+      var p = parseFloat(this.style.getPropertyValue('--p'));
+      if (isNaN(p)) p = 0;
+      var target = this._reduce ? 0.68 : Math.min(0.85, p * 0.95);
+      var diff = target - this._level;
+      var pour = this._reduce ? 0 : smoothstep(0.005, 0.05, diff);
+      if (diff > 0) this._level += Math.min(diff, dt * 0.14 * (0.25 + pour));
+      else this._level += Math.max(diff, -dt * 0.5);   // scroll-up: it un-pours with the bottle
+
+      // waterline
+      var waterY = this._glass.position.y + 0.125 + this._level * (0.97 - 0.16);
+      this._waterPlane.constant = waterY;
+      var rIn = tumblerInnerR(waterY - this._glass.position.y) * 0.985;
+      this._waterTop.position.set(0, waterY + 0.002 - this._glass.position.y, 0); // local to the glass group
+      this._waterTop.scale.set(rIn, rIn, 1);
+      this._waterTop.visible = this._level > 0.02;
+
+      var jetX = this._glass.position.x, jetTop = this._topY;
+      this._updateJet(pour, jetX, jetTop, waterY, t);
+      this._updateSplash(dt, pour, jetX, waterY);
+      this._updateBubbles(dt, pour, jetX, waterY, rIn);
+
+      this._renderer.render(this._scene, this._camera);
+    }
+
+    _updateJet(pour, x, topY, waterY, time) {
+      var stream = this._stream, core = this._core;
+      if (pour <= 0.01) {
+        stream.material.opacity = Math.max(0, stream.material.opacity - 0.08);
+        core.material.opacity = Math.max(0, core.material.opacity - 0.12);
+        if (stream.material.opacity <= 0.01) { stream.visible = false; core.visible = false; }
+        return;
+      }
+      var posA = stream.geometry.attributes.position.array;
+      var norA = stream.geometry.attributes.normal.array;
+      var posC = core.geometry.attributes.position.array;
+      var RINGS = this._strRings, SEG = this._strSeg;
+      var v0 = 1.6, G = 3.2;
+      var r0 = 0.020 + 0.030 * pour;
+      var nr = 0;
+      var fall = topY - waterY;
+      // time of flight to the surface, then param rings along it
+      var tofl = (Math.sqrt(v0 * v0 + 2 * G * fall) - v0) / G;
+      for (var i = 0; i < RINGS; i++) {
+        var tt = (i / (RINGS - 1)) * tofl;
+        var wy = topY - (v0 * tt + 0.5 * G * tt * tt);
+        var spd = v0 + G * tt;
+        var rr = r0 * Math.sqrt(v0 / spd);
+        var s = topY - wy;
+        rr *= 1 + 0.24 * Math.sin(s * 11.0 - time * 26.0) * Math.min(1, s / Math.max(0.3, fall));
+        var lat = Math.sin(s * 6.0 - time * 9.0) * 0.008 * (s / Math.max(0.3, fall));
+        var wx = x + lat;
+        for (var j = 0; j < SEG; j++) {
+          var a2 = j / SEG * Math.PI * 2;
+          var nx = Math.cos(a2), nz = Math.sin(a2);
+          var o = (i * SEG + j) * 3;
+          posA[o] = wx + nx * rr; posA[o + 1] = wy; posA[o + 2] = nz * rr;
+          norA[o] = nx; norA[o + 1] = 0; norA[o + 2] = nz;
+          var rc = rr * 0.42;
+          posC[o] = wx + nx * rc; posC[o + 1] = wy; posC[o + 2] = nz * rc;
+        }
+        nr = i + 1;
+        if (wy <= waterY) break;
+      }
+      stream.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
+      core.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
+      stream.geometry.attributes.position.needsUpdate = true;
+      stream.geometry.attributes.normal.needsUpdate = true;
+      core.geometry.attributes.position.needsUpdate = true;
+      stream.visible = true; core.visible = true;
+      stream.material.opacity = Math.min(0.55 * pour, stream.material.opacity + 0.06);
+      core.material.opacity = Math.min(0.5 * pour, core.material.opacity + 0.08);
+    }
+
+    _updateSplash(dt, pour, x, waterY) {
+      var mesh = this._splash, data = this._splashData, dummy = this._dummy;
+      if (pour > 0.05) {
+        this._splashClock += dt * 55 * pour;
+        var n = Math.floor(this._splashClock);
+        this._splashClock -= n;
+        for (var k = 0; k < n && data.length < mesh.instanceMatrix.count; k++) {
+          var ang = Math.random() * Math.PI * 2;
+          var sp = 0.15 + Math.random() * 0.5 * pour;
+          data.push({
+            x: x + (Math.random() - 0.5) * 0.03, y: waterY + 0.005, z: (Math.random() - 0.5) * 0.03,
+            vx: Math.cos(ang) * sp, vy: 0.45 + Math.random() * 0.9 * pour, vz: Math.sin(ang) * sp,
+            life: 0.55, s: 0.5 + Math.random() * 0.9
+          });
+        }
+      }
+      for (var i = data.length - 1; i >= 0; i--) {
+        var q = data[i];
+        q.vy -= 3.2 * dt;
+        q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
+        q.life -= dt;
+        if (q.life <= 0 || (q.vy < 0 && q.y < waterY)) data.splice(i, 1);
+      }
+      mesh.count = data.length;
+      for (var m = 0; m < data.length; m++) {
+        var d = data[m];
+        dummy.position.set(d.x, d.y, d.z);
+        var vm = Math.sqrt(d.vx * d.vx + d.vy * d.vy + d.vz * d.vz);
+        var sc = d.s * Math.min(1, d.life * 3);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(sc, sc * (1 + Math.min(0.8, vm * 0.5)), sc);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(m, dummy.matrix);
+      }
+      if (data.length) mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    _updateBubbles(dt, pour, x, waterY, rIn) {
+      var mesh = this._bub, data = this._bubData, dummy = this._dummy;
+      var floorY = this._glass.position.y + 0.14;
+      if (pour > 0.05 && waterY - floorY > 0.05) {
+        this._bubClock += dt * 26 * pour;
+        var n = Math.floor(this._bubClock);
+        this._bubClock -= n;
+        for (var k = 0; k < n && data.length < mesh.instanceMatrix.count; k++) {
+          data.push({
+            x: x + (Math.random() - 0.5) * 0.08,
+            y: Math.max(floorY, waterY - 0.10 - Math.random() * 0.25),
+            z: (Math.random() - 0.5) * 0.08,
+            v: 0.10 + Math.random() * 0.16, w: Math.random() * Math.PI * 2,
+            s: 0.5 + Math.random() * 1.1
+          });
+        }
+      }
+      var gx = this._glass.position.x;
+      for (var i = data.length - 1; i >= 0; i--) {
+        var b = data[i];
+        b.w += dt * 6;
+        b.y += b.v * dt;
+        b.x += Math.sin(b.w) * 0.01 * dt * 60 * 0.016 * 4;
+        // stay inside the tumbler wall
+        var rr = Math.sqrt((b.x - gx) * (b.x - gx) + b.z * b.z);
+        var rMax = tumblerInnerR(b.y - this._glass.position.y) * 0.92;
+        if (rr > rMax && rr > 0) { b.x = gx + (b.x - gx) * rMax / rr; b.z *= rMax / rr; }
+        if (b.y >= waterY - 0.004) { data.splice(i, 1); continue; }
+      }
+      mesh.count = data.length;
+      for (var m = 0; m < data.length; m++) {
+        var q = data[m];
+        dummy.position.set(q.x, q.y, q.z);
+        var sq = 1 + Math.sin(q.w * 1.7) * 0.15;
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(q.s * sq, q.s / sq, q.s * sq);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(m, dummy.matrix);
+      }
+      if (data.length) mesh.instanceMatrix.needsUpdate = true;
+    }
+  }
+
   customElements.define('bottle-3d', Bottle3D);
+  customElements.define('glass-3d', Glass3D);
 })();
