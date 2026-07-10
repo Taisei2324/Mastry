@@ -803,7 +803,7 @@
       // water is still flowing, keep ticking until the transfer finishes —
       // a frozen broadcast left the glass drawing a phantom, bent stream
       // from stale screen coordinates and the cup never filled
-      if (this._hidden || (this._offscreen && !_pourHandoff.live)) { this._clock.getDelta(); return; }
+      if (this._hidden || (this._offscreen && !this._pourActive)) { this._clock.getDelta(); return; }
       var dt = Math.min(0.05, this._clock.getDelta());
       var t = this._clock.elapsedTime;
 
@@ -1012,6 +1012,7 @@
       var head = smoothstep(0.20, 0.42, this._level);
       var ps = smoothstep(0.58, 0.96, tiltT) * head;
       var pouring = tiltT > 0.58 && this._level > 0.201 && ps > 0.003;
+      this._pourActive = pouring; // keeps the tick alive offscreen until the pour completes
 
       // glug: near-horizontal the mouth runs full of water, so air can only
       // get back in by starving the flow in pulses (glug… glug…)
@@ -1026,7 +1027,9 @@
           this._glugCool = 0.45;
           this._spawnGlugAir();
         }
-        this._level = Math.max(0.20, this._level - dt * (0.08 + 0.30 * ps * flow));
+        // a long, savoured pour: the full bottle takes ~6s to empty, so the
+        // user experiences the whole thing before moving down to the cup
+        this._level = Math.max(0.20, this._level - dt * (0.035 + 0.115 * ps * flow));
       }
 
       var bk = this._updateStream(pouring, ps, flow, time);
@@ -1744,22 +1747,17 @@
       var sy = window.scrollY;
       var goingUp = this._lastSy !== undefined && sy < this._lastSy - 1;
       this._lastSy = sy;
-      // CONSERVATION, locked: paired with a bottle, the cup receives exactly
-      // what the bottle loses each frame — they can never desynchronize
+      // THE MIRROR: the cup simply holds whatever the bottle has poured so
+      // far — arrive after the pour and it is full; rewind and it empties as
+      // the bottle refills. No stream to break, nothing to desynchronize.
       if (_pourHandoff.hasBottle) {
-        var dB = (this._lastB !== undefined && _pourHandoff.bLevel < this._lastB)
-               ? (this._lastB - _pourHandoff.bLevel) : 0;
-        this._lastB = _pourHandoff.bLevel;
-        if (live && dB > 0) this._level = Math.min(0.85, this._level + dB * 1.02);
-        // un-pour only on an actual rewind (scroll-up), matching the refill
-        else if (goingUp && diff < 0) this._level += Math.max(diff, -dt * 0.5);
+        var t2 = (1 - _pourHandoff.bLevel) / 0.8 * 0.85;
+        if (t2 < 0) t2 = 0; else if (t2 > 0.85) t2 = 0.85;
+        this._level += (t2 - this._level) * (1 - Math.pow(0.15, dt));
       } else {
         if (diff > 0) this._level += Math.min(diff, dt * 0.38 * pour); // standalone: scroll-driven fill
         else this._level += Math.max(diff, -dt * 0.5);
       }
-      // when the bottle is back upright and full (the story reset), the cup
-      // empties itself so the next pour starts from a clean glass
-      if (_pourHandoff.reset && !live && this._level > 0.03) this._level = Math.max(0.02, this._level - dt * 0.6);
 
       // waterline
       var waterY = this._glass.position.y + this._waterBase + this._level * (0.97 - this._waterBase);
