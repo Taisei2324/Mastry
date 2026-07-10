@@ -736,8 +736,15 @@
     /* ---------- events ---------- */
     _bindEvents() {
       var self = this;
+      this._noWall = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       this._onScroll = function () {
         var y = window.scrollY;
+        // THE WALL: while the pour still runs thick the page refuses to move
+        // past the pinned hero — the flow must thin before the cup unlocks
+        if (self._holdY != null && y > self._holdY) {
+          window.scrollTo(0, self._holdY);
+          y = self._holdY;
+        }
         self._vel += (y - self._lastScroll);
         self._lastScroll = y;
       };
@@ -1030,6 +1037,19 @@
         // a long, savoured pour: the full bottle takes ~6s to empty, so the
         // user experiences the whole thing before moving down to the cup
         this._level = Math.max(0.20, this._level - dt * (0.035 + 0.115 * ps * flow));
+      }
+
+      // the gate on the words below: hold the reader at the hero's end until
+      // the flow visibly thins (the last few ml, head almost gone) — then the
+      // page lets go and they scroll down to find the cup topping itself off.
+      // Never traps: 12s hard release, reduced-motion exempt, scroll-up free.
+      if (pouring && this._level > 0.245 && this._pin && !this._noWall) {
+        if (!this._wallT) this._wallT = time;
+        this._holdY = time - this._wallT < 12
+          ? this._pin.offsetTop + this._pin.offsetHeight - window.innerHeight : null;
+      } else {
+        this._holdY = null;
+        if (!pouring) this._wallT = 0;
       }
 
       var bk = this._updateStream(pouring, ps, flow, time);
@@ -1528,7 +1548,7 @@
 
       // bubbles churned under the impact, rising through the water
       var bub = new THREE.InstancedMesh(new THREE.SphereGeometry(0.010, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0xdff1e4, transparent: true, opacity: 0.55, depthWrite: false, clippingPlanes: [this._waterPlane] }), 70);
+        new THREE.MeshBasicMaterial({ color: 0xdff1e4, transparent: true, opacity: 0.55, depthWrite: false, clippingPlanes: [this._waterPlane] }), 120);
       bub.count = 0; bub.renderOrder = 4; bub.frustumCulled = false;
       scene.add(bub);
       this._bub = bub; this._bubData = []; this._bubClock = 0;
@@ -1965,6 +1985,25 @@
             z: (Math.random() - 0.5) * 0.08,
             v: 0.30 + Math.random() * 0.35, w: Math.random() * Math.PI * 2,
             s: 0.5 + Math.random() * 1.1
+          });
+        }
+      }
+      // it's SPARKLING water: fine carbonation beads nucleate across the
+      // glass floor and lower walls and climb whenever the cup holds any —
+      // slower and smaller than the pour churn, champagne-style
+      if (!this._reduce && waterY - floorY > 0.04) {
+        this._fizzClock = (this._fizzClock || 0) + dt * 9;
+        var nf = Math.floor(this._fizzClock);
+        this._fizzClock -= nf;
+        for (var kf = 0; kf < nf && data.length < mesh.instanceMatrix.count; kf++) {
+          var fa = Math.random() * Math.PI * 2;
+          var fr = Math.sqrt(Math.random()) * rIn * 0.85;
+          data.push({
+            x: this._glass.position.x + Math.cos(fa) * fr,
+            y: floorY + Math.random() * Math.max(0.02, (waterY - floorY) * 0.5),
+            z: Math.sin(fa) * fr,
+            v: 0.10 + Math.random() * 0.16, w: Math.random() * Math.PI * 2,
+            s: 0.28 + Math.random() * 0.5
           });
         }
       }
