@@ -231,6 +231,7 @@
             cm.transmission = 0; // transmission breaks over the transparent canvas
             cm.envMapIntensity = 1.3;
             var capMesh = new THREE.Mesh(geo, cm);
+            capMesh.scale.set(1.05, 1, 1.05); // radial room so the glass lip sits inside the cap
             capMesh.position.y = -self._capBaseY; // the cap group carries the animation
             self._cap.add(capMesh);
             self._hasGLBCap = true;
@@ -286,19 +287,24 @@
       parent.add(top);
       this._waterTop = top;
 
-      // mouth (visible once cap is off)
+      // mouth + neck threads: hidden while the bottle is sealed so nothing
+      // peeks through the cap; they appear as the cap lifts off
+      this._neckHardware = [];
       var mouth = new THREE.Mesh(new THREE.TorusGeometry(0.188, 0.018, 10, 40),
         new THREE.MeshPhysicalMaterial({ color: 0xdfe5dc, roughness: 0.1, transparent: true, opacity: 0.5, envMapIntensity: 1.6 }));
       mouth.rotation.x = Math.PI / 2; mouth.position.y = 3.24; mouth.renderOrder = 5;
+      mouth.visible = false;
       parent.add(mouth);
-      // glass threads on the neck (visible once the cap is off)
+      this._neckHardware.push(mouth);
       var threadMat = new THREE.MeshPhysicalMaterial({ color: 0xe8efe8, roughness: 0.08, transparent: true, opacity: 0.45, envMapIntensity: 1.8 });
       for (var th = 0; th < 2; th++) {
-        var thread = new THREE.Mesh(new THREE.TorusGeometry(0.205, 0.007, 8, 48), threadMat);
+        var thread = new THREE.Mesh(new THREE.TorusGeometry(0.198, 0.007, 8, 48), threadMat);
         thread.rotation.x = Math.PI / 2;
         thread.position.y = 3.0 + th * 0.09;
         thread.renderOrder = 5;
+        thread.visible = false;
         parent.add(thread);
+        this._neckHardware.push(thread);
       }
       this._mouthAnchor = new THREE.Object3D();
       this._mouthAnchor.position.set(0, 3.3, 0);
@@ -676,6 +682,10 @@
       this._cap.rotation.y = -capT * 14;
       this._cap.rotation.z = -capT * 0.9;
       if (this._capBridges) this._capBridges.visible = capT < 0.15; // bridges snap on first turn
+      if (this._neckHardware) {
+        // mouth ring + threads only exist to the eye once the cap has lifted
+        for (var nh = 0; nh < this._neckHardware.length; nh++) this._neckHardware[nh].visible = capT > 0.3;
+      }
 
       // root placement
       var offsetX = this._narrow ? this._offsetX * 0.25 : this._offsetX;
