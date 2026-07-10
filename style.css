@@ -276,12 +276,45 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   .heropin__stage{width:min(340px,76vw);height:min(52svh,440px);}
 }
 .herowords{
-  min-height:88svh;display:flex;align-items:center;justify-content:center;text-align:center;
+  min-height:88svh;position:relative;display:flex;align-items:center;justify-content:flex-end;text-align:center;
   padding:clamp(90px,14vh,160px) clamp(20px,6vw,90px) clamp(60px,8vh,110px);
 }
-.herowords .hero__copy{display:flex;flex-direction:column;align-items:center;}
+.herowords .hero__copy{
+  display:flex;flex-direction:column;align-items:center;
+  max-width:min(640px,58vw);margin-right:clamp(6px,3vw,60px); /* slid right; the glass owns the left */
+}
 .herowords .hero__sub{margin-left:auto;margin-right:auto;}
 .herowords .hero__actions{justify-content:center;}
+/* the pour from the hero above: a stream falls in from beyond the top of the
+   frame, down the 30%-viewport line the bottle pours along, into the glass */
+.herowords__pour{
+  position:absolute;top:0;left:30vw;height:62%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;
+  pointer-events:none;z-index:1;
+}
+.herowords__stream{
+  flex:1;width:7px;border-radius:4px;
+  background:
+    repeating-linear-gradient(180deg, rgba(255,255,255,.6) 0 12px, rgba(198,226,208,.28) 12px 30px),
+    linear-gradient(180deg, rgba(174,208,188,.55), rgba(146,190,166,.7));
+  animation:streamflow .45s linear infinite;
+  opacity:min(1, calc(var(--p,0)*1.5));
+}
+@keyframes streamflow{to{background-position:0 42px,0 0;}}
+.herowords__glass{
+  width:clamp(84px,10vw,132px);height:auto;color:var(--olive-deep);
+  margin-top:-4px; /* the stream meets the rim */
+  filter:drop-shadow(0 18px 22px rgba(38,52,28,.14));
+}
+.herowords__water{
+  fill:url(#gwgrad);
+  height:calc(var(--p,0)*112px);
+  y:calc(145px - var(--p,0)*112px); /* the glass fills as the section arrives */
+}
+@media (prefers-reduced-motion:reduce){
+  .herowords__stream{visibility:hidden;} /* keeps the glass parked at the column base */
+  .herowords__water{height:78px;y:67px;}
+}
 @media (prefers-reduced-motion:reduce){
   .heropin{height:100svh;}
 }
@@ -704,6 +737,10 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   .section__title{font-size:clamp(1.65rem,7.4vw,2.1rem);}
   .flavours__bottlewrap{height:min(44vh,380px);}
   .seal__paper{width:min(300px,78vw);}
+  /* phones: pour line moves to 20vw so the glass clears the copy */
+  .herowords__pour{left:20vw;}
+  .herowords__glass{width:68px;}
+  .herowords .hero__copy{max-width:60vw;margin-right:2vw;}
   /* the panorama shrinks to a sliver at phone width — run it at 175% and
      crop the sides so Fuji, the boat and the acropolis stay legible */
   .footer{overflow:hidden;}

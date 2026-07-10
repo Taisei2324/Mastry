@@ -571,7 +571,7 @@
       // accelerates it (mass conservation), a Plateau–Rayleigh varicose wave
       // deepens down-stream, and past the breakup length it hands over to
       // the droplet pool above.
-      var RINGS = this._strRings = 42, SEG = this._strSeg = 10;
+      var RINGS = this._strRings = 64, SEG = this._strSeg = 10;
       function tubeGeo(withNormals) {
         var geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
@@ -679,8 +679,12 @@
       var dpr = Math.min(2, window.devicePixelRatio || 1);
       this._renderer.setPixelRatio(dpr);
       this._renderer.setSize(w, h, false);
-      this._narrow = w < 720;
-      this._camera.position.z = this._narrow ? 8.3 : 7.4; // step back on phones
+      this._narrow = window.innerWidth <= 760;
+      // the canvas spans the whole pinned hero so the pour can run off the
+      // frame; push the camera back so the bottle keeps the size it had when
+      // the canvas was only the centre stage box
+      var ref = this._narrow ? Math.min(h * 0.52, 440) : Math.min(h * 0.8, 780);
+      this._camera.position.z = 8.3 * (h / Math.max(1, ref));
       this._camera.aspect = w / h;
       this._camera.updateProjectionMatrix();
     }
@@ -754,10 +758,15 @@
       }
       if (this._fizzBurst > 0) this._fizzBurst = Math.max(0, this._fizzBurst - dt * 0.4);
 
-      // root placement
+      // root placement — while tipping, the bottle slides so its mouth ends
+      // over the glass line (30% of the viewport from the left), where the
+      // next section's glass waits to catch the pour
       var offsetX = this._narrow ? this._offsetX * 0.25 : this._offsetX;
       var bob = Math.sin(t * 0.8) * 0.05;
-      this._root.position.x = offsetX + this._driftX + tiltT * 0.55;
+      var halfW = this._camera.position.z * 0.2867 * this._camera.aspect;
+      // glass line: 30% of the viewport on desktop, 20% on phones
+      var pourX = (this._narrow ? -0.6 : -0.4) * halfW + 1.44; // mouth swings ~1.44 left of root at full tilt
+      this._root.position.x = offsetX + this._driftX + tiltT * pourX;
       this._root.position.y = bob + this._driftY + tiltT * 0.55;
       this._root.rotation.z = this._tiltV + tiltT * 1.95;
 
@@ -918,7 +927,7 @@
         pt.vx *= dg; pt.vy *= dg; pt.vz *= dg;
         pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.z += pt.vz * dt;
         pt.life -= dt;
-        if (pt.life <= 0 || pt.y < -4.5) data.splice(i, 1);
+        if (pt.life <= 0 || pt.y < -8.5) data.splice(i, 1);
       }
       mesh.count = data.length;
       for (var m = 0; m < data.length; m++) {
@@ -1068,13 +1077,15 @@
       _v4.set(_v2.x + _v3.x * droop, _v2.y + _v3.y * droop, _v2.z + _v3.z * droop).normalize();
       var vx = _v4.x * v0, vy = _v4.y * v0, vz = _v4.z * v0;
       // breakup length: fat fast jets hold together, thin dribbles pinch off
-      // almost immediately (capped so the breakup stays inside the frame)
-      var Lb = Math.min(1.9, Math.max(0.14, 9 * v0 * Math.pow(r0, 0.75)));
+      // almost immediately. At full pour the jet stays coherent all the way
+      // off the bottom of the frame — it hands over to the glass below
+      var Lb = Math.min(1.9 + 5.2 * ps, Math.max(0.14, 9 * v0 * Math.pow(r0, 0.75) * (1 + 2.2 * ps)));
 
       var posA = stream.geometry.attributes.position.array;
       var norA = stream.geometry.attributes.normal.array;
       var posC = core.geometry.attributes.position.array;
       var RINGS = this._strRings, SEG = this._strSeg, TSTEP = 0.016;
+      var edgeY = -(this._camera.position.z * 0.2867 + 1.0); // just past the frame bottom
       var s = 0, nr = 0, bk = null;
       for (var i = 0; i < RINGS; i++) {
         var tt = i * TSTEP;
@@ -1108,7 +1119,7 @@
           posC[o] = wx + nx * rc; posC[o + 1] = wy + ny * rc; posC[o + 2] = wz + nz * rc;
         }
         nr = i + 1;
-        if (s >= Lb || wy < -4.2) {
+        if (s >= Lb || wy < edgeY) {
           if (s >= Lb) bk = { x: wx, y: wy, z: wz, vx: cvx, vy: cvy, vz: cvz, r: rBase };
           break;
         }

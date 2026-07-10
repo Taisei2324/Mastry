@@ -54,16 +54,34 @@
       <div class="hero__blob" aria-hidden="true"></div>
       <canvas id="bubbles" aria-hidden="true"></canvas>
       <img class="hero__bottle" id="heroBottle" src="images/brand%20new%20original%20catalog.png" alt="マストリー炭酸水 — オリジナル・マスティックのボトル" />
-      <bottle-3d class="hero__bottle3d" bottle-src="assets/bottle.glb"
-        label-src="assets/label-full.jpg" cap-src="assets/cap.obj"
-        condensation="0" spin-speed="1" offset-x="0" aria-hidden="true"></bottle-3d>
     </div>
+    <bottle-3d class="hero__bottle3d" bottle-src="assets/bottle.glb"
+      label-src="assets/label-full.jpg" cap-src="assets/cap.obj"
+      condensation="0" spin-speed="1" offset-x="0" aria-hidden="true"></bottle-3d>
     <div class="hero__scrollcue" aria-hidden="true"><span></span></div>
   </div>
 </section>
 
-<!-- ══ Hero words: parallax lag so they rise in gently after the pinned pour ══ -->
+<!-- ══ Hero words: the pour falls from the hero above into a waiting glass
+     on the left while the copy stands to the right ══ -->
 <section class="herowords">
+  <div class="herowords__pour" data-progress aria-hidden="true">
+    <span class="herowords__stream"></span>
+    <svg class="herowords__glass" viewBox="0 0 120 150">
+      <defs>
+        <linearGradient id="gwgrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#cfe6d8" stop-opacity=".95"/>
+          <stop offset=".16" stop-color="#b5d4c2" stop-opacity=".55"/>
+          <stop offset="1" stop-color="#9cc4ac" stop-opacity=".7"/>
+        </linearGradient>
+        <clipPath id="gcut"><path d="M16 10 L23 138 Q23 145 31 145 L89 145 Q97 145 97 138 L104 10 Z"/></clipPath>
+      </defs>
+      <g clip-path="url(#gcut)"><rect class="herowords__water" x="0" width="120" y="145" height="0"/></g>
+      <path d="M16 10 L23 138 Q23 145 31 145 L89 145 Q97 145 97 138 L104 10"
+        fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="60" cy="10" rx="44" ry="5.5" fill="none" stroke="currentColor" stroke-width="2.5"/>
+    </svg>
+  </div>
   <div class="hero__copy" data-speed="0.22">
     <p class="kicker reveal"><span class="kicker__gr">ギリシャ・ヒオス島</span>のマスティック <span class="kicker__dot">·</span> <span class="kicker__jp">日本</span>で仕上げ</p>
     <h1 class="hero__title">
