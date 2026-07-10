@@ -295,6 +295,18 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   position:absolute;left:0;right:0;top:-100svh;bottom:0;display:block;
   pointer-events:none;z-index:1;
 }
+/* the bottle's milky aura, squared: a soft tile behind the glass so the
+   water in the cup reads against it (centred on where the 3D cup parks) */
+.herowords__blob{
+  position:absolute;left:30%;top:calc(62% - 135px);transform:translate(-50%,-50%);
+  width:330px;aspect-ratio:1;border-radius:30px;
+  background:
+    radial-gradient(circle at 34% 24%,#F0FAF7 0%,rgba(240,250,247,0) 55%),
+    radial-gradient(140% 140% at 52% 46%,var(--resin-milk) 0%,rgba(247,244,216,.35) 78%,rgba(247,244,216,0) 100%);
+  filter:blur(7px);
+  animation:breathe 9s var(--ease) infinite;
+  pointer-events:none;z-index:0;
+}
 html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL fallback */
 /* the pour from the hero above: a stream falls in from beyond the top of the
    frame, down the 30%-viewport line the bottle pours along, into the glass */
@@ -752,6 +764,7 @@ html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL f
      stream falls down the left edge into a glass parked at the title line,
      and the headline steps a few pixels right so the two never collide */
   .herowords__pour{left:13vw;height:40%;}
+  .herowords__blob{left:13%;top:calc(40% - 69px);width:185px;border-radius:20px;filter:blur(5px);}
   .herowords__glass{width:64px;}
   .herowords .hero__copy{max-width:none;margin-right:0;}
   .herowords .hero__title{transform:translateX(54px);} /* clears the bigger crystal */
@@ -772,6 +785,7 @@ html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL f
   .hero__scrollcue{display:none;}
   #bubbles{display:none;}
   .hero__blob{animation:none;}
+  .herowords__blob{animation:none;}
   .island__stage model-viewer{animation:none;}
   .island__shadow{animation:none;}
   .island__ripple{display:none;}

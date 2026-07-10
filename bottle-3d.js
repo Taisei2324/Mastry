@@ -1690,7 +1690,7 @@
       // size the camera so the tumbler renders at a chosen pixel height, then
       // park the tumbler on the pour line at the right height of the section
       // sized to hold the bottle's pour: a ~500ml bottle needs a tall glass
-      var targetPx = this._narrow ? 115 : 224;
+      var targetPx = this._narrow ? 138 : 269;
       var z = (GH * h) / (2 * 0.2867 * targetPx);
       this._camera.position.z = z;
       this._camera.aspect = w / h;
