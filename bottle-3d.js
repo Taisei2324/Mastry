@@ -1204,10 +1204,9 @@
       // water leaves over the LOW edge of the lip, not the mouth centre
       _v3.set(0, -1, 0).addScaledVector(_v2, _v2.y);  // world-down projected onto the mouth plane
       if (_v3.lengthSq() > 1e-6) _v3.normalize(); else _v3.set(0, 0, 0);
-      // ── REBUILT FROM SCRATCH: the stream originates just inside the neck
-      // BORE (back along the mouth axis — not the velocity!), so it visibly
-      // emerges through the glass with zero gap at the lip ──
-      var ex = _v1.x - _v2.x * 0.22, ey = _v1.y - _v2.y * 0.22, ez = _v1.z - _v2.z * 0.22;
+      // the stream is born EXACTLY at the glass rim (the anchor sits 0.04
+      // beyond it) — not inside the neck, not past the lip
+      var ex = _v1.x - _v2.x * 0.04, ey = _v1.y - _v2.y * 0.04, ez = _v1.z - _v2.z * 0.04;
       var GP = 16;
       var v0 = (0.65 + 0.95 * ps) * (0.85 + 0.15 * flow);
       var r0 = (0.036 + 0.085 * ps) * (0.8 + 0.2 * flow);
@@ -1260,7 +1259,11 @@
         var tt = i * dtt;
         var wx = ex + vx * tt, wy = ey + vy * tt - 0.5 * GP * tt * tt, wz = ez + vz * tt;
         var u = time - tt;
-        var r = r0 * (1 - 0.22 * (tt / tof)) * (1 + 0.07 * Math.sin(u * 22.0));
+        var fr0 = tt / tof;
+        // throat flare: the first stretch fills the whole mouth opening
+        // (bore ≈ 1.35× the column), so the water visibly leaves the LIP
+        var thr = 1 - fr0 / 0.10; if (thr < 0) thr = 0;
+        var r = r0 * (1 - 0.22 * fr0) * (1 + 0.07 * Math.sin(u * 22.0)) * (1 + 0.35 * thr * thr);
         for (var j = 0; j < SEG; j++) {
           var a2 = j / SEG * Math.PI * 2;
           var nx = Math.cos(a2), nz = Math.sin(a2);
@@ -1878,7 +1881,9 @@
         var wy = jet.y0 + jet.vy * tt - 0.5 * G * tt * tt;
         var u = time - tt;
         var fr = tt / Math.max(1e-4, tofl);
-        var r = r0 * (1 - 0.22 * fr) * (1 + 0.07 * Math.sin(u * 22.0));
+        // the identical throat flare as the bottle's jet — same birth at the lip
+        var thr = 1 - fr / 0.10; if (thr < 0) thr = 0;
+        var r = r0 * (1 - 0.22 * fr) * (1 + 0.07 * Math.sin(u * 22.0)) * (1 + 0.35 * thr * thr);
         if (r < 0.008) r = 0.008;
         var wx = jet.x0 + jet.vx * tt + corr * fr * fr;
         for (var j = 0; j < SEG; j++) {
