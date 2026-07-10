@@ -263,12 +263,11 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   animation:aurora 22s linear infinite;
 }
 @keyframes aurora{to{transform:translate(-50%,-52%) rotate(360deg);}}
-/* crisp ring framing the bottle */
+/* whisper of a ring framing the bottle */
 .heropin__stage::after{
   content:"";position:absolute;top:50%;left:50%;width:min(460px,84%);aspect-ratio:1;
   transform:translate(-50%,-52%);border-radius:50%;z-index:0;pointer-events:none;
-  border:1.5px solid rgba(107,122,50,.42);
-  box-shadow:0 0 0 12px rgba(145,150,79,.06),inset 0 0 70px rgba(109,157,170,.14);
+  border:1px solid rgba(107,122,50,.16);
 }
 @media (prefers-reduced-motion:reduce){
   .heropin__stage::before{animation:none;}
