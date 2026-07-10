@@ -127,18 +127,25 @@
      composite as a dark outline over the transparent canvas. MeshBasic
      can never go dark; the wet sheen comes from an additive fresnel pass
      (additive only ever brightens) drawn over the same tube geometry. */
-  var WATER_JET_TINT = 0xe8f4ea;   // sheath — the poured body of water
-  var WATER_CORE_TINT = 0xfbfefb;  // bright solid-liquid core
-  var WATER_DROP_TINT = 0xeef7f0;  // droplets, satellites, splash, mist
+  var WATER_JET_TINT = 0xaed3c0;   // sheath — the in-bottle sage, unmistakable on cream
+  var WATER_CORE_TINT = 0xf2faf5;  // bright solid-liquid core
+  var WATER_DROP_TINT = 0xc4dfd0;  // droplets, satellites, splash, mist
+  var WATER_JET_OP = 0.75;         // sheath opacity at full pour
+  var WATER_CORE_OP = 0.45;        // core stays subtle so it can't white-out a thin ribbon
   function waterJetMaterial() {
-    return new THREE.MeshBasicMaterial({ color: WATER_JET_TINT, transparent: true, opacity: 0.0, depthWrite: false });
+    // toneMapped:false — ACES would compress the pale sage toward the page
+    // cream and the whole stream washes out (user-reported overexposure)
+    return new THREE.MeshBasicMaterial({ color: WATER_JET_TINT, transparent: true, opacity: 0.0, depthWrite: false, toneMapped: false });
   }
   function waterSheenMesh(geo) {
+    // fresnel definition pass: a CONSTANT sage edge (normal blend can never
+    // fall darker than this authored colour — no env, no black) plus a white
+    // hot sparkle toward pure grazing
     var m = new THREE.Mesh(geo, new THREE.ShaderMaterial({
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide,
+      transparent: true, depthWrite: false, blending: THREE.NormalBlending, side: THREE.FrontSide,
       uniforms: { uK: { value: 0 } },
       vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
-      fragmentShader: 'uniform float uK; varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.6); float hot = pow(d, 7.0); gl_FragColor = vec4((vec3(0.70, 0.86, 0.76) * f + vec3(1.0) * hot * 0.55) * uK, (f * 0.55 + hot * 0.35) * uK); }'
+      fragmentShader: 'uniform float uK; varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.0); float hot = pow(d, 7.0); gl_FragColor = vec4(mix(vec3(0.47, 0.58, 0.51), vec3(1.0), hot), (f * 0.62 + hot * 0.35) * uK); }'
     }));
     m.visible = false;
     m.frustumCulled = false;
@@ -147,7 +154,7 @@
   function syncWaterSheen(stream, sheen) {
     // the sheen shares the stream's geometry; only visibility + strength track
     sheen.visible = stream.visible;
-    sheen.material.uniforms.uK.value = stream.material.opacity / 0.55;
+    sheen.material.uniforms.uK.value = stream.material.opacity / WATER_JET_OP;
   }
 
   class Bottle3D extends HTMLElement {
@@ -654,7 +661,7 @@
       // shared instanced pool: pour droplets, satellite drops, cap-off mist
       var MAX = 220;
       var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.02, 6, 6),
-        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.75, depthWrite: false }), MAX);
+        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.75, depthWrite: false, toneMapped: false }), MAX);
       mesh.renderOrder = 7;
       mesh.count = 0;
       mesh.frustumCulled = false;
@@ -693,7 +700,7 @@
       this._stream = stream;
       // bright inner core — reads as solid liquid inside the sheath
       var core = new THREE.Mesh(tubeGeo(false), new THREE.MeshBasicMaterial({
-        color: WATER_CORE_TINT, transparent: true, opacity: 0.0, depthWrite: false
+        color: WATER_CORE_TINT, transparent: true, opacity: 0.0, depthWrite: false, toneMapped: false
       }));
       core.renderOrder = 8;
       core.visible = false;
@@ -1288,8 +1295,8 @@
       // faint for a dribble, solid for a committed pour — but always
       // translucent enough to read as water, not paint
       var k = Math.min(1, 0.3 + ps * 4);
-      stream.material.opacity = Math.min(0.55 * k, stream.material.opacity + 0.06);
-      core.material.opacity = Math.min(0.5 * k, core.material.opacity + 0.08);
+      stream.material.opacity = Math.min(WATER_JET_OP * k, stream.material.opacity + 0.06);
+      core.material.opacity = Math.min(WATER_CORE_OP * k, core.material.opacity + 0.08);
       return bk;
     }
   }
@@ -1519,7 +1526,7 @@
       scene.add(stream);
       this._stream = stream;
       var core = new THREE.Mesh(tubeGeo(false), new THREE.MeshBasicMaterial({
-        color: WATER_CORE_TINT, transparent: true, opacity: 0.0, depthWrite: false // the bottle core's exact white
+        color: WATER_CORE_TINT, transparent: true, opacity: 0.0, depthWrite: false, toneMapped: false // the bottle core's exact white
       }));
       core.renderOrder = 3.5; core.visible = false; core.frustumCulled = false;
       scene.add(core);
@@ -1532,7 +1539,7 @@
 
       // splash droplets kicked up at the impact point — the bottle drops' water
       var splash = new THREE.InstancedMesh(new THREE.SphereGeometry(0.014, 6, 6),
-        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.8, depthWrite: false }), 90);
+        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false }), 90);
       splash.count = 0; splash.renderOrder = 3.7; splash.frustumCulled = false;
       scene.add(splash);
       this._splash = splash; this._splashData = []; this._splashClock = 0;
@@ -1813,8 +1820,8 @@
       stream.geometry.attributes.normal.needsUpdate = true;
       core.geometry.attributes.position.needsUpdate = true;
       stream.visible = true; core.visible = true;
-      stream.material.opacity = Math.min(0.55 * pour, stream.material.opacity + 0.06);
-      core.material.opacity = Math.min(0.5 * pour, core.material.opacity + 0.08);
+      stream.material.opacity = Math.min(WATER_JET_OP * pour, stream.material.opacity + 0.06);
+      core.material.opacity = Math.min(WATER_CORE_OP * pour, core.material.opacity + 0.08);
     }
 
     _updateSplash(dt, pour, x, waterY) {
