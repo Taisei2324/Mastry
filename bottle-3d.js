@@ -135,7 +135,7 @@
   function waterJetMaterial() {
     // toneMapped:false — ACES would compress the pale sage toward the page
     // cream and the whole stream washes out (user-reported overexposure)
-    return new THREE.MeshBasicMaterial({ color: WATER_JET_TINT, transparent: true, opacity: 0.0, depthWrite: false, toneMapped: false });
+    return new THREE.MeshBasicMaterial({ color: WATER_JET_TINT, transparent: true, opacity: 0.0, depthWrite: false, toneMapped: false, vertexColors: true });
   }
   function waterSheenMesh(geo) {
     // fresnel definition pass: a CONSTANT sage edge (normal blend can never
@@ -681,6 +681,7 @@
         var geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
         if (withNormals) geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
+        if (withNormals) { var ca = new Float32Array(RINGS * SEG * 3); ca.fill(1); geo.setAttribute('color', new THREE.BufferAttribute(ca, 3).setUsage(THREE.DynamicDrawUsage)); }
         var idx = [];
         for (var i = 0; i < RINGS - 1; i++) {
           for (var j = 0; j < SEG; j++) {
@@ -1217,6 +1218,7 @@
 
       var posA = stream.geometry.attributes.position.array;
       var norA = stream.geometry.attributes.normal.array;
+      var colA = stream.geometry.attributes.color.array;
       var posC = core.geometry.attributes.position.array;
       var RINGS = this._strRings, SEG = this._strSeg, TSTEP = 0.016;
       var edgeY = -(this._camera.position.z * 0.2867 + 1.0); // just past the frame bottom
@@ -1279,6 +1281,9 @@
           // ropey cross-section: angular lumps braid down with the parcels
           var rj = r * (1 + 0.14 * Math.sin(a2 * 2 + u * 21.0 + s * 2.0));
           var o = (i * SEG + j) * 3;
+          // aeration: whipped-in air makes frothy white streaks that ride down
+          var aer = 0.82 + 0.55 * Math.pow(Math.max(0, Math.sin(u * 17.0 + s * 1.2 + a2)), 2.0) * grw;
+          colA[o] = aer; colA[o + 1] = aer; colA[o + 2] = aer;
           posA[o] = wx + nx * rj; posA[o + 1] = wy + ny * rj; posA[o + 2] = wz + nz * rj;
           norA[o] = nx; norA[o + 1] = ny; norA[o + 2] = nz;
           var rc = rj * 0.42;
@@ -1300,6 +1305,7 @@
       core.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
       stream.geometry.attributes.position.needsUpdate = true;
       stream.geometry.attributes.normal.needsUpdate = true;
+      stream.geometry.attributes.color.needsUpdate = true;
       core.geometry.attributes.position.needsUpdate = true;
       stream.visible = true; core.visible = true;
       // faint for a dribble, solid for a committed pour — but always
@@ -1518,6 +1524,7 @@
         var geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
         if (withNormals) geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
+        if (withNormals) { var ca = new Float32Array(RINGS * SEG * 3); ca.fill(1); geo.setAttribute('color', new THREE.BufferAttribute(ca, 3).setUsage(THREE.DynamicDrawUsage)); }
         var idx = [];
         for (var i = 0; i < RINGS - 1; i++) {
           for (var j = 0; j < SEG; j++) {
@@ -1562,7 +1569,62 @@
       this._bub = bub; this._bubData = []; this._bubClock = 0;
 
       this._dummy = new THREE.Object3D();
+      this._initVideoJet();
       this._resize();
+    }
+
+    /* the Higgsfield socket: pour-src names a GREEN-SCREEN video of a real
+       water pour. It is chroma-keyed in-shader (despilled, edge-feathered)
+       and stretched lip→cup while the bottle pours; the procedural jet
+       stands down while it plays. Optional pour-width scales the clip. */
+    _initVideoJet() {
+      var src = this.getAttribute('pour-src') || this.getAttribute('poursrc');
+      if (!src) return;
+      var v = document.createElement('video');
+      v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', '');
+      v.preload = 'auto'; v.crossOrigin = 'anonymous'; v.src = src;
+      this._pourVideo = v;
+      var tex = new THREE.VideoTexture(v);
+      tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+      tex.encoding = THREE.sRGBEncoding;
+      var quad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false,
+        uniforms: { uTex: { value: tex }, uOp: { value: 0 } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: [
+          'uniform sampler2D uTex; uniform float uOp; varying vec2 vUv;',
+          'void main(){',
+          '  vec3 c = texture2D(uTex, vUv).rgb;',
+          '  float k = clamp(3.0 * (c.g - max(c.r, c.b)), 0.0, 1.0);  // green-screen key',
+          '  c.g = mix(c.g, max(c.r, c.b), k);                        // despill',
+          '  float edge = smoothstep(0.0, 0.06, vUv.x) * smoothstep(1.0, 0.94, vUv.x);',
+          '  gl_FragColor = vec4(c, (1.0 - k) * uOp * edge);',
+          '}'].join('\n')
+      }));
+      quad.renderOrder = 3.2; quad.visible = false; quad.frustumCulled = false;
+      this._scene.add(quad);
+      this._pourQuad = quad;
+    }
+
+    _updateVideoJet(pour, jet, waterY) {
+      var q = this._pourQuad;
+      if (!q) return false;
+      var op = q.material.uniforms.uOp;
+      if (pour > 0.01) {
+        if (this._pourVideo.paused) { try { this._pourVideo.play(); } catch (e) {} }
+        op.value = Math.min(pour, op.value + 0.08);
+        var botX = jet.cupX !== undefined ? jet.cupX : jet.x0;
+        var len = Math.max(0.2, jet.y0 - waterY);
+        q.position.set((jet.x0 + botX) / 2, (jet.y0 + waterY) / 2, 0.02);
+        q.rotation.z = -Math.atan2(botX - jet.x0, len);
+        var wScale = parseFloat(this.getAttribute('pour-width')) || 1;
+        q.scale.set(Math.max(0.35, jet.r0 * 20) * wScale, len * 1.04, 1);
+        q.visible = op.value > 0.02;
+      } else {
+        op.value = Math.max(0, op.value - 0.1);
+        if (op.value <= 0.02) { q.visible = false; if (this._pourVideo && !this._pourVideo.paused) this._pourVideo.pause(); }
+      }
+      return q.visible;
     }
 
     /* clear reflective glass: BackSide tint + FrontSide clearcoat + a
@@ -1786,7 +1848,10 @@
       jet.cupX = this._glass.position.x;
       jet.tofl = tof0;
       var jx = this._glass.position.x;
-      this._updateJet(covers ? pour : 0, jet, waterY, t);
+      // if the real-footage pour is present it draws the stream; the
+      // procedural jet stands down (droplets, splash and fill continue)
+      var videoOn = this._updateVideoJet(covers ? pour : 0, jet, waterY);
+      this._updateJet(videoOn ? 0 : (covers ? pour : 0), jet, waterY, t);
       syncWaterSheen(this._stream, this._sheen);
       if (covers) this._shedSpray(dt, pour, jet, waterY);
       this._updateSplash(dt, pour, jx, waterY);
@@ -1808,6 +1873,7 @@
       }
       var posA = stream.geometry.attributes.position.array;
       var norA = stream.geometry.attributes.normal.array;
+      var colA = stream.geometry.attributes.color.array;
       var posC = core.geometry.attributes.position.array;
       var RINGS = this._strRings, SEG = this._strSeg;
       var G = jet.g, r0 = jet.r0;
@@ -1859,6 +1925,9 @@
           // ropey cross-section: angular lumps braid down with the parcels
           var rj = rr * (1 + 0.14 * Math.sin(a2 * 2 + u * 21.0 + s * 2.0) * grow);
           var o = (i * SEG + j) * 3;
+          // aeration: whipped-in air makes frothy white streaks that ride down
+          var aer = 0.82 + 0.55 * Math.pow(Math.max(0, Math.sin(u * 17.0 + s * 1.2 + a2)), 2.0) * grow;
+          colA[o] = aer; colA[o + 1] = aer; colA[o + 2] = aer;
           posA[o] = wx + nx * rj; posA[o + 1] = wy; posA[o + 2] = wz + nz * rj;
           norA[o] = nx; norA[o + 1] = 0; norA[o + 2] = nz;
           var rc = rj * 0.42;
@@ -1871,6 +1940,7 @@
       core.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
       stream.geometry.attributes.position.needsUpdate = true;
       stream.geometry.attributes.normal.needsUpdate = true;
+      stream.geometry.attributes.color.needsUpdate = true;
       core.geometry.attributes.position.needsUpdate = true;
       stream.visible = true; core.visible = true;
       stream.material.opacity = Math.min(WATER_JET_OP * pour, stream.material.opacity + 0.06);
