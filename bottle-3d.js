@@ -127,11 +127,11 @@
      composite as a dark outline over the transparent canvas. MeshBasic
      can never go dark; the wet sheen comes from an additive fresnel pass
      (additive only ever brightens) drawn over the same tube geometry. */
-  var WATER_JET_TINT = 0xd7e6dd;   // measured: pool renders #EDF2EE, this @0.85 over cream renders #DBE7DF — same liquid
+  var WATER_JET_TINT = 0xd0e1d8;   // solved from pixels: pool renders #E9EFEA; this lands the stream on it exactly
   var WATER_CORE_TINT = 0xf0f7f2;  // solid-liquid core, barely brighter than the sheath
   var WATER_DROP_TINT = 0xc4dfd0;  // droplets, satellites, splash, mist
   var WATER_JET_OP = 0.85;         // dense enough that no stretch of the stream reads transparent
-  var WATER_CORE_OP = 0.32;        // core stays subtle so it can't white-out a thin ribbon
+  var WATER_CORE_OP = 0.26;        // core stays subtle so it can't white-out a thin ribbon
   function waterJetMaterial() {
     // toneMapped:false — ACES would compress the pale sage toward the page
     // cream and the whole stream washes out (user-reported overexposure)
@@ -900,7 +900,7 @@
       var h = lerp(minY, maxY, 0.712 * lvl);   // pooled water height
       this._waterPlane.constant = h;
       // surface disc rides the waterline along the bottle axis, always world-level
-      if (Math.abs(dyPer) > 0.25) {
+      if (dyPer > 0.25) { // upright-ish ONLY: inverted, the disc escaped the silhouette as a floating bar
         var yLoc = Math.min(2.31, Math.max(0.12, (h - _v2.y) / dyPer));
         this._waterLocalY = yLoc;
         this._waterTop.visible = true;
@@ -1204,8 +1204,10 @@
       // water leaves over the LOW edge of the lip, not the mouth centre
       _v3.set(0, -1, 0).addScaledVector(_v2, _v2.y);  // world-down projected onto the mouth plane
       if (_v3.lengthSq() > 1e-6) _v3.normalize(); else _v3.set(0, 0, 0);
-      // ── REBUILT FROM SCRATCH: the stream starts EXACTLY at the lip ──
-      var ex = _v1.x, ey = _v1.y, ez = _v1.z;
+      // ── REBUILT FROM SCRATCH: the stream originates just inside the neck
+      // BORE (back along the mouth axis — not the velocity!), so it visibly
+      // emerges through the glass with zero gap at the lip ──
+      var ex = _v1.x - _v2.x * 0.22, ey = _v1.y - _v2.y * 0.22, ez = _v1.z - _v2.z * 0.22;
       var GP = 16;
       var v0 = (0.65 + 0.95 * ps) * (0.85 + 0.15 * flow);
       var r0 = (0.036 + 0.085 * ps) * (0.8 + 0.2 * flow);
