@@ -295,15 +295,16 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   position:absolute;left:0;right:0;top:-100svh;bottom:0;display:block;
   pointer-events:none;z-index:1;
 }
-/* the bottle's milky aura, squared: a soft tile behind the glass so the
-   water in the cup reads against it (centred on where the 3D cup parks) */
+/* the bottle's aura, squared — but MINERAL-BLUE, not the mastic milk: the
+   Greek circle stays on the bottle, the Japanese water-blue square sits
+   behind the cup so the pale water clearly reads against it */
 .herowords__blob{
   position:absolute;left:30%;top:calc(62% - 135px);transform:translate(-50%,-50%);
   width:330px;aspect-ratio:1;border-radius:30px;
   background:
-    radial-gradient(circle at 34% 24%,#F0FAF7 0%,rgba(240,250,247,0) 55%),
-    radial-gradient(140% 140% at 52% 46%,var(--resin-milk) 0%,rgba(247,244,216,.35) 78%,rgba(247,244,216,0) 100%);
-  filter:blur(7px);
+    radial-gradient(circle at 34% 24%,rgba(243,250,252,.85) 0%,rgba(243,250,252,0) 48%),
+    radial-gradient(140% 140% at 52% 46%,#C3DCE3 0%,#93B9C4 70%,rgba(109,157,170,.35) 100%);
+  filter:blur(5px);
   animation:breathe 9s var(--ease) infinite;
   pointer-events:none;z-index:0;
 }
