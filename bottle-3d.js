@@ -186,22 +186,22 @@
        clearcoated front faces, and an additive fresnel rim */
     _addGlassShells(parent, glassGeo) {
       var back = new THREE.Mesh(glassGeo, new THREE.MeshPhysicalMaterial({
-        color: 0xc4dccc, roughness: 0.07, metalness: 0, transparent: true, opacity: 0.26,
-        side: THREE.BackSide, envMapIntensity: 1.4, depthWrite: false
+        color: 0x4e8464, roughness: 0.07, metalness: 0, transparent: true, opacity: 0.55,
+        side: THREE.BackSide, envMapIntensity: 0.8, depthWrite: false
       }));
       back.renderOrder = 1;
       parent.add(back);
       var front = new THREE.Mesh(glassGeo, new THREE.MeshPhysicalMaterial({
-        color: 0xd6e8dc, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.3,
+        color: 0x649a7c, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.5,
         clearcoat: 1, clearcoatRoughness: 0.05, side: THREE.FrontSide,
-        envMapIntensity: 2.6, depthWrite: false
+        envMapIntensity: 1.2, depthWrite: false
       }));
       front.renderOrder = 5;
       parent.add(front);
       var fresnel = new THREE.Mesh(glassGeo, new THREE.ShaderMaterial({
         transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide,
         vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
-        fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.1); float hot = pow(d, 6.0); vec3 tint = vec3(0.82, 0.94, 0.86); gl_FragColor = vec4(tint * f * 1.1 + vec3(1.0) * hot * 0.85, f * 0.85 + hot * 0.6); }'
+        fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.6); float hot = pow(d, 7.0); vec3 tint = vec3(0.62, 0.88, 0.72); gl_FragColor = vec4(tint * f * 0.55 + vec3(1.0) * hot * 0.5, f * 0.6 + hot * 0.4); }'
       }));
       fresnel.renderOrder = 6;
       parent.add(fresnel);
@@ -273,8 +273,8 @@
       for (var y = 0.08; y <= 2.32; y += 0.08) wpts.push(new THREE.Vector2(radiusAt(y) * 0.90, y));
       wpts.push(new THREE.Vector2(radiusAt(2.32) * 0.90, 2.32));
       var water = new THREE.Mesh(new THREE.LatheGeometry(wpts, 96), new THREE.MeshPhysicalMaterial({
-        color: 0xd9e8dc, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.26,
-        envMapIntensity: 1.0, depthWrite: false, side: THREE.DoubleSide,
+        color: 0xa7cbb4, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.3,
+        envMapIntensity: 1.1, depthWrite: false, side: THREE.DoubleSide,
         clippingPlanes: [this._waterPlane]
       }));
       water.renderOrder = 2;
@@ -282,7 +282,7 @@
       this._water = water;
       this._level = 1; // 1 = full; drains toward 0.32 while pouring
       var top = new THREE.Mesh(new THREE.CircleGeometry(radiusAt(2.32) * 0.90, 48),
-        new THREE.MeshPhysicalMaterial({ color: 0xf2f7f0, roughness: 0.04, transparent: true, opacity: 0.35, envMapIntensity: 1.4, depthWrite: false }));
+        new THREE.MeshPhysicalMaterial({ color: 0xdfeee6, roughness: 0.04, transparent: true, opacity: 0.25, envMapIntensity: 1.2, depthWrite: false }));
       top.rotation.x = -Math.PI / 2; top.position.y = 2.32; top.renderOrder = 2;
       parent.add(top);
       this._waterTop = top;
@@ -450,7 +450,7 @@
     _buildBubbles(parent) {
       var COUNT = 180; // headroom for the 2x cap-off surge
       var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.016, 10, 10),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45, depthWrite: false, clippingPlanes: [this._waterPlane] }), COUNT);
+        new THREE.MeshBasicMaterial({ color: 0xeaf6ef, transparent: true, opacity: 0.3, depthWrite: false, clippingPlanes: [this._waterPlane] }), COUNT);
       mesh.count = 90;
       this._bubbleBase = 90;
       mesh.renderOrder = 4;
