@@ -273,7 +273,7 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   .heropin__stage::before{animation:none;}
 }
 @media (max-width:760px){
-  .heropin__stage{width:min(430px,88vw);height:min(60svh,520px);}
+  .heropin__stage{width:min(340px,76vw);height:min(52svh,440px);}
 }
 .herowords{
   min-height:88svh;display:flex;align-items:center;justify-content:center;text-align:center;
@@ -693,6 +693,11 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   .find__form{flex-direction:column;}
   .find__form .btn{width:100%;}
   .hero__actions{justify-content:center;}
+  /* phones: pull the display type and section imagery down to hand-held scale */
+  .hero__title{font-size:clamp(2.1rem,9vw,2.7rem);}
+  .section__title{font-size:clamp(1.65rem,7.4vw,2.1rem);}
+  .flavours__bottlewrap{height:min(44vh,380px);}
+  .seal__paper{width:min(300px,78vw);}
 }
 
 /* ═══ REDUCED MOTION ═══ */
