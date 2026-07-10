@@ -851,6 +851,7 @@
       if (p < 0.45 && this._tiltT < 0.15) this._level = Math.min(1, this._level + dt * 0.5); // refill on the way back up
       // bottle upright and full again = the story reset; the glass empties itself
       _pourHandoff.reset = this._level > 0.95 && this._tiltT < 0.15;
+      _pourHandoff.bLevel = this._level; // conservation feed: the cup receives exactly what the bottle loses
       this._capT = lerp(this._capT, capGoal, 1 - Math.pow(0.008, dt));
       this._tiltT = lerp(this._tiltT, tiltGoal, 1 - Math.pow(0.008, dt));
       var capT = this._capT, tiltT = this._tiltT;
@@ -1030,7 +1031,10 @@
         // the bottle pours patiently until the glass is on screen to receive:
         // the stream keeps flowing the whole way down while the user scrolls
         // to it, then the last of the water transfers at full rate
-        var recv = (_pourHandoff.hasGlass && !_pourHandoff.glassActive) ? 0.12 : 1;
+        // LOCKED CHOREOGRAPHY: the full ~2s transfer happens ONLY while the
+        // CUP is on screen — the user watches the water arrive. Until then
+        // the bottle trickles patiently with the stream flowing.
+        var recv = (_pourHandoff.hasGlass && !_pourHandoff.cupSeen) ? 0.1 : 1;
         this._level = Math.max(0.20, this._level - dt * (0.10 + 0.38 * ps * flow) * recv); // it DUMPS — ~2s full transfer
       }
 
@@ -1367,7 +1371,7 @@
      radius — and the glass scene draws the ENTIRE stream from lip to cup in
      one canvas: there is no border for the water to be cut off at. One
      shared object, both elements live in this closure — no allocation. */
-  var _pourHandoff = { live: false, ps: 0, mx: 0, my: 0, vx: 0, vy: 0, g: 0, r: 0, hasBottle: false, hasGlass: false, glassActive: false, glassTop: 1e9, beat: 0, covered: false, reset: false };
+  var _pourHandoff = { live: false, ps: 0, mx: 0, my: 0, vx: 0, vy: 0, g: 0, r: 0, hasBottle: false, hasGlass: false, glassActive: false, glassTop: 1e9, beat: 0, covered: false, reset: false, cupSeen: false, bLevel: 1 };
   function tumblerInnerR(y) {         // inner wall radius at height y (fit to the lathe profile)
     return 0.255 + 0.045 * Math.max(0, Math.min(1, (y - 0.125) / (0.96 - 0.125)));
   }
@@ -1732,6 +1736,11 @@
       if (this._hidden || this._offscreen) { _pourHandoff.glassActive = false; return; }
       _pourHandoff.glassActive = true;
       _pourHandoff.beat = performance.now(); // heartbeat: the bottle resumes its own jet if this scene ever stalls
+      // tell the bottle whether the CUP itself is on screen — the full
+      // transfer is held until the user can actually watch it
+      var grA = this.getBoundingClientRect();
+      var cupPxY = grA.top + (0.5 - this._glass.position.y / (2 * this._halfH)) * grA.height;
+      _pourHandoff.cupSeen = cupPxY > -60 && cupPxY < window.innerHeight + 60;
       var t = this._clock.elapsedTime;
 
       // fill target follows the scroll progress the page writes into --p
@@ -1754,10 +1763,19 @@
       var sy = window.scrollY;
       var goingUp = this._lastSy !== undefined && sy < this._lastSy - 1;
       this._lastSy = sy;
-      if (diff > 0) this._level += Math.min(diff, dt * 0.38 * pour); // lockstep with the bottle's faster dump
-      // received water STAYS in the glass — it only un-pours when the user
-      // actually rewinds (scrolls up), matching the bottle's refill
-      else if (!_pourHandoff.hasBottle || goingUp) this._level += Math.max(diff, -dt * 0.5);
+      // CONSERVATION, locked: paired with a bottle, the cup receives exactly
+      // what the bottle loses each frame — they can never desynchronize
+      if (_pourHandoff.hasBottle) {
+        var dB = (this._lastB !== undefined && _pourHandoff.bLevel < this._lastB)
+               ? (this._lastB - _pourHandoff.bLevel) : 0;
+        this._lastB = _pourHandoff.bLevel;
+        if (live && dB > 0) this._level = Math.min(0.85, this._level + dB * 1.02);
+        // un-pour only on an actual rewind (scroll-up), matching the refill
+        else if (goingUp && diff < 0) this._level += Math.max(diff, -dt * 0.5);
+      } else {
+        if (diff > 0) this._level += Math.min(diff, dt * 0.38 * pour); // standalone: scroll-driven fill
+        else this._level += Math.max(diff, -dt * 0.5);
+      }
       // when the bottle is back upright and full (the story reset), the cup
       // empties itself so the next pour starts from a clean glass
       if (_pourHandoff.reset && !live && this._level > 0.03) this._level = Math.max(0.02, this._level - dt * 0.6);
