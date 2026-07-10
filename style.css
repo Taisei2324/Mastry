@@ -292,8 +292,10 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   /* extends a full viewport up over the hero (and over the copy — fine): the
      jet is drawn end-to-end by this one canvas, so it can never be cut off
      at a section border */
-  position:absolute;left:0;right:0;top:-100svh;bottom:0;display:block;
+  position:absolute;left:0;right:0;top:-100svh;bottom:-170svh;display:block;
   pointer-events:none;z-index:1;
+  /* bottom extends over the .highball stage below, so the cup can ride
+     down into it (same one-canvas trick as the hero overlap above) */
 }
 /* the bottle's aura, squared — but MINERAL-BLUE, not the mastic milk: the
    Greek circle stays on the bottle, the Japanese water-blue square sits
@@ -342,6 +344,37 @@ html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL f
 @media (prefers-reduced-motion:reduce){
   .heropin{height:100svh;}
 }
+/* ── the highball interlude: a blank stage between the words and the
+   story. The 3D cup (drawn by the glass-3d canvas overlapping from
+   above) rides the middle of the screen into it; a whisky bottle tips
+   in a finger of spirit; then the line lands. --hb (0..1, written by
+   the glass element per frame) scrubs the copy in after the pour. */
+.highball{position:relative;height:170svh;}
+.highball__copy{
+  position:sticky;top:0;height:100svh;
+  display:flex;flex-direction:column;justify-content:center;align-items:flex-end;
+  padding-right:62%;padding-left:clamp(20px,6vw,90px);
+  text-align:right;
+  opacity:calc((var(--hb,0) - 0.72)*5);
+  pointer-events:none;
+}
+.highball__line{
+  font-family:var(--serif);font-weight:400;
+  font-size:clamp(1.7rem,3.2vw,2.8rem);line-height:1.18;color:var(--ink);
+}
+.highball__line em{font-style:italic;color:var(--sun);}
+.highball__sub{
+  margin-top:14px;font-size:.72rem;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--muted);
+}
+/* no WebGL, no ride: the stage shrinks to a modest pause and the line
+   simply shows */
+html:not(.bottle3d-on) .highball{height:56svh;}
+html:not(.bottle3d-on) .highball__copy{
+  height:56svh;opacity:1;padding-right:clamp(20px,6vw,90px);
+  align-items:center;text-align:center;
+}
+
 .hero__scrollcue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);}
 .hero__scrollcue span{
   display:block;width:1px;height:52px;background:var(--hairline);position:relative;overflow:hidden;
@@ -766,6 +799,10 @@ html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL f
      and the headline steps a few pixels right so the two never collide */
   .herowords__pour{left:13vw;height:40%;}
   .herowords__blob{left:13%;top:calc(40% - 69px);width:185px;border-radius:20px;filter:blur(5px);}
+  .highball__copy{
+    justify-content:flex-end;align-items:center;text-align:center;
+    padding:0 20px 12svh;
+  }
   .herowords__glass{width:64px;}
   .herowords .hero__copy{max-width:none;margin-right:0;}
   .herowords .hero__title{transform:translateX(54px);} /* clears the bigger crystal */
