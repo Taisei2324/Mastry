@@ -169,7 +169,8 @@
       // state
       this._pin = this.closest('.heropin'); // pinned-hero container drives the pour timeline
       this._vel = 0; this._lastScroll = window.scrollY;
-      this._rotY = 0; this._driftX = 0; this._driftY = 0; this._tiltV = 0;
+      this._frontY = -0.35; // yaw that centres the label's front graphic on camera
+      this._rotY = this._frontY; this._driftX = 0; this._driftY = 0; this._tiltV = 0;
       this._capT = 0; this._tiltT = 0;
       this._syncAttrs();
       this._resize();
@@ -646,7 +647,7 @@
       this._spinVel = 0;
       var dragging = false, lastX = 0, lastT = 0;
       this.addEventListener('pointerdown', function (e) {
-        dragging = true; lastX = e.clientX; lastT = performance.now();
+        dragging = true; self._dragging = true; lastX = e.clientX; lastT = performance.now();
         self._spinVel = 0;
         if (self.setPointerCapture && e.pointerId !== undefined) {
           try { self.setPointerCapture(e.pointerId); } catch (_) {}
@@ -660,8 +661,8 @@
         self._spinVel = (dx / Math.max(1, now - lastT)) * 12;      // flick momentum
         lastX = e.clientX; lastT = now;
       });
-      window.addEventListener('pointerup', function () { dragging = false; });
-      window.addEventListener('pointercancel', function () { dragging = false; });
+      window.addEventListener('pointerup', function () { dragging = false; self._dragging = false; });
+      window.addEventListener('pointercancel', function () { dragging = false; self._dragging = false; });
       this._ro = new ResizeObserver(function () { self._resize(); });
       this._ro.observe(this);
       // perf guards: don't render when the tab is hidden or the element is offscreen
@@ -706,11 +707,17 @@
 
       // twist: scroll up → twist right, scroll down → twist left (reversed)
       this._rotY += -vel * 0.0018 * dt * 60 * 0.016;
-      var idle = 0.12 * this._spinSpeed;
-      this._rotY += idle * dt;
       this._rotY += this._spinVel * dt;                 // flick inertia from drag
       this._spinVel *= Math.pow(0.12, dt);              // spins down gradually
-      this._spin.rotation.y = this._rotY;
+      // settle brand-front: once scroll and drag go quiet, ease to the nearest
+      // front-facing turn so the label never parks on the barcode side
+      var TAU = Math.PI * 2;
+      var home = this._frontY + Math.round((this._rotY - this._frontY) / TAU) * TAU;
+      var quiet = this._dragging ? 0 :
+        Math.max(0, 1 - Math.abs(vel) * 0.02 - Math.abs(this._spinVel) * 2);
+      this._rotY += (home - this._rotY) * (1 - Math.pow(0.5, dt)) * quiet;
+      // living sway — the bottle breathes but never turns its back
+      this._spin.rotation.y = this._rotY + Math.sin(t * 0.4) * 0.05 * this._spinSpeed;
 
       // gentle drift with velocity — heavily damped so wheel notches read as
       // one continuous glide instead of dart-and-snap-back
