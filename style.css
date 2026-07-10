@@ -622,12 +622,13 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   background:var(--dark);color:rgba(249,245,233,.6);
   padding:150px clamp(20px,7vw,110px) 36px;position:relative;
 }
-/* seigaiha in the style of the brand seal: bold uniform rings, opaque
-   scallops, staggered rows overlapping like fish scales */
+/* seigaiha straddling the footer edge, in the seal's bold style:
+   the upper row is green waves rising onto the cream page, the lower row is
+   cream waves on the dark footer, and they interlock in between */
 .footer::before{
-  content:"";position:absolute;top:0;left:0;right:0;height:72px;pointer-events:none;
+  content:"";position:absolute;top:-40px;left:0;right:0;height:104px;pointer-events:none;
   background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40' viewBox='0 0 80 40'%3E%3Cpath d='M2 40 A38 38 0 0 1 78 40 Z' fill='%231F2A1C'/%3E%3Cpath d='M4 40 A36 36 0 0 1 76 40' fill='none' stroke='%23F9F5E9' stroke-opacity='.6' stroke-width='4'/%3E%3Cpath d='M11 40 A29 29 0 0 1 69 40' fill='none' stroke='%23F9F5E9' stroke-opacity='.55' stroke-width='4'/%3E%3Cpath d='M18 40 A22 22 0 0 1 62 40' fill='none' stroke='%23F9F5E9' stroke-opacity='.55' stroke-width='4'/%3E%3Cpath d='M25 40 A15 15 0 0 1 55 40' fill='none' stroke='%23F9F5E9' stroke-opacity='.55' stroke-width='4'/%3E%3Cpath d='M32 40 A8 8 0 0 1 48 40' fill='none' stroke='%23F9F5E9' stroke-opacity='.55' stroke-width='4'/%3E%3C/svg%3E")
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40' viewBox='0 0 80 40'%3E%3Cpath d='M2 40 A38 38 0 0 1 78 40 Z' fill='%23F4F0E6'/%3E%3Cpath d='M4 40 A36 36 0 0 1 76 40' fill='none' stroke='%231F2A1C' stroke-opacity='.6' stroke-width='4'/%3E%3Cpath d='M11 40 A29 29 0 0 1 69 40' fill='none' stroke='%231F2A1C' stroke-opacity='.55' stroke-width='4'/%3E%3Cpath d='M18 40 A22 22 0 0 1 62 40' fill='none' stroke='%231F2A1C' stroke-opacity='.55' stroke-width='4'/%3E%3Cpath d='M25 40 A15 15 0 0 1 55 40' fill='none' stroke='%231F2A1C' stroke-opacity='.55' stroke-width='4'/%3E%3Cpath d='M32 40 A8 8 0 0 1 48 40' fill='none' stroke='%231F2A1C' stroke-opacity='.55' stroke-width='4'/%3E%3C/svg%3E")
       repeat-x 40px 24px/80px 40px,
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40' viewBox='0 0 80 40'%3E%3Cpath d='M2 40 A38 38 0 0 1 78 40 Z' fill='%231F2A1C'/%3E%3Cpath d='M4 40 A36 36 0 0 1 76 40' fill='none' stroke='%23F9F5E9' stroke-opacity='.6' stroke-width='4'/%3E%3Cpath d='M11 40 A29 29 0 0 1 69 40' fill='none' stroke='%23F9F5E9' stroke-opacity='.55' stroke-width='4'/%3E%3Cpath d='M18 40 A22 22 0 0 1 62 40' fill='none' stroke='%23F9F5E9' stroke-opacity='.55' stroke-width='4'/%3E%3Cpath d='M25 40 A15 15 0 0 1 55 40' fill='none' stroke='%23F9F5E9' stroke-opacity='.55' stroke-width='4'/%3E%3Cpath d='M32 40 A8 8 0 0 1 48 40' fill='none' stroke='%23F9F5E9' stroke-opacity='.55' stroke-width='4'/%3E%3C/svg%3E")
       repeat-x 0 0/80px 40px;
