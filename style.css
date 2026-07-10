@@ -281,7 +281,8 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
 }
 .herowords .hero__copy{
   display:flex;flex-direction:column;align-items:center;
-  max-width:min(640px,58vw);margin-right:clamp(6px,3vw,60px); /* slid right; the glass owns the left */
+  max-width:min(640px,58vw);
+  margin-right:clamp(60px,13vw,280px); /* nearer the centre — the glass still owns the left */
 }
 .herowords .hero__sub{margin-left:auto;margin-right:auto;}
 .herowords .hero__actions{justify-content:center;}

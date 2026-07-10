@@ -1002,9 +1002,12 @@
       // pour strength = how far past the pour threshold the tilt is, scaled
       // by how much head of water is left to feed the stream — the pour
       // peters out into drips as the bottle empties
-      var head = smoothstep(0.20, 0.42, this._level);
-      var ps = smoothstep(0.58, 0.96, tiltT) * head;
-      var pouring = tiltT > 0.58 && this._level > 0.201 && ps > 0.003;
+      // gravity takes over as soon as the tilt passes the spill angle: full
+      // flow by ~80° instead of waiting for the last degrees of the tip, and
+      // the head only tapers the stream at the very end of the drain
+      var head = smoothstep(0.20, 0.30, this._level);
+      var ps = smoothstep(0.50, 0.72, tiltT) * head;
+      var pouring = tiltT > 0.50 && this._level > 0.201 && ps > 0.003;
 
       // glug: near-horizontal the mouth runs full of water, so air can only
       // get back in by starving the flow in pulses (glug… glug…)
@@ -1013,7 +1016,7 @@
         var glugAmp = smoothstep(0.80, 0.97, tiltT) * smoothstep(0.24, 0.40, this._level);
         this._glugPhase += dt * (5.2 + 2.2 * ps);
         var gl = 0.5 + 0.5 * Math.sin(this._glugPhase);
-        flow = 1 - glugAmp * 0.45 * (1 - gl * gl);
+        flow = 1 - glugAmp * 0.16 * (1 - gl * gl); // texture, not stoppage: the stream never chokes
         this._glugCool -= dt;
         if (glugAmp > 0.25 && gl < 0.12 && this._glugCool <= 0) {
           this._glugCool = 0.45;
@@ -1201,8 +1204,8 @@
       // GP is pour gravity: the bottle is ~25cm tall so scene gravity feels
       // moon-weak on a water jet — pump it so the arc bends down decisively
       var GP = 16;
-      var v0 = (0.55 + 0.95 * ps) * (0.82 + 0.18 * flow);
-      var r0 = (0.016 + 0.062 * ps) * (0.55 + 0.45 * flow);
+      var v0 = (0.65 + 0.95 * ps) * (0.85 + 0.15 * flow);
+      var r0 = (0.022 + 0.062 * ps) * (0.72 + 0.28 * flow); // steadier column, no bottleneck pinch
       // weak pours droop off the lip; hard pours jet along the axis
       var droop = 0.55 * (1 - ps);
       _v4.set(_v2.x + _v3.x * droop, _v2.y + _v3.y * droop, _v2.z + _v3.z * droop).normalize();
@@ -1696,8 +1699,13 @@
       // fill is gated ENTIRELY on the jet: water only accumulates while the
       // stream is visibly delivering it, at a rate the jet's flux can supply,
       // on the same clock as the bottle's ~2.5s drain
+      var sy = window.scrollY;
+      var goingUp = this._lastSy !== undefined && sy < this._lastSy - 1;
+      this._lastSy = sy;
       if (diff > 0) this._level += Math.min(diff, dt * 0.30 * pour);
-      else this._level += Math.max(diff, -dt * 0.5);   // scroll-up: it un-pours with the bottle
+      // received water STAYS in the glass — it only un-pours when the user
+      // actually rewinds (scrolls up), matching the bottle's refill
+      else if (!_pourHandoff.hasBottle || goingUp) this._level += Math.max(diff, -dt * 0.5);
 
       // waterline
       var waterY = this._glass.position.y + this._waterBase + this._level * (0.97 - this._waterBase);
