@@ -127,8 +127,8 @@
      composite as a dark outline over the transparent canvas. MeshBasic
      can never go dark; the wet sheen comes from an additive fresnel pass
      (additive only ever brightens) drawn over the same tube geometry. */
-  var WATER_JET_TINT = 0x9dc4ae;   // sheath — matched to the IN-BOTTLE pool so the jet reads as the same liquid
-  var WATER_CORE_TINT = 0xe6f3ea;  // solid-liquid core, sage-white (pure white read as a different drink)
+  var WATER_JET_TINT = 0xd7e6dd;   // measured: pool renders #EDF2EE, this @0.85 over cream renders #DBE7DF — same liquid
+  var WATER_CORE_TINT = 0xf0f7f2;  // solid-liquid core, barely brighter than the sheath
   var WATER_DROP_TINT = 0xc4dfd0;  // droplets, satellites, splash, mist
   var WATER_JET_OP = 0.85;         // dense enough that no stretch of the stream reads transparent
   var WATER_CORE_OP = 0.32;        // core stays subtle so it can't white-out a thin ribbon
@@ -1204,29 +1204,15 @@
       // water leaves over the LOW edge of the lip, not the mouth centre
       _v3.set(0, -1, 0).addScaledVector(_v2, _v2.y);  // world-down projected onto the mouth plane
       if (_v3.lengthSq() > 1e-6) _v3.normalize(); else _v3.set(0, 0, 0);
-      var ex = _v1.x + _v3.x * 0.10, ey = _v1.y + _v3.y * 0.10, ez = _v1.z + _v3.z * 0.10;
-      // exit speed & thickness ride the pour strength and the glug pulse.
-      // GP is pour gravity: the bottle is ~25cm tall so scene gravity feels
-      // moon-weak on a water jet — pump it so the arc bends down decisively
+      // ── REBUILT FROM SCRATCH: the stream starts EXACTLY at the lip ──
+      var ex = _v1.x, ey = _v1.y, ez = _v1.z;
       var GP = 16;
       var v0 = (0.65 + 0.95 * ps) * (0.85 + 0.15 * flow);
-      // a proper gush at the lip: thick column at the mouth (still inside the
-      // 0.176 bore), and the sqrt(v0/v) taper thins it on the way down
-      var r0 = (0.036 + 0.085 * ps) * (0.72 + 0.28 * flow);
-      // weak pours droop off the lip; hard pours jet along the axis
-      var droop = 0.55 * (1 - ps) + 0.15; // always some droop — bottles dump DOWN off the lip
+      var r0 = (0.036 + 0.085 * ps) * (0.8 + 0.2 * flow);
+      // mostly straight down off the lip, with a whisper of carry
+      var droop = 0.55 * (1 - ps) + 0.15;
       _v4.set(_v2.x + _v3.x * droop, _v2.y + _v3.y * droop, _v2.z + _v3.z * droop).normalize();
-      var vx = _v4.x * v0 * 0.62, vy = _v4.y * v0, vz = _v4.z * v0 * 0.62; // water dumps DOWN — little sideways throw, no screen-crossing diagonal
-      // start the stream INSIDE the neck so it visibly emerges through the
-      // mouth — no transparent gap between the lip and the flow
-      ex -= _v4.x * 0.26; ey -= _v4.y * 0.26; ez -= _v4.z * 0.26;
-      // breakup length: fat fast jets hold together, thin dribbles pinch off
-      // almost immediately. At full pour the jet stays coherent all the way
-      // off the bottom of the frame — it hands over to the glass below
-      var Lb = Math.min(1.9 + 5.2 * ps, Math.max(0.14, 9 * v0 * Math.pow(r0, 0.75) * (1 + 2.2 * ps)));
-      // paired with a glass below, the stream continues past this frame —
-      // no mid-air Plateau-Rayleigh pinch (it read as a "split" in the fall)
-      if (_pourHandoff.hasGlass) Lb = 1e9;
+      var vx = _v4.x * v0 * 0.6, vy = _v4.y * v0, vz = _v4.z * v0 * 0.6;
 
       var posA = stream.geometry.attributes.position.array;
       var norA = stream.geometry.attributes.normal.array;
@@ -1259,76 +1245,34 @@
         stream.material.opacity = 0; core.material.opacity = 0;
         return null;
       }
-      var s = 0, nr = 0, bk = null;
+      // ── the clean column: a pure ballistic arc solved exactly from the
+      // lip to the frame bottom. Gentle linear taper, ONE subtle ripple
+      // riding down with the water, horizontal rings (no frames, no folds).
+      // Water falling this far looks like calm glass, not spaghetti.
+      var vd0 = Math.max(0.2, -vy);
+      var fall = Math.max(0.2, ey - edgeY);
+      var tof = (vd0 + Math.sqrt(vd0 * vd0 + 2 * GP * fall)) / GP;
+      var dtt = tof / (RINGS - 1);
+      var nr = 0;
       for (var i = 0; i < RINGS; i++) {
-        var tt = i * TSTEP;
+        var tt = i * dtt;
         var wx = ex + vx * tt, wy = ey + vy * tt - 0.5 * GP * tt * tt, wz = ez + vz * tt;
-        var cvx = vx, cvy = vy - GP * tt, cvz = vz;
-        var spd = Math.sqrt(cvx * cvx + cvy * cvy + cvz * cvz);
-        if (i > 0) s += spd * TSTEP;
-        // mass conservation: the jet thins as gravity stretches it
-        // taper floor 0.5: pure mass conservation over our theatrical fall
-        // distance thins the stream to a thread — real pours entrain air and
-        // keep visual body all the way down
-        // gentle taper (pow 0.3, floor 0.68): the sqrt curve bottomed out in
-        // the first stretch of the fall, carving a visible waist — the pinch
-        var rBase = r0 * Math.max(0.68, Math.pow(v0 / Math.max(v0, spd), 0.3));
-        var frac = s / Lb;
-        // LAGRANGIAN turbulence (matches the glass jet): features are phased
-        // by parcel birth time so they fall and stretch with the water
         var u = time - tt;
-        var grw = Math.min(1, 0.3 + s / 1.4);
-        var modB = 1 + (0.08 + 0.95 * frac * frac) * 0.26 * Math.sin(u * 45.0 + s * 1.5)
-                     + (0.11 * Math.sin(u * 11.0 + 1.8 * Math.sin(u * 3.7 + s))
-                      + 0.06 * Math.sin(u * 71.0 + s * 3.1)) * grw;
-        var r = rBase * (modB < 0.84 ? 0.84 : modB); // troughs never gouge a pinch
-        if (frac > 0.78) r *= Math.max(0.10, 1 - (frac - 0.78) * 3.6); // necks into the pinch-off
-        if (r < 0.005) r = 0.005; // keep the thin tail legible against the cream page
-        // lateral writhe rides down with the parcels — both cross axes
-        var lat = (Math.sin(u * 7.3 + 1.5 * Math.sin(u * 2.1)) * 0.6 + Math.sin(u * 15.7 + s) * 0.4) * 0.032 * Math.min(1, frac * 2);
-        var lat2 = (Math.cos(u * 9.1 + 1.7 * Math.sin(u * 2.9)) * 0.6 + Math.sin(u * 19.3 + s * 1.3) * 0.4) * 0.024 * Math.min(1, frac * 2);
-        // lagged frame (parallel-transport style): at the elbow the velocity
-        // direction swings fast and rigid ring planes fold into a pinch on
-        // the inner edge — the lag spreads the bend across many rings
-        if (i === 0) _v7.set(cvx / spd, cvy / spd, cvz / spd);
-        else {
-          _v7.x = _v7.x * 0.6 + (cvx / spd) * 0.4;
-          _v7.y = _v7.y * 0.6 + (cvy / spd) * 0.4;
-          _v7.z = _v7.z * 0.6 + (cvz / spd) * 0.4;
-          _v7.normalize();
-        }
-        _v4.copy(_v7);
-        if (Math.abs(_v4.y) > 0.985) _v5.set(1, 0, 0); else _v5.set(0, 1, 0);
-        _v6.crossVectors(_v4, _v5).normalize();
-        _v5.crossVectors(_v6, _v4);
-        wx += _v6.x * lat + _v5.x * lat2; wy += _v6.y * lat + _v5.y * lat2; wz += _v6.z * lat + _v5.z * lat2;
+        var r = r0 * (1 - 0.22 * (tt / tof)) * (1 + 0.07 * Math.sin(u * 22.0));
         for (var j = 0; j < SEG; j++) {
           var a2 = j / SEG * Math.PI * 2;
-          var ca = Math.cos(a2), sa = Math.sin(a2);
-          var nx = _v6.x * ca + _v5.x * sa, ny = _v6.y * ca + _v5.y * sa, nz = _v6.z * ca + _v5.z * sa;
-          // ropey cross-section: angular lumps braid down with the parcels
-          var rj = r * (1 + 0.14 * Math.sin(a2 * 2 + u * 21.0 + s * 2.0));
+          var nx = Math.cos(a2), nz = Math.sin(a2);
           var o = (i * SEG + j) * 3;
-          // aeration: whipped-in air makes frothy white streaks that ride down
-          var aer = 0.82 + 0.55 * Math.pow(Math.max(0, Math.sin(u * 17.0 + s * 1.2 + a2)), 2.0) * grw;
+          var aer = 0.94 + 0.10 * Math.max(0, Math.sin(u * 13.0 + a2 * 0.5));
           colA[o] = aer; colA[o + 1] = aer; colA[o + 2] = aer;
-          posA[o] = wx + nx * rj; posA[o + 1] = wy + ny * rj; posA[o + 2] = wz + nz * rj;
-          norA[o] = nx; norA[o + 1] = ny; norA[o + 2] = nz;
-          var rc = rj * 0.42;
-          posC[o] = wx + nx * rc; posC[o + 1] = wy + ny * rc; posC[o + 2] = wz + nz * rc;
+          posA[o] = wx + nx * r; posA[o + 1] = wy; posA[o + 2] = wz + nz * r;
+          norA[o] = nx; norA[o + 1] = 0; norA[o + 2] = nz;
+          var rc = r * 0.45;
+          posC[o] = wx + nx * rc; posC[o + 1] = wy; posC[o + 2] = wz + nz * rc;
         }
         nr = i + 1;
-        if (s >= Lb || wy < edgeY) {
-          if (s >= Lb) bk = { x: wx, y: wy, z: wz, vx: cvx, vy: cvy, vz: cvz, r: rBase };
-          break;
-        }
+        if (wy < edgeY) break;
       }
-      if (!bk && nr === RINGS) {
-        // ran out of rings before the jet broke — hand over where the tube ends
-        var lt = (RINGS - 1) * TSTEP;
-        bk = { x: ex + vx * lt, y: ey + vy * lt - 0.5 * GP * lt * lt, z: ez + vz * lt, vx: vx, vy: vy - GP * lt, vz: vz, r: 0.003 };
-      }
-      if (nr < 2) { stream.visible = false; core.visible = false; return bk; }
       stream.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
       core.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
       stream.geometry.attributes.position.needsUpdate = true;
@@ -1336,12 +1280,12 @@
       stream.geometry.attributes.color.needsUpdate = true;
       core.geometry.attributes.position.needsUpdate = true;
       stream.visible = true; core.visible = true;
-      // faint for a dribble, solid for a committed pour — but always
-      // translucent enough to read as water, not paint
-      var k = Math.min(1, 0.3 + ps * 4);
-      stream.material.opacity = Math.min(WATER_JET_OP * k, stream.material.opacity + 0.06);
-      core.material.opacity = Math.min(WATER_CORE_OP * k, core.material.opacity + 0.08);
-      return bk;
+      // full presence the instant it pours — the fade-in ramp read as a
+      // transparent stretch at the lip
+      var k = Math.min(1, 0.35 + ps * 3);
+      stream.material.opacity = WATER_JET_OP * k;
+      core.material.opacity = WATER_CORE_OP * k;
+      return null; // no mid-air breakup, ever — the stream ends in the cup
     }
   }
 
@@ -1890,7 +1834,6 @@
       var videoOn = this._updateVideoJet(covers ? pour : 0, jet, waterY);
       this._updateJet(videoOn ? 0 : (covers ? pour : 0), jet, waterY, t);
       syncWaterSheen(this._stream, this._sheen);
-      if (covers) this._shedSpray(dt, pour, jet, waterY);
       this._updateSplash(dt, pour, jx, waterY);
       this._updateBubbles(dt, pour, jx, waterY, rIn);
 
@@ -1913,65 +1856,39 @@
       var colA = stream.geometry.attributes.color.array;
       var posC = core.geometry.attributes.position.array;
       var RINGS = this._strRings, SEG = this._strSeg;
+      // ── REBUILT FROM SCRATCH: the identical clean column as the bottle's —
+      // same ballistic arc, same taper, same ripple phase, same aeration.
+      // ONE liquid. A tiny quadratic drift folds the landing into the cup as
+      // part of the arc itself — no late elbow.
       var G = jet.g, r0 = jet.r0;
-      var vE = Math.max(0.8, Math.sqrt(jet.vx * jet.vx + jet.vy * jet.vy)); // entry speed, taper reference
       var fall = Math.max(0.01, jet.y0 - waterY); // guard: sqrt stays real, tofl > 0
       var vd = Math.max(0, -jet.vy);
       var tofl = (Math.sqrt(vd * vd + 2 * G * fall) - vd) / G;
       var dtt = tofl / (RINGS - 1);
-      var nr = 0, s = 0;
+      var nr = 0;
+      var corr = 0;
+      if (jet.cupX !== undefined) {
+        corr = jet.cupX - (jet.x0 + jet.vx * tofl);
+        if (corr > 0.4) corr = 0.4; else if (corr < -0.4) corr = -0.4;
+      }
       for (var i = 0; i < RINGS; i++) {
         var tt = i * dtt;
         var wy = jet.y0 + jet.vy * tt - 0.5 * G * tt * tt;
-        var cvy = jet.vy - G * tt;
-        var spd = Math.sqrt(jet.vx * jet.vx + cvy * cvy);
-        if (i > 0) s += spd * dtt; // arc length ridden by the varicose wave
-        var rr = r0 * Math.max(0.68, Math.pow(vE / Math.max(vE, spd), 0.3)); // gentle taper, floor 0.68 — no waist
-        // LAGRANGIAN turbulence: every feature belongs to a water parcel and
-        // is phased by that parcel's birth time (u = time - tt), so lumps and
-        // kinks visibly FALL and STRETCH with the accelerating water instead
-        // of crawling along a sculpted tube. Phase-modulated sines break the
-        // periodicity so it reads as chaos, not a pattern.
         var u = time - tt;
-        var wfr = tt / Math.max(1e-4, tofl);
-        var grow = Math.min(1, 0.3 + s / 1.4);
-        var mod = 1 + (0.08 + 0.95 * wfr * wfr) * 0.26 * Math.sin(u * 45.0 + s * 1.5) * Math.min(1, s / 0.5)
-                    + (0.11 * Math.sin(u * 11.0 + 1.8 * Math.sin(u * 3.7 + s))
-                     + 0.06 * Math.sin(u * 71.0 + s * 3.1)) * grow;
-        rr *= mod < 0.84 ? 0.84 : mod; // surges swell freely; troughs never gouge a pinch
-        if (rr < 0.006) rr = 0.006;
-        // 3D snaking — kinks born at the lip ride down with the water
-        var wob = 0.034 * Math.min(1, s / 1.2);
-        var wx = jet.x0 + jet.vx * tt
-               + (Math.sin(u * 7.3 + 1.5 * Math.sin(u * 2.1)) * 0.6 + Math.sin(u * 15.7 + s) * 0.4) * wob;
-        var wz = (Math.cos(u * 9.1 + 1.7 * Math.sin(u * 2.9)) * 0.6 + Math.sin(u * 19.3 + s * 1.3) * 0.4) * wob * 0.8;
-        // the last stretch of the fall eases into the cup — late, gentle and
-        // capped, so it reads as momentum, not an unnatural elbow
-        if (jet.cupX !== undefined && jet.tofl) {
-          var corr = jet.cupX - (jet.x0 + jet.vx * jet.tofl);
-          if (corr > 0.5) corr = 0.5; else if (corr < -0.5) corr = -0.5;
-          var bw = Math.max(0, (tt / jet.tofl - 0.7) / 0.3);
-          bw = bw * bw * (3 - 2 * bw);
-          wx += corr * bw;
-          wz *= 1 - bw * 0.85;
-        }
-        // the bright core spirals inside the sheath — an internal braid the
-        // eye reads through the translucent outer water
-        var brA = u * 13.0 + s * 2.0;
-        var cx = wx + Math.cos(brA) * rr * 0.25, cz = wz + Math.sin(brA) * rr * 0.25;
+        var fr = tt / Math.max(1e-4, tofl);
+        var r = r0 * (1 - 0.22 * fr) * (1 + 0.07 * Math.sin(u * 22.0));
+        if (r < 0.008) r = 0.008;
+        var wx = jet.x0 + jet.vx * tt + corr * fr * fr;
         for (var j = 0; j < SEG; j++) {
           var a2 = j / SEG * Math.PI * 2;
           var nx = Math.cos(a2), nz = Math.sin(a2);
-          // ropey cross-section: angular lumps braid down with the parcels
-          var rj = rr * (1 + 0.14 * Math.sin(a2 * 2 + u * 21.0 + s * 2.0) * grow);
           var o = (i * SEG + j) * 3;
-          // aeration: whipped-in air makes frothy white streaks that ride down
-          var aer = 0.82 + 0.55 * Math.pow(Math.max(0, Math.sin(u * 17.0 + s * 1.2 + a2)), 2.0) * grow;
+          var aer = 0.94 + 0.10 * Math.max(0, Math.sin(u * 13.0 + a2 * 0.5));
           colA[o] = aer; colA[o + 1] = aer; colA[o + 2] = aer;
-          posA[o] = wx + nx * rj; posA[o + 1] = wy; posA[o + 2] = wz + nz * rj;
+          posA[o] = wx + nx * r; posA[o + 1] = wy; posA[o + 2] = nz * r;
           norA[o] = nx; norA[o + 1] = 0; norA[o + 2] = nz;
-          var rc = rj * 0.42;
-          posC[o] = cx + nx * rc; posC[o + 1] = wy; posC[o + 2] = cz + nz * rc;
+          var rc = r * 0.45;
+          posC[o] = wx + nx * rc; posC[o + 1] = wy; posC[o + 2] = nz * rc;
         }
         nr = i + 1;
         if (wy <= waterY) break;
@@ -1983,34 +1900,9 @@
       stream.geometry.attributes.color.needsUpdate = true;
       core.geometry.attributes.position.needsUpdate = true;
       stream.visible = true; core.visible = true;
-      stream.material.opacity = Math.min(WATER_JET_OP * pour, stream.material.opacity + 0.06);
-      core.material.opacity = Math.min(WATER_CORE_OP * pour, core.material.opacity + 0.08);
-    }
-
-    /* turbulent streams shed spray the whole way down, not just at impact:
-       droplets peel off random points along the jet, carrying the local
-       velocity plus a small outward kick, and rain into the pool with it */
-    _shedSpray(dt, pour, jet, waterY) {
-      if (pour <= 0.05) return;
-      var mesh = this._splash, data = this._splashData;
-      this._shedClock = (this._shedClock || 0) + dt * 60 * pour;
-      var n = Math.floor(this._shedClock);
-      this._shedClock -= n;
-      if (!n) return;
-      var G = jet.g;
-      var vd = Math.max(0, -jet.vy);
-      var fall = Math.max(0.01, jet.y0 - waterY);
-      var tofl = (Math.sqrt(vd * vd + 2 * G * fall) - vd) / G;
-      for (var k = 0; k < n && data.length < mesh.instanceMatrix.count; k++) {
-        var tt = (0.12 + Math.random() * 0.8) * tofl;
-        var ang = Math.random() * Math.PI * 2;
-        var kick = 0.08 + Math.random() * 0.34;
-        data.push({
-          x: jet.x0 + jet.vx * tt, y: jet.y0 + jet.vy * tt - 0.5 * G * tt * tt, z: 0,
-          vx: jet.vx + Math.cos(ang) * kick, vy: jet.vy - G * tt, vz: Math.sin(ang) * kick,
-          life: 0.30 + Math.random() * 0.25, s: 0.3 + Math.random() * 0.8
-        });
-      }
+      // full presence instantly — the fade-in ramp read as transparency
+      stream.material.opacity = WATER_JET_OP * Math.min(1, 0.35 + pour * 3);
+      core.material.opacity = WATER_CORE_OP * Math.min(1, 0.35 + pour * 3);
     }
 
     _updateSplash(dt, pour, x, waterY) {
