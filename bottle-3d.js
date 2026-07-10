@@ -739,8 +739,14 @@
       this._noWall = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       this._onScroll = function () {
         var y = window.scrollY;
-        // THE WALL: while the pour still runs thick the page refuses to move
-        // past the pinned hero — the flow must thin before the cup unlocks
+        // THE WALL, scroll-event side: arms here too, so a violent flick that
+        // outruns the ticker (or lands while the bottle is offscreen) still
+        // hits it — same conditions as _tick, including the 12s release
+        if (self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
+            (!self._wallT || self._clock.elapsedTime - self._wallT < 12)) {
+          var end = self._pin.offsetTop + self._pin.offsetHeight - window.innerHeight;
+          if (y > end) self._holdY = end;
+        }
         if (self._holdY != null && y > self._holdY) {
           window.scrollTo(0, self._holdY);
           y = self._holdY;
@@ -810,7 +816,7 @@
       // water is still flowing, keep ticking until the transfer finishes —
       // a frozen broadcast left the glass drawing a phantom, bent stream
       // from stale screen coordinates and the cup never filled
-      if (this._hidden || (this._offscreen && !this._pourActive)) { this._clock.getDelta(); return; }
+      if (this._hidden || (this._offscreen && !this._pourActive && this._holdY == null)) { this._clock.getDelta(); return; }
       var dt = Math.min(0.05, this._clock.getDelta());
       var t = this._clock.elapsedTime;
 
@@ -827,6 +833,22 @@
         var max = Math.max(1, doc.scrollHeight - window.innerHeight);
         p = Math.min(1, Math.max(0, window.scrollY / max));
       }
+
+      // THE WALL: the pour must finish before the words below unlock. Armed
+      // by POSITION (end of the pinned hero) + remaining water — never by
+      // "currently pouring", which a fast flick outruns — and enforced every
+      // frame, so stopping below the hero still pulls the reader back up.
+      // Never traps: 12s hard release, reduced-motion exempt, scroll-up
+      // free, and only for readers who actually came down through the hero.
+      if (p < 0.7) { this._sawHero = true; if (this._level > 0.9) this._wallT = 0; }
+      var wall = this._sawHero && !this._noWall && this._pin &&
+                 p > 0.985 && this._level > 0.245;
+      if (wall) {
+        if (!this._wallT) this._wallT = t || 0.001;
+        if (t - this._wallT > 12) wall = false;
+      }
+      this._holdY = wall ? this._pin.offsetTop + this._pin.offsetHeight - window.innerHeight : null;
+      if (this._holdY != null && window.scrollY > this._holdY + 1) window.scrollTo(0, this._holdY);
 
       // twist: scroll up → twist right, scroll down → twist left (reversed)
       this._rotY += -vel * 0.0018 * dt * 60 * 0.016;
@@ -1037,19 +1059,6 @@
         // a long, savoured pour: the full bottle takes ~6s to empty, so the
         // user experiences the whole thing before moving down to the cup
         this._level = Math.max(0.20, this._level - dt * (0.035 + 0.115 * ps * flow));
-      }
-
-      // the gate on the words below: hold the reader at the hero's end until
-      // the flow visibly thins (the last few ml, head almost gone) — then the
-      // page lets go and they scroll down to find the cup topping itself off.
-      // Never traps: 12s hard release, reduced-motion exempt, scroll-up free.
-      if (pouring && this._level > 0.245 && this._pin && !this._noWall) {
-        if (!this._wallT) this._wallT = time;
-        this._holdY = time - this._wallT < 12
-          ? this._pin.offsetTop + this._pin.offsetHeight - window.innerHeight : null;
-      } else {
-        this._holdY = null;
-        if (!pouring) this._wallT = 0;
       }
 
       var bk = this._updateStream(pouring, ps, flow, time);
