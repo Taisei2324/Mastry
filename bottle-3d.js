@@ -981,7 +981,11 @@
           this._glugCool = 0.45;
           this._spawnGlugAir();
         }
-        this._level = Math.max(0.20, this._level - dt * (0.08 + 0.30 * ps * flow));
+        // the bottle pours patiently until the glass is on screen to receive:
+        // the stream keeps flowing the whole way down while the user scrolls
+        // to it, then the last of the water transfers at full rate
+        var recv = (_pourHandoff.hasGlass && !_pourHandoff.glassActive) ? 0.12 : 1;
+        this._level = Math.max(0.20, this._level - dt * (0.08 + 0.30 * ps * flow) * recv);
       }
 
       var bk = this._updateStream(pouring, ps, flow, time);
@@ -1189,8 +1193,10 @@
       _pourHandoff.r = r0 * pxY;     // exit radius in px
       _pourHandoff.ps = ps;
       _pourHandoff.live = true;
-      if (_pourHandoff.hasGlass) {
-        // the glass draws the jet; this scene keeps the bottle, cap and fizz
+      if (_pourHandoff.hasGlass && _pourHandoff.glassActive) {
+        // the glass canvas is on screen and draws the jet from here; this
+        // scene keeps the bottle, cap and fizz. Until the glass arrives we
+        // draw the stream ourselves so the pour flows from the first drop.
         stream.visible = false; core.visible = false;
         stream.material.opacity = 0; core.material.opacity = 0;
         return null;
@@ -1327,7 +1333,7 @@
      radius — and the glass scene draws the ENTIRE stream from lip to cup in
      one canvas: there is no border for the water to be cut off at. One
      shared object, both elements live in this closure — no allocation. */
-  var _pourHandoff = { live: false, ps: 0, mx: 0, my: 0, vx: 0, vy: 0, g: 0, r: 0, hasBottle: false, hasGlass: false };
+  var _pourHandoff = { live: false, ps: 0, mx: 0, my: 0, vx: 0, vy: 0, g: 0, r: 0, hasBottle: false, hasGlass: false, glassActive: false };
   function tumblerInnerR(y) {         // inner wall radius at height y (fit to the lathe profile)
     return 0.255 + 0.045 * Math.max(0, Math.min(1, (y - 0.125) / (0.96 - 0.125)));
   }
@@ -1367,7 +1373,7 @@
     }
 
     disconnectedCallback() {
-      _pourHandoff.hasGlass = false;
+      _pourHandoff.hasGlass = false; _pourHandoff.glassActive = false;
       cancelAnimationFrame(this._raf);
       if (this._ro) this._ro.disconnect();
       if (this._io) this._io.disconnect();
@@ -1625,7 +1631,8 @@
 
     _tick() {
       var dt = Math.min(0.05, this._clock.getDelta());
-      if (this._hidden || this._offscreen) return;
+      if (this._hidden || this._offscreen) { _pourHandoff.glassActive = false; return; }
+      _pourHandoff.glassActive = true;
       var t = this._clock.elapsedTime;
 
       // fill target follows the scroll progress the page writes into --p
