@@ -351,10 +351,12 @@ html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL f
    the glass element per frame) scrubs the copy in after the pour. */
 .highball{position:relative;height:170svh;}
 .highball__copy{
+  /* the cup rides down the pour line on the LEFT; the copy answers from
+     the right, where the whisky bottle has just made its exit */
   position:sticky;top:0;height:100svh;
-  display:flex;flex-direction:column;justify-content:center;align-items:flex-end;
-  padding-right:62%;padding-left:clamp(20px,6vw,90px);
-  text-align:right;
+  display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
+  padding-left:64%;padding-right:clamp(20px,6vw,90px);
+  text-align:left;
   opacity:calc((var(--hb,0) - 0.72)*5);
   pointer-events:none;
 }

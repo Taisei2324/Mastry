@@ -1865,10 +1865,9 @@
         var baseLock = vh * 0.5 + cupPx * 0.5;               // cup centred on screen
         var M2 = Math.max(20, (vh - cupPx) * 0.5);           // sticky margin inside the stage
         var baseScr = Math.min(Math.max(baseLock, base0), hb.bottom - M2);
-        // slide from the pour line to the centre as the cup starts riding
-        var ft = smoothstep(0, 1, Math.min(1, Math.max(0, (baseLock - base0) / (vh * 0.35))));
-        var fx2 = lerp(this._narrow ? 0.13 : 0.30, 0.5, ft);
-        this._glass.position.x = (fx2 - 0.5) * 2 * this._halfW;
+        // the cup keeps its longitude: it rides straight down the pour line,
+        // never drifting toward the centre (the user was firm on this)
+        this._glass.position.x = (this._fxDefault - 0.5) * 2 * this._halfW;
         this._glass.position.y = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
         // whisky timeline, scrubbed by how deep the stage has been ridden
         var w = Math.max(0, Math.min(1, (vh * 0.80 - hb.top) / Math.max(1, hb.height - vh * 0.20)));
