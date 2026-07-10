@@ -704,6 +704,13 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   .section__title{font-size:clamp(1.65rem,7.4vw,2.1rem);}
   .flavours__bottlewrap{height:min(44vh,380px);}
   .seal__paper{width:min(300px,78vw);}
+  /* the panorama shrinks to a sliver at phone width — run it at 175% and
+     crop the sides so Fuji, the boat and the acropolis stay legible */
+  .footer{overflow:hidden;}
+  .footer__art{
+    width:175vw;
+    margin:34px 0 0 calc(-1*clamp(20px,7vw,110px) - 37.5vw);
+  }
 }
 
 /* ═══ REDUCED MOTION ═══ */
