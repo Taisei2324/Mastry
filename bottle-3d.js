@@ -1,7 +1,8 @@
 /* <bottle-3d> — Mastry 3D bottle web component.
    Transparent-canvas Three.js scene: lathe glass bottle, label texture,
    aluminum ROPP cap, condensation, fizz bubbles, scroll-reactive twist/drift,
-   end-of-scroll cap-off + tilt + pour finale.
+   end-of-scroll cap-off (psssht + nucleation burst) + tilt + physical pour
+   (tapering jet, Plateau–Rayleigh breakup into droplets, glugging).
    Requires global THREE (three r147). */
 (function () {
   'use strict';
@@ -101,7 +102,7 @@
 
     /* ---------- scene ---------- */
     _initThree() {
-      if (!_v1) { _v1 = new THREE.Vector3(); _v2 = new THREE.Vector3(); _v3 = new THREE.Vector3(); _vZ = new THREE.Vector3(0, 0, 1); _q1 = new THREE.Quaternion(); _q2 = new THREE.Quaternion(); }
+      if (!_v1) { _v1 = new THREE.Vector3(); _v2 = new THREE.Vector3(); _v3 = new THREE.Vector3(); _v4 = new THREE.Vector3(); _v5 = new THREE.Vector3(); _v6 = new THREE.Vector3(); _vZ = new THREE.Vector3(0, 0, 1); _vY = new THREE.Vector3(0, 1, 0); _q1 = new THREE.Quaternion(); _q2 = new THREE.Quaternion(); }
       var renderer = new THREE.WebGLRenderer({ canvas: this._canvas, alpha: true, antialias: true });
       renderer.setClearColor(0x000000, 0);
       renderer.outputEncoding = THREE.sRGBEncoding;
@@ -160,6 +161,7 @@
       this._buildCapGroups(bottle);
       this._buildBottle(bottle);
       this._buildBubbles(bottle);
+      this._buildFizz(bottle);
       this._buildCondensation(bottle);
       this._buildPour(scene);
       this._buildShadow(scene);
@@ -482,6 +484,20 @@
       }
     }
 
+    _buildFizz(parent) {
+      // event bubbles, separate from the ambient column: the cap-off burst
+      // firing every nucleation site at once, and the fat air slugs that
+      // glug back in through the neck while pouring
+      var MAX = 130;
+      var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.013, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xdff1e4, transparent: true, opacity: 0.6, depthWrite: false, clippingPlanes: [this._waterPlane] }), MAX);
+      mesh.count = 0;
+      mesh.renderOrder = 4;
+      parent.add(mesh);
+      this._fizz = mesh;
+      this._fizzData = [];
+    }
+
     _buildCondensation(parent) {
       // real droplets: tiny glass hemispheres that condense, grow, run down the
       // glass under gravity, and shrink away once they reach the bottom
@@ -536,19 +552,43 @@
     }
 
     _buildPour(scene) {
-      var MAX = 160;
+      // shared instanced pool: pour droplets, satellite drops, cap-off mist
+      var MAX = 220;
       var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.02, 6, 6),
         new THREE.MeshBasicMaterial({ color: 0xf6fbf6, transparent: true, opacity: 0.75, depthWrite: false }), MAX);
       mesh.renderOrder = 7;
       mesh.count = 0;
+      mesh.frustumCulled = false;
       scene.add(mesh);
       this._pour = mesh;
       this._pourData = [];
       this._pourClock = 0;
-      // continuous liquid stream (parabolic tube, rebuilt while pouring)
-      var stream = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshPhysicalMaterial({
-        color: 0xf0f7ef, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.0,
-        envMapIntensity: 1.7, clearcoat: 1, clearcoatRoughness: 0.1, depthWrite: false
+      this._glugPhase = 0; this._glugCool = 0;
+      this._fizzBurst = 0; this._fizzArmed = false; this._fizzClock = 0;
+      // continuous jet: pre-allocated tube whose ring positions are rewritten
+      // in place each frame — no geometry churn. The jet tapers as gravity
+      // accelerates it (mass conservation), a Plateau–Rayleigh varicose wave
+      // deepens down-stream, and past the breakup length it hands over to
+      // the droplet pool above.
+      var RINGS = this._strRings = 42, SEG = this._strSeg = 10;
+      function tubeGeo(withNormals) {
+        var geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
+        if (withNormals) geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
+        var idx = [];
+        for (var i = 0; i < RINGS - 1; i++) {
+          for (var j = 0; j < SEG; j++) {
+            var a = i * SEG + j, b = i * SEG + (j + 1) % SEG;
+            idx.push(a, a + SEG, b, b, a + SEG, b + SEG);
+          }
+        }
+        geo.setIndex(idx);
+        geo.setDrawRange(0, 0);
+        return geo;
+      }
+      var stream = new THREE.Mesh(tubeGeo(true), new THREE.MeshPhysicalMaterial({
+        color: 0xdceede, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.0,
+        envMapIntensity: 2.0, clearcoat: 1, clearcoatRoughness: 0.06, depthWrite: false
       }));
       stream.renderOrder = 7;
       stream.visible = false;
@@ -556,7 +596,7 @@
       scene.add(stream);
       this._stream = stream;
       // bright inner core — reads as solid liquid inside the sheath
-      var core = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({
+      var core = new THREE.Mesh(tubeGeo(false), new THREE.MeshBasicMaterial({
         color: 0xfbfefb, transparent: true, opacity: 0.0, depthWrite: false
       }));
       core.renderOrder = 8;
@@ -696,6 +736,17 @@
       this._cap.rotation.z = -capT * 0.9;
       if (this._capBridges) this._capBridges.visible = capT < 0.15; // bridges snap on first turn
 
+      // carbonation release: the instant the seal cracks, CO2 mist jets from
+      // the mouth and every nucleation site in the bottle fires at once;
+      // re-arms whenever the cap screws back down (scrolling back up)
+      if (!this._fizzArmed && capT < 0.06) this._fizzArmed = true;
+      if (this._fizzArmed && capT > 0.18) {
+        this._fizzArmed = false;
+        this._fizzBurst = 1;
+        this._spawnMist();
+      }
+      if (this._fizzBurst > 0) this._fizzBurst = Math.max(0, this._fizzBurst - dt * 0.4);
+
       // root placement
       var offsetX = this._narrow ? this._offsetX * 0.25 : this._offsetX;
       var bob = Math.sin(t * 0.8) * 0.05;
@@ -732,9 +783,10 @@
         this._waterLocalY = 2.31;
       }
 
-      // bubbles — 2x speed and 2x count once the cap is off
-      var surge = (Math.min(3.5, Math.abs(vel) * 0.012) + tiltT * 3.0) * (1 + capT);
-      this._bubbles.count = Math.round(this._bubbleBase * (1 + capT));
+      // bubbles — 2x speed and 2x count once the cap is off, plus a hard
+      // surge while the cap-off fizz burst is live
+      var surge = (Math.min(3.5, Math.abs(vel) * 0.012) + tiltT * 3.0) * (1 + capT) + this._fizzBurst * 5;
+      this._bubbles.count = Math.min(this._bubbleData.length, Math.round(this._bubbleBase * (1 + capT + this._fizzBurst)));
       var wrapY = Math.min(this._waterLocalY || 2.28, 2.28);
       var bd = this._bubbleData, dummy = this._dropDummy;
       for (var i = 0; i < bd.length; i++) {
@@ -804,91 +856,273 @@
 
     _updatePour(dt, tiltT) {
       var mesh = this._pour, data = this._pourData, dummy = this._dropDummy;
-      var pouring = tiltT > 0.58 && this._level > 0.20;
+      var time = this._clock.elapsedTime;
+
+      // pour strength = how far past the pour threshold the tilt is, scaled
+      // by how much head of water is left to feed the stream — the pour
+      // peters out into drips as the bottle empties
+      var head = smoothstep(0.20, 0.42, this._level);
+      var ps = smoothstep(0.58, 0.96, tiltT) * head;
+      var pouring = tiltT > 0.58 && this._level > 0.201 && ps > 0.003;
+
+      // glug: near-horizontal the mouth runs full of water, so air can only
+      // get back in by starving the flow in pulses (glug… glug…)
+      var flow = 1;
       if (pouring) {
-        this._level = Math.max(0.20, this._level - dt * 0.28); // visible drain over the pour
-        this._mouthAnchor.getWorldPosition(_v1);
-        // direction the mouth points (local +y of bottle, incl. tilt)
-        _v2.set(0, 1, 0).applyQuaternion(this._bottle.getWorldQuaternion(_q1));
-        this._pourClock += dt;
-        var rate = 90 * (tiltT - 0.55);
-        var n = Math.floor(this._pourClock * rate);
-        this._pourClock -= n / Math.max(1, rate);
-        for (var k = 0; k < n && data.length < mesh.instanceMatrix.count; k++) {
+        var glugAmp = smoothstep(0.80, 0.97, tiltT) * smoothstep(0.24, 0.40, this._level);
+        this._glugPhase += dt * (5.2 + 2.2 * ps);
+        var gl = 0.5 + 0.5 * Math.sin(this._glugPhase);
+        flow = 1 - glugAmp * 0.45 * (1 - gl * gl);
+        this._glugCool -= dt;
+        if (glugAmp > 0.25 && gl < 0.12 && this._glugCool <= 0) {
+          this._glugCool = 0.45;
+          this._spawnGlugAir();
+        }
+        this._level = Math.max(0.20, this._level - dt * (0.08 + 0.30 * ps * flow));
+      }
+
+      var bk = this._updateStream(pouring, ps, flow, time);
+
+      // past the breakup point the jet pinches into main drops + satellites
+      if (pouring && bk) {
+        this._pourClock += dt * (24 + 190 * ps);
+        var n = Math.floor(this._pourClock);
+        this._pourClock -= n;
+        for (var k = 0; k < n && data.length < mesh.instanceMatrix.count - 60; k++) {
+          var sat = Math.random() < 0.35;
+          var jr = bk.r * 1.4;
           data.push({
-            x: _v1.x + (Math.random() - 0.5) * 0.05, y: _v1.y, z: _v1.z + (Math.random() - 0.5) * 0.05,
-            vx: _v2.x * 1.6 + (Math.random() - 0.5) * 0.25,
-            vy: _v2.y * 1.6 + (Math.random() - 0.5) * 0.25,
-            vz: _v2.z * 1.6 + (Math.random() - 0.5) * 0.25,
-            life: 1.4, s: 0.6 + Math.random() * 0.8
+            x: bk.x + (Math.random() - 0.5) * jr, y: bk.y + (Math.random() - 0.5) * jr, z: bk.z + (Math.random() - 0.5) * jr,
+            vx: bk.vx + (Math.random() - 0.5) * 0.22,
+            vy: bk.vy + (Math.random() - 0.5) * 0.22,
+            vz: bk.vz + (Math.random() - 0.5) * 0.22,
+            life: 1.6, l0: 1.6,
+            s: Math.min(3.8, (sat ? 0.42 : 0.95) * bk.r * 94 * (0.8 + Math.random() * 0.4)),
+            g: 16, drag: 0.9, mist: false
           });
         }
       }
+
+      // integrate droplets & mist
       for (var i = data.length - 1; i >= 0; i--) {
         var pt = data[i];
-        pt.vy -= 7.5 * dt;
+        pt.vy -= pt.g * dt; // per-particle gravity: pour drops 16, spit 7.5, mist floats
+        var dg = Math.pow(pt.drag, dt);
+        pt.vx *= dg; pt.vy *= dg; pt.vz *= dg;
         pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.z += pt.vz * dt;
         pt.life -= dt;
-        if (pt.life <= 0 || pt.y < -4) data.splice(i, 1);
+        if (pt.life <= 0 || pt.y < -4.5) data.splice(i, 1);
       }
       mesh.count = data.length;
       for (var m = 0; m < data.length; m++) {
         var q = data[m];
+        var vm = Math.sqrt(q.vx * q.vx + q.vy * q.vy + q.vz * q.vz), sc;
         dummy.position.set(q.x, q.y, q.z);
-        var sc = q.s * Math.min(1, q.life * 2);
-        dummy.scale.set(sc, sc * 1.4, sc);
-        dummy.rotation.set(0, 0, 0);
+        if (q.mist) {
+          // gas puff: expands as it dissipates, fades out fast
+          sc = q.s * (1 + (1 - q.life / q.l0) * 2.2) * Math.min(1, q.life * 3);
+          dummy.rotation.set(0, 0, 0);
+          dummy.scale.set(sc, sc, sc);
+        } else {
+          // falling drop: prolate, stretched along its velocity
+          sc = q.s * Math.min(1, q.life * 2);
+          if (vm > 0.01) { _v4.set(q.vx / vm, q.vy / vm, q.vz / vm); dummy.quaternion.setFromUnitVectors(_vY, _v4); }
+          dummy.scale.set(sc, sc * (1 + Math.min(0.9, vm * 0.14)), sc);
+        }
         dummy.updateMatrix();
         mesh.setMatrixAt(m, dummy.matrix);
       }
       if (data.length) mesh.instanceMatrix.needsUpdate = true;
-      this._updateStream(pouring, tiltT);
+
+      this._updateFizz(dt);
     }
 
-    _updateStream(pouring, tiltT) {
+    _spawnMist() {
+      // psssht — CO2 mist and a few flung droplets jet from the mouth the
+      // moment the seal cracks
+      this._mouthAnchor.getWorldPosition(_v1);
+      this._bottle.getWorldQuaternion(_q1);
+      var data = this._pourData, cap = this._pour.instanceMatrix.count;
+      for (var i = 0; i < 56 && data.length < cap; i++) {
+        var spit = i < 8; // a few real droplets ride out with the gas
+        var ang = Math.random() * Math.PI * 2;
+        var spread = (spit ? 0.3 : 0.6) * Math.pow(Math.random(), 0.7);
+        _v3.set(Math.cos(ang) * spread, 1, Math.sin(ang) * spread).normalize().applyQuaternion(_q1);
+        var sp = spit ? 1.1 + Math.random() * 0.9 : 1.5 + Math.random() * 2.0;
+        var life = spit ? 0.9 : 0.3 + Math.random() * 0.4;
+        data.push({
+          x: _v1.x + (Math.random() - 0.5) * 0.05,
+          y: _v1.y + (Math.random() - 0.5) * 0.02,
+          z: _v1.z + (Math.random() - 0.5) * 0.05,
+          vx: _v3.x * sp, vy: _v3.y * sp, vz: _v3.z * sp,
+          life: life, l0: life,
+          s: spit ? 0.5 + Math.random() * 0.4 : 0.13 + Math.random() * 0.2,
+          g: spit ? 7.5 : 0.8, drag: spit ? 0.55 : 0.008, mist: !spit
+        });
+      }
+    }
+
+    _spawnGlugAir() {
+      // the glug is air forcing its way back through the neck: a few fat
+      // bubbles wobble from the mouth toward the trapped air pocket, i.e.
+      // world-up expressed in bottle space
+      this._bottle.getWorldQuaternion(_q1);
+      _v1.set(0, 1, 0).applyQuaternion(_q1.invert());
+      var fd = this._fizzData, cap = this._fizz.instanceMatrix.count;
+      var n = 2 + Math.floor(Math.random() * 3);
+      for (var i = 0; i < n && fd.length < cap; i++) {
+        var ang = Math.random() * Math.PI * 2, rr = Math.random() * 0.06;
+        fd.push({
+          x: Math.cos(ang) * rr, y: 2.5 + Math.random() * 0.35, z: Math.sin(ang) * rr,
+          dx: _v1.x, dy: _v1.y, dz: _v1.z,
+          v: 1.0 + Math.random() * 0.8, s: 2.4 + Math.random() * 1.8,
+          life: 1.4, w: Math.random() * Math.PI * 2, pop: false
+        });
+      }
+    }
+
+    _updateFizz(dt) {
+      var mesh = this._fizz, fd = this._fizzData, dummy = this._dropDummy;
+      if (this._fizzBurst > 0.02) {
+        // cap-off burst: nucleation sites on the glass wall and base fire
+        // streams of fast-rising bubbles for a couple of seconds
+        this._fizzClock += dt * this._fizzBurst * 70;
+        var n = Math.floor(this._fizzClock);
+        this._fizzClock -= n;
+        var wl = Math.min(this._waterLocalY || 2.28, 2.28);
+        for (var k = 0; k < n && fd.length < mesh.instanceMatrix.count; k++) {
+          var wall = Math.random() < 0.72;
+          var y = wall ? 0.15 + Math.random() * Math.max(0.2, wl - 0.5) : 0.10 + Math.random() * 0.25;
+          var ang = Math.random() * Math.PI * 2;
+          var rr = radiusAt(y) * (wall ? 0.80 + Math.random() * 0.08 : Math.random() * 0.5);
+          fd.push({
+            x: Math.cos(ang) * rr, y: y, z: Math.sin(ang) * rr,
+            dx: 0, dy: 1, dz: 0,
+            v: 0.5 + Math.random() * 0.8, s: 1.0 + Math.random() * 1.6,
+            life: 6, w: Math.random() * Math.PI * 2, pop: true
+          });
+        }
+      }
+      var wrap = Math.min(this._waterLocalY || 2.28, 2.30);
+      for (var i = fd.length - 1; i >= 0; i--) {
+        var b = fd[i];
+        b.w += dt * 7;
+        b.v += dt * 0.45;             // buoyancy: they accelerate as they rise
+        b.s += dt * 0.22;             // and swell as the pressure drops
+        b.x += (b.dx * b.v + Math.sin(b.w) * 0.06) * dt;
+        b.y += b.dy * b.v * dt;
+        b.z += (b.dz * b.v + Math.cos(b.w * 0.9) * 0.06) * dt;
+        b.life -= dt;
+        if (b.life <= 0 || (b.pop && b.y >= wrap)) { fd.splice(i, 1); continue; }
+      }
+      mesh.count = fd.length;
+      for (var m = 0; m < fd.length; m++) {
+        var q = fd[m];
+        dummy.position.set(q.x, q.y, q.z);
+        var sq = 1 + Math.sin(q.w * 1.7) * 0.18; // wobbling squash & stretch
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(q.s * sq, q.s / sq, q.s * sq);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(m, dummy.matrix);
+      }
+      if (fd.length) mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    /* rebuilds the jet in place; returns the breakup point + velocity so the
+       droplet system can take over where the continuous stream pinches off */
+    _updateStream(pouring, ps, flow, time) {
       var stream = this._stream, core = this._streamCore;
       if (!pouring) {
         stream.material.opacity = Math.max(0, stream.material.opacity - 0.08);
         core.material.opacity = Math.max(0, core.material.opacity - 0.12);
         if (stream.material.opacity <= 0.01) { stream.visible = false; core.visible = false; }
-        return;
+        return null;
       }
-      this._streamSkip = !this._streamSkip;
-      if (this._streamSkip && this._stream.visible) {
-        // rebuild the tube every other frame — halves geometry churn, no visible cost
-        var k0 = Math.min(1, (tiltT - 0.55) * 3.5);
-        stream.material.opacity = Math.min(0.55, stream.material.opacity + 0.05) * k0;
-        core.material.opacity = Math.min(0.9, core.material.opacity + 0.08) * k0;
-        return;
-      }
-      var t0 = this._clock.elapsedTime;
       this._mouthAnchor.getWorldPosition(_v1);
-      _v2.set(0, 1, 0).applyQuaternion(this._bottle.getWorldQuaternion(_q1));
-      var pts = [];
-      for (var i = 0; i <= 26; i++) {
-        var tt = i * 0.026;
-        var y = _v1.y + _v2.y * 1.6 * tt - 0.5 * 7.5 * tt * tt;
-        var wob = Math.sin(t0 * 26 + i * 1.7) * 0.006 * (i / 26); // live wobble grows down-stream
-        pts.push(new THREE.Vector3(_v1.x + _v2.x * 1.6 * tt + wob, y, _v1.z + _v2.z * 1.6 * tt + wob * 0.6));
-        if (y < -3.8) break;
+      this._bottle.getWorldQuaternion(_q1);
+      _v2.set(0, 1, 0).applyQuaternion(_q1);          // mouth axis, world
+      // water leaves over the LOW edge of the lip, not the mouth centre
+      _v3.set(0, -1, 0).addScaledVector(_v2, _v2.y);  // world-down projected onto the mouth plane
+      if (_v3.lengthSq() > 1e-6) _v3.normalize(); else _v3.set(0, 0, 0);
+      var ex = _v1.x + _v3.x * 0.10, ey = _v1.y + _v3.y * 0.10, ez = _v1.z + _v3.z * 0.10;
+      // exit speed & thickness ride the pour strength and the glug pulse.
+      // GP is pour gravity: the bottle is ~25cm tall so scene gravity feels
+      // moon-weak on a water jet — pump it so the arc bends down decisively
+      var GP = 16;
+      var v0 = (0.55 + 0.95 * ps) * (0.82 + 0.18 * flow);
+      var r0 = (0.016 + 0.062 * ps) * (0.55 + 0.45 * flow);
+      // weak pours droop off the lip; hard pours jet along the axis
+      var droop = 0.55 * (1 - ps);
+      _v4.set(_v2.x + _v3.x * droop, _v2.y + _v3.y * droop, _v2.z + _v3.z * droop).normalize();
+      var vx = _v4.x * v0, vy = _v4.y * v0, vz = _v4.z * v0;
+      // breakup length: fat fast jets hold together, thin dribbles pinch off
+      // almost immediately (capped so the breakup stays inside the frame)
+      var Lb = Math.min(1.9, Math.max(0.14, 9 * v0 * Math.pow(r0, 0.75)));
+
+      var posA = stream.geometry.attributes.position.array;
+      var norA = stream.geometry.attributes.normal.array;
+      var posC = core.geometry.attributes.position.array;
+      var RINGS = this._strRings, SEG = this._strSeg, TSTEP = 0.016;
+      var s = 0, nr = 0, bk = null;
+      for (var i = 0; i < RINGS; i++) {
+        var tt = i * TSTEP;
+        var wx = ex + vx * tt, wy = ey + vy * tt - 0.5 * GP * tt * tt, wz = ez + vz * tt;
+        var cvx = vx, cvy = vy - GP * tt, cvz = vz;
+        var spd = Math.sqrt(cvx * cvx + cvy * cvy + cvz * cvz);
+        if (i > 0) s += spd * TSTEP;
+        // mass conservation: the jet thins as gravity stretches it
+        var rBase = r0 * Math.sqrt(v0 / Math.max(v0, spd));
+        var frac = s / Lb;
+        // Plateau–Rayleigh varicose wave rides down the jet and deepens;
+        // wavelength ≈ 9x jet radius, travelling with the flow
+        var r = rBase * (1 + (0.08 + 0.95 * frac * frac) * 0.42 * Math.sin(s * 10.5 - time * 30));
+        if (frac > 0.78) r *= Math.max(0.10, 1 - (frac - 0.78) * 3.6); // necks into the pinch-off
+        if (r < 0.003) r = 0.003;
+        // lateral wander grows down-stream
+        var lat = Math.sin(s * 7.5 - time * 11) * 0.016 * frac;
+        _v4.set(cvx / spd, cvy / spd, cvz / spd);
+        if (Math.abs(_v4.y) > 0.985) _v5.set(1, 0, 0); else _v5.set(0, 1, 0);
+        _v6.crossVectors(_v4, _v5).normalize();
+        _v5.crossVectors(_v6, _v4);
+        wx += _v6.x * lat; wy += _v6.y * lat; wz += _v6.z * lat;
+        for (var j = 0; j < SEG; j++) {
+          var a2 = j / SEG * Math.PI * 2;
+          var ca = Math.cos(a2), sa = Math.sin(a2);
+          var nx = _v6.x * ca + _v5.x * sa, ny = _v6.y * ca + _v5.y * sa, nz = _v6.z * ca + _v5.z * sa;
+          var o = (i * SEG + j) * 3;
+          posA[o] = wx + nx * r; posA[o + 1] = wy + ny * r; posA[o + 2] = wz + nz * r;
+          norA[o] = nx; norA[o + 1] = ny; norA[o + 2] = nz;
+          var rc = r * 0.42;
+          posC[o] = wx + nx * rc; posC[o + 1] = wy + ny * rc; posC[o + 2] = wz + nz * rc;
+        }
+        nr = i + 1;
+        if (s >= Lb || wy < -4.2) {
+          if (s >= Lb) bk = { x: wx, y: wy, z: wz, vx: cvx, vy: cvy, vz: cvz, r: rBase };
+          break;
+        }
       }
-      if (pts.length < 3) return;
-      var curve = new THREE.CatmullRomCurve3(pts);
-      var geo = new THREE.TubeGeometry(curve, 30, 0.032, 12, false);
-      if (stream.geometry) stream.geometry.dispose();
-      stream.geometry = geo;
-      stream.visible = true;
-      var coreGeo = new THREE.TubeGeometry(curve, 30, 0.014, 8, false);
-      if (core.geometry) core.geometry.dispose();
-      core.geometry = coreGeo;
-      core.visible = true;
-      var k = Math.min(1, (tiltT - 0.55) * 3.5);
-      stream.material.opacity = Math.min(0.55, stream.material.opacity + 0.05) * k;
-      core.material.opacity = Math.min(0.9, core.material.opacity + 0.08) * k;
+      if (!bk && nr === RINGS) {
+        // ran out of rings before the jet broke — hand over where the tube ends
+        var lt = (RINGS - 1) * TSTEP;
+        bk = { x: ex + vx * lt, y: ey + vy * lt - 0.5 * GP * lt * lt, z: ez + vz * lt, vx: vx, vy: vy - GP * lt, vz: vz, r: 0.003 };
+      }
+      if (nr < 2) { stream.visible = false; core.visible = false; return bk; }
+      stream.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
+      core.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
+      stream.geometry.attributes.position.needsUpdate = true;
+      stream.geometry.attributes.normal.needsUpdate = true;
+      core.geometry.attributes.position.needsUpdate = true;
+      stream.visible = true; core.visible = true;
+      // faint for a dribble, solid for a committed pour — but always
+      // translucent enough to read as water, not paint
+      var k = Math.min(1, 0.3 + ps * 4);
+      stream.material.opacity = Math.min(0.55 * k, stream.material.opacity + 0.06);
+      core.material.opacity = Math.min(0.5 * k, core.material.opacity + 0.08);
+      return bk;
     }
   }
 
-  var _v1, _v2, _v3, _vZ, _q1, _q2;
+  var _v1, _v2, _v3, _v4, _v5, _v6, _vZ, _vY, _q1, _q2;
 
   // minimal OBJ parser — v/vn/f with o|g groups, fan-triangulated, non-indexed
   function parseOBJGroups(text) {
