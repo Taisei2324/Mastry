@@ -235,12 +235,13 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
 /* ── pinned hero: three screens of scroll drive twist → cap-off → tilt → pour,
       then the page releases and the words rise in ── */
 .heropin{
-  height:500svh;position:relative;
+  height:560svh;position:relative;
   background:linear-gradient(180deg,var(--wash-sky) 0%,var(--paper) 36%);
 }
-/* desktop wheels cover distance fast — give the sequence a longer runway */
+/* desktop wheels cover distance fast — give the sequence a longer runway
+   (stretched again so the pour, the wall and the cup breathe apart) */
 @media (min-width:1001px){
-  .heropin{height:800svh;}
+  .heropin{height:920svh;}
 }
 .heropin__sticky{
   position:sticky;top:0;height:100svh;overflow:hidden;
@@ -301,8 +302,9 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
    Greek circle stays on the bottle, the Japanese water-blue square sits
    behind the cup so the pale water clearly reads against it */
 .herowords__blob{
-  position:absolute;left:30%;top:calc(62% - 135px);transform:translate(-50%,-50%);
-  width:330px;aspect-ratio:1;border-radius:30px;
+  /* --cuppx is written by the glass element: the tile tracks the cup */
+  position:absolute;left:30%;top:calc(62% - var(--cuppx,270px)*0.5);transform:translate(-50%,-50%);
+  width:calc(var(--cuppx,270px)*1.22);aspect-ratio:1;border-radius:30px;
   background:
     radial-gradient(circle at 34% 24%,rgba(243,250,252,.85) 0%,rgba(243,250,252,0) 48%),
     radial-gradient(140% 140% at 52% 46%,#C3DCE3 0%,#93B9C4 70%,rgba(109,157,170,.35) 100%);
@@ -800,7 +802,7 @@ html:not(.bottle3d-on) .highball__copy{
      stream falls down the left edge into a glass parked at the title line,
      and the headline steps a few pixels right so the two never collide */
   .herowords__pour{left:13vw;height:40%;}
-  .herowords__blob{left:13%;top:calc(40% - 69px);width:185px;border-radius:20px;filter:blur(5px);}
+  .herowords__blob{left:13%;top:calc(40% - var(--cuppx,140px)*0.5);width:calc(var(--cuppx,140px)*1.30);border-radius:20px;filter:blur(5px);}
   .highball__copy{
     justify-content:flex-end;align-items:center;text-align:center;
     padding:0 20px 12svh;

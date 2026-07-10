@@ -758,7 +758,7 @@
         // hits it — same conditions as _tick, including the 12s release
         if (self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
             (!self._wallT || self._clock.elapsedTime - self._wallT < 12)) {
-          var end = self._pin.offsetTop + self._pin.offsetHeight - window.innerHeight;
+          var end = self._pin.offsetTop + 0.88 * Math.max(1, self._pin.offsetHeight - window.innerHeight);
           if (y > end) self._holdY = end;
         }
         if (self._holdY != null && y > self._holdY) {
@@ -822,6 +822,9 @@
       this._camera.position.z = 8.3 * (h / Math.max(1, ref));
       this._camera.aspect = w / h;
       this._camera.updateProjectionMatrix();
+      // how tall the bottle actually renders, in CSS px — the cup below
+      // sizes itself from this so the two always keep their proportion
+      _pourHandoff.bPx = H * ref / (2 * 0.2867 * 8.3);
     }
 
     /* ---------- per-frame ---------- */
@@ -848,20 +851,24 @@
         p = Math.min(1, Math.max(0, window.scrollY / max));
       }
 
-      // THE WALL: the pour must finish before the words below unlock. Armed
-      // by POSITION (end of the pinned hero) + remaining water — never by
-      // "currently pouring", which a fast flick outruns — and enforced every
-      // frame, so stopping below the hero still pulls the reader back up.
-      // Never traps: 12s hard release, reduced-motion exempt, scroll-up
-      // free, and only for readers who actually came down through the hero.
+      // THE WALL: the pour must finish before the words below unlock. It
+      // stands MID-POUR (p=0.88, bottle deeply tilted, jet at full song) —
+      // at the pin's end it came too late: a natural scroll drained the
+      // bottle en route and the wall waved everyone through. Armed by
+      // position + remaining water, enforced every frame. Never traps: 12s
+      // hard release, reduced-motion exempt, scroll-up free, and only for
+      // readers who actually came down through the hero.
       if (p < 0.7) { this._sawHero = true; if (this._level > 0.9) this._wallT = 0; }
-      var wall = this._sawHero && !this._noWall && this._pin &&
-                 p > 0.985 && this._level > 0.245;
+      var wall = this._sawHero && !this._noWall && this._pin && this._level > 0.245;
       if (wall) {
-        if (!this._wallT) this._wallT = t || 0.001;
-        if (t - this._wallT > 12) wall = false;
+        var wallY = this._pin.offsetTop + 0.88 * Math.max(1, this._pin.offsetHeight - window.innerHeight);
+        wall = window.scrollY >= wallY - 2;
+        if (wall) {
+          if (!this._wallT) this._wallT = t || 0.001;
+          if (t - this._wallT > 12) wall = false;
+        }
       }
-      this._holdY = wall ? this._pin.offsetTop + this._pin.offsetHeight - window.innerHeight : null;
+      this._holdY = wall ? wallY : null;
       if (this._holdY != null && window.scrollY > this._holdY + 1) window.scrollTo(0, this._holdY);
 
       // twist: scroll up → twist right, scroll down → twist left (reversed)
@@ -1570,8 +1577,8 @@
       this._splash = splash; this._splashData = []; this._splashClock = 0;
 
       // bubbles churned under the impact, rising through the water
-      var bub = new THREE.InstancedMesh(new THREE.SphereGeometry(0.010, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0xdff1e4, transparent: true, opacity: 0.55, depthWrite: false, clippingPlanes: [this._waterPlane] }), 120);
+      var bub = new THREE.InstancedMesh(new THREE.SphereGeometry(0.013, 6, 6),
+        new THREE.MeshBasicMaterial({ color: 0xf2fbf5, transparent: true, opacity: 0.75, depthWrite: false, toneMapped: false, clippingPlanes: [this._waterPlane] }), 120);
       bub.count = 0; bub.renderOrder = 4; bub.frustumCulled = false;
       scene.add(bub);
       this._bub = bub; this._bubData = []; this._bubClock = 0;
@@ -1779,7 +1786,21 @@
       // size the camera so the tumbler renders at a chosen pixel height, then
       // park the tumbler on the pour line at the right height of the section
       // sized to hold the bottle's pour: a ~500ml bottle needs a tall glass
-      var targetPx = this._cupPx = this._narrow ? 138 : 269;
+      // ratioed to the BOTTLE: 85% of its rendered height (user: the cup
+      // was too small next to it). Phones clamp so the cup on the 13% pour
+      // line can never clip the left edge (half-width = 0.213/unit height).
+      var bPx = _pourHandoff.bPx || 0;
+      this._cupSrc = bPx;
+      var targetPx;
+      if (this._narrow) {
+        var maxNarrow = Math.max(120, (0.13 * window.innerWidth - 8) / 0.213);
+        targetPx = Math.min(bPx ? bPx * 0.85 : 138, maxNarrow);
+      } else {
+        targetPx = Math.max(240, Math.min(520, bPx ? bPx * 0.85 : 269));
+      }
+      this._cupPx = targetPx = Math.round(targetPx);
+      // the square aura is CSS — hand it the cup's size so it keeps fitting
+      if (this.parentElement) this.parentElement.style.setProperty('--cuppx', targetPx + 'px');
       var z = (GH * h) / (2 * 0.2867 * targetPx);
       this._camera.position.z = z;
       this._camera.aspect = w / h;
@@ -1814,6 +1835,8 @@
       var grA = this.getBoundingClientRect();
       var cupPxY = grA.top + (0.5 - this._glass.position.y / (2 * this._halfH)) * grA.height;
       _pourHandoff.cupSeen = cupPxY > -60 && cupPxY < window.innerHeight + 60;
+      // the bottle sized (or resized) after us: retake our ratio from it
+      if (_pourHandoff.bPx && Math.abs((this._cupSrc || 0) - _pourHandoff.bPx) > 1) this._resize();
       var t = this._clock.elapsedTime;
 
       // fill target follows the scroll progress the page writes into --p
@@ -2123,7 +2146,7 @@
       // glass floor and lower walls and climb whenever the cup holds any —
       // slower and smaller than the pour churn, champagne-style
       if (!this._reduce && waterY - floorY > 0.04) {
-        this._fizzClock = (this._fizzClock || 0) + dt * 9;
+        this._fizzClock = (this._fizzClock || 0) + dt * 13;
         var nf = Math.floor(this._fizzClock);
         this._fizzClock -= nf;
         for (var kf = 0; kf < nf && data.length < mesh.instanceMatrix.count; kf++) {
@@ -2134,7 +2157,7 @@
             y: floorY + Math.random() * Math.max(0.02, (waterY - floorY) * 0.5),
             z: Math.sin(fa) * fr,
             v: 0.10 + Math.random() * 0.16, w: Math.random() * Math.PI * 2,
-            s: 0.28 + Math.random() * 0.5
+            s: 0.5 + Math.random() * 0.75
           });
         }
       }
