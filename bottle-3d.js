@@ -1417,16 +1417,18 @@
       shadow.renderOrder = 0;
       g.add(shadow);
 
-      // the water body — same material family as inside the bottle
-      var wpts = [new THREE.Vector2(0, 0.125)];
-      for (var wy = 0.125; wy <= 0.97; wy += 0.12) wpts.push(new THREE.Vector2(tumblerInnerR(wy) * 0.995, wy));
-      wpts.push(new THREE.Vector2(tumblerInnerR(0.97) * 0.995, 0.97));
-      var water = new THREE.Mesh(new THREE.LatheGeometry(wpts, 48), new THREE.MeshPhysicalMaterial({
+      // the water body — same material family as inside the bottle. The
+      // cavity profile lives on the instance so a loaded glass-src model can
+      // redefine it and the water follows the real glass.
+      this._innerR = tumblerInnerR;
+      this._waterBase = 0.125;
+      var water = new THREE.Mesh(this._waterGeo(), new THREE.MeshPhysicalMaterial({
         color: 0xa7cbb4, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.34,
         envMapIntensity: 1.1, depthWrite: false, side: THREE.DoubleSide,
         clippingPlanes: [this._waterPlane]
       }));
       water.renderOrder = 2; g.add(water);
+      this._water = water;
       installWaterBodyShader(water.material, this);
       var top = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshPhysicalMaterial({
         color: 0xdfeee6, roughness: 0.04, transparent: true, opacity: 0.30,
@@ -1489,19 +1491,22 @@
     }
 
     /* clear reflective glass: BackSide tint + FrontSide clearcoat + a
-       normal-blended dark-edge fresnel over one geometry */
-    _shellify(parent, geo) {
+       normal-blended dark-edge fresnel over one geometry. `facet` marks the
+       hard-cut crystal primitives: flat-shaded, hotter env sparkle — and the
+       geometry's baked hard normals are NEVER recomputed or welded. */
+    _shellify(parent, geo, facet) {
       // clear glass over a light page = almost invisible body, dark edge
       // bands where the wall goes edge-on, hot speculars from the env streaks
       var back = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
-        color: 0x87a094, roughness: 0.06, metalness: 0, transparent: true, opacity: 0.28,
-        side: THREE.BackSide, envMapIntensity: 0.9, depthWrite: false
+        color: 0x87a094, roughness: facet ? 0.02 : 0.06, metalness: 0, transparent: true, opacity: 0.28,
+        side: THREE.BackSide, envMapIntensity: 0.9, depthWrite: false, flatShading: !!facet
       }));
       back.renderOrder = 1; parent.add(back);
       var front = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
-        color: 0xdfe9e2, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.14,
+        color: facet ? 0xf2f7f3 : 0xdfe9e2, roughness: facet ? 0.01 : 0.03, metalness: 0,
+        transparent: true, opacity: facet ? 0.22 : 0.14,
         clearcoat: 1, clearcoatRoughness: 0.04, side: THREE.FrontSide,
-        envMapIntensity: 1.9, depthWrite: false
+        envMapIntensity: facet ? 3.0 : 1.9, depthWrite: false, flatShading: !!facet
       }));
       front.renderOrder = 5; parent.add(front);
       var fresnel = new THREE.Mesh(geo, new THREE.ShaderMaterial({
@@ -1535,11 +1540,37 @@
         self._tumblerShells.forEach(function (mesh) { g.remove(mesh); mesh.material.dispose(); });
         self._tumblerShells = [];
         prims.forEach(function (o) {
+          var name = ((o.material && o.material.name) || '').toLowerCase();
+          // the crystal asset ships an interior "refraction core" (30k+ tris)
+          // that only pays off with transmission — which renders black on our
+          // alpha canvas. Drop it; keep the body and the hard-cut facets.
+          if (prims.length > 2 && o.geometry.index && name.indexOf('facet') === -1) return;
           var geo = o.geometry.clone();
           geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(norm, o.matrixWorld));
-          self._tumblerShells = self._tumblerShells.concat(self._shellify(g, geo));
+          var facet = name.indexOf('facet') !== -1 || name.indexOf('cut') !== -1;
+          self._tumblerShells = self._tumblerShells.concat(self._shellify(g, geo, facet));
         });
+        // the water now follows the real cavity: straight highball walls over
+        // a heavy crystal base (cavity floor ≈ 12.5mm of 160mm)
+        var rOut = (box.max.x - box.min.x) / 2 * s;
+        self._innerR = function () { return rOut * 0.90; };
+        self._waterBase = 0.08;
+        self._rebuildWater();
       });
+    }
+
+    /* water column lathe from the current cavity profile */
+    _waterGeo() {
+      var wpts = [new THREE.Vector2(0, this._waterBase)];
+      for (var wy = this._waterBase; wy <= 0.97; wy += 0.12) wpts.push(new THREE.Vector2(this._innerR(wy) * 0.995, wy));
+      wpts.push(new THREE.Vector2(this._innerR(0.97) * 0.995, 0.97));
+      return new THREE.LatheGeometry(wpts, 48);
+    }
+
+    _rebuildWater() {
+      var old = this._water.geometry;
+      this._water.geometry = this._waterGeo();
+      old.dispose();
     }
 
     _resize() {
@@ -1589,9 +1620,9 @@
       else this._level += Math.max(diff, -dt * 0.5);   // scroll-up: it un-pours with the bottle
 
       // waterline
-      var waterY = this._glass.position.y + 0.125 + this._level * (0.97 - 0.125);
+      var waterY = this._glass.position.y + this._waterBase + this._level * (0.97 - this._waterBase);
       this._waterPlane.constant = waterY;
-      var rIn = tumblerInnerR(waterY - this._glass.position.y) * 0.995;
+      var rIn = this._innerR(waterY - this._glass.position.y) * 0.995;
       this._waterTop.position.set(0, waterY + 0.002 - this._glass.position.y, 0); // local to the glass group
       this._waterTop.scale.set(rIn, rIn, 1);
       this._waterTop.visible = this._level > 0.02;
@@ -1600,7 +1631,7 @@
       // exist after the first program compile)
       if (this._waterUniforms) {
         this._waterUniforms.uWaterlineY.value = waterY;
-        this._waterUniforms.uBaseY.value = this._glass.position.y + 0.125;
+        this._waterUniforms.uBaseY.value = this._glass.position.y + this._waterBase;
         this._waterUniforms.uTime.value = t;
         this._waterUniforms.uAgitate.value = pour;
       }
@@ -1714,7 +1745,7 @@
         q.life -= dt;
         // the glass is a wall: droplets that reach it wet it and die there
         var lrr = Math.sqrt((q.x - gx0) * (q.x - gx0) + q.z * q.z);
-        var hitWall = (q.y - gy0) < GH && lrr > tumblerInnerR(q.y - gy0) * 0.95;
+        var hitWall = (q.y - gy0) < GH && lrr > this._innerR(q.y - gy0) * 0.95;
         if (q.life <= 0 || hitWall || (q.vy < 0 && q.y < waterY)) { data[i] = data[data.length - 1]; data.pop(); }
       }
       mesh.count = data.length;
@@ -1733,7 +1764,7 @@
 
     _updateBubbles(dt, pour, x, waterY, rIn) {
       var mesh = this._bub, data = this._bubData, dummy = this._dummy;
-      var floorY = this._glass.position.y + 0.14;
+      var floorY = this._glass.position.y + this._waterBase + 0.015;
       if (pour > 0.05 && waterY - floorY > 0.05) {
         this._bubClock += dt * 26 * pour;
         var n = Math.floor(this._bubClock);
@@ -1756,7 +1787,7 @@
         b.x += Math.sin(b.w) * 0.01 * dt * 60 * 0.016 * 4;
         // stay inside the tumbler wall
         var rr = Math.sqrt((b.x - gx) * (b.x - gx) + b.z * b.z);
-        var rMax = tumblerInnerR(b.y - this._glass.position.y) * 0.92;
+        var rMax = this._innerR(b.y - this._glass.position.y) * 0.92;
         if (rr > rMax && rr > 0) { b.x = gx + (b.x - gx) * rMax / rr; b.z *= rMax / rr; }
         if (b.y >= waterY - 0.004) { data[i] = data[data.length - 1]; data.pop(); continue; }
       }
