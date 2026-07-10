@@ -869,16 +869,14 @@
       // over the glass line (30% of the viewport from the left), where the
       // next section's glass waits to catch the pour
       var offsetX = this._narrow ? this._offsetX * 0.25 : this._offsetX;
-      var bob = Math.sin(t * 0.8) * 0.05;
+      var bob = Math.sin(t * 0.8) * 0.05 * (1 - tiltT); // rock-still while pouring
       var halfW = this._camera.position.z * 0.2867 * this._camera.aspect;
       // glass line: 30% of the viewport on desktop, 14% on phones
       var pourX = (this._narrow ? -0.72 : -0.4) * halfW + 1.44; // mouth swings ~1.44 left of root at full tilt
-      // a strong jet leaves the lip with sideways speed and drifts ~1 world
-      // unit while falling — lean the pour stance right by that carry so the
-      // LANDING sits on the glass line; as the head drops the stance eases
-      // back and the landing walks with it (the cup below gives chase)
-      var headC = smoothstep(0.20, 0.42, this._level);
-      this._root.position.x = offsetX + this._driftX + tiltT * (pourX + headC * 1.05);
+      // the bottle holds ONE fixed pour stance — it tilts, it does not wander.
+      // The +0.5 lean splits the jet's sideways carry so both strong and weak
+      // pours land on-screen; the landing walk is the CUP's job to chase.
+      this._root.position.x = offsetX + this._driftX + tiltT * (pourX + 0.5);
       this._root.position.y = bob + this._driftY + tiltT * 0.55;
       this._root.rotation.z = this._tiltV + tiltT * 1.95;
 
@@ -1257,16 +1255,18 @@
         // mass conservation: the jet thins as gravity stretches it
         var rBase = r0 * Math.sqrt(v0 / Math.max(v0, spd));
         var frac = s / Lb;
-        // Plateau–Rayleigh varicose wave + slower turbulent slugs + fast
-        // ripple — the flow trips up as it falls instead of staying laminar
-        var r = rBase * (1 + (0.08 + 0.95 * frac * frac) * 0.30 * Math.sin(s * 10.5 - time * 30)
-                          + (0.11 * Math.sin(s * 4.3 - time * 11.0)
-                           + 0.07 * Math.sin(s * 23.0 - time * 47.0)) * Math.min(1, 0.3 + s / 1.4));
+        // LAGRANGIAN turbulence (matches the glass jet): features are phased
+        // by parcel birth time so they fall and stretch with the water
+        var u = time - tt;
+        var grw = Math.min(1, 0.3 + s / 1.4);
+        var r = rBase * (1 + (0.08 + 0.95 * frac * frac) * 0.26 * Math.sin(u * 45.0 + s * 1.5)
+                          + (0.13 * Math.sin(u * 11.0 + 1.8 * Math.sin(u * 3.7 + s))
+                           + 0.07 * Math.sin(u * 71.0 + s * 3.1)) * grw);
         if (frac > 0.78) r *= Math.max(0.10, 1 - (frac - 0.78) * 3.6); // necks into the pinch-off
         if (r < 0.005) r = 0.005; // keep the thin tail legible against the cream page
-        // lateral writhe grows down-stream — two octaves, both cross axes
-        var lat = (Math.sin(s * 7.5 - time * 11) * 0.6 + Math.sin(s * 16.9 - time * 21.7) * 0.4) * 0.030 * Math.min(1, frac * 2);
-        var lat2 = (Math.cos(s * 4.7 - time * 9.1) * 0.6 + Math.sin(s * 11.3 - time * 19.3) * 0.4) * 0.022 * Math.min(1, frac * 2);
+        // lateral writhe rides down with the parcels — both cross axes
+        var lat = (Math.sin(u * 7.3 + 1.5 * Math.sin(u * 2.1)) * 0.6 + Math.sin(u * 15.7 + s) * 0.4) * 0.032 * Math.min(1, frac * 2);
+        var lat2 = (Math.cos(u * 9.1 + 1.7 * Math.sin(u * 2.9)) * 0.6 + Math.sin(u * 19.3 + s * 1.3) * 0.4) * 0.024 * Math.min(1, frac * 2);
         _v4.set(cvx / spd, cvy / spd, cvz / spd);
         if (Math.abs(_v4.y) > 0.985) _v5.set(1, 0, 0); else _v5.set(0, 1, 0);
         _v6.crossVectors(_v4, _v5).normalize();
@@ -1276,8 +1276,8 @@
           var a2 = j / SEG * Math.PI * 2;
           var ca = Math.cos(a2), sa = Math.sin(a2);
           var nx = _v6.x * ca + _v5.x * sa, ny = _v6.y * ca + _v5.y * sa, nz = _v6.z * ca + _v5.z * sa;
-          // ropey cross-section: angular lumps braid down the stream
-          var rj = r * (1 + 0.14 * Math.sin(a2 * 2 + s * 9.0 - time * 21.0));
+          // ropey cross-section: angular lumps braid down with the parcels
+          var rj = r * (1 + 0.14 * Math.sin(a2 * 2 + u * 21.0 + s * 2.0));
           var o = (i * SEG + j) * 3;
           posA[o] = wx + nx * rj; posA[o + 1] = wy + ny * rj; posA[o + 2] = wz + nz * rj;
           norA[o] = nx; norA[o + 1] = ny; norA[o + 2] = nz;
@@ -1824,19 +1824,23 @@
         var spd = Math.sqrt(jet.vx * jet.vx + cvy * cvy);
         if (i > 0) s += spd * dtt; // arc length ridden by the varicose wave
         var rr = r0 * Math.sqrt(vE / Math.max(vE, spd)); // mass conservation
-        // turbulent, not laminar: the varicose wave (same phase as the
-        // bottle's) plus slower slugs and fast ripple, deepening with fall
+        // LAGRANGIAN turbulence: every feature belongs to a water parcel and
+        // is phased by that parcel's birth time (u = time - tt), so lumps and
+        // kinks visibly FALL and STRETCH with the accelerating water instead
+        // of crawling along a sculpted tube. Phase-modulated sines break the
+        // periodicity so it reads as chaos, not a pattern.
+        var u = time - tt;
         var wfr = tt / Math.max(1e-4, tofl);
         var grow = Math.min(1, 0.3 + s / 1.4);
-        rr *= 1 + (0.08 + 0.95 * wfr * wfr) * 0.30 * Math.sin(s * 10.5 - time * 30.0) * Math.min(1, s / 0.5)
-                + (0.11 * Math.sin(s * 4.3 - time * 11.0)
-                 + 0.07 * Math.sin(s * 23.0 - time * 47.0)) * grow;
+        rr *= 1 + (0.08 + 0.95 * wfr * wfr) * 0.26 * Math.sin(u * 45.0 + s * 1.5) * Math.min(1, s / 0.5)
+                + (0.13 * Math.sin(u * 11.0 + 1.8 * Math.sin(u * 3.7 + s))
+                 + 0.07 * Math.sin(u * 71.0 + s * 3.1)) * grow;
         if (rr < 0.006) rr = 0.006;
-        // 3D snaking — the falling column writhes in x AND z, harder with fall
-        var wob = 0.030 * Math.min(1, s / 1.3);
+        // 3D snaking — kinks born at the lip ride down with the water
+        var wob = 0.034 * Math.min(1, s / 1.2);
         var wx = jet.x0 + jet.vx * tt
-               + (Math.sin(s * 3.1 - time * 7.3) * 0.6 + Math.sin(s * 8.1 - time * 15.7) * 0.4) * wob;
-        var wz = (Math.cos(s * 4.7 - time * 9.1) * 0.6 + Math.sin(s * 11.3 - time * 19.3) * 0.4) * wob * 0.8;
+               + (Math.sin(u * 7.3 + 1.5 * Math.sin(u * 2.1)) * 0.6 + Math.sin(u * 15.7 + s) * 0.4) * wob;
+        var wz = (Math.cos(u * 9.1 + 1.7 * Math.sin(u * 2.9)) * 0.6 + Math.sin(u * 19.3 + s * 1.3) * 0.4) * wob * 0.8;
         // the last stretch of the fall bends into the cup and calms down —
         // the pour ends INSIDE the glass, never beside it
         if (jet.cupX !== undefined && jet.tofl) {
@@ -1845,16 +1849,20 @@
           wx += (jet.cupX - (jet.x0 + jet.vx * jet.tofl)) * bw;
           wz *= 1 - bw * 0.85;
         }
+        // the bright core spirals inside the sheath — an internal braid the
+        // eye reads through the translucent outer water
+        var brA = u * 13.0 + s * 2.0;
+        var cx = wx + Math.cos(brA) * rr * 0.25, cz = wz + Math.sin(brA) * rr * 0.25;
         for (var j = 0; j < SEG; j++) {
           var a2 = j / SEG * Math.PI * 2;
           var nx = Math.cos(a2), nz = Math.sin(a2);
-          // ropey cross-section: angular lumps braid down the stream
-          var rj = rr * (1 + 0.14 * Math.sin(a2 * 2 + s * 9.0 - time * 21.0) * grow);
+          // ropey cross-section: angular lumps braid down with the parcels
+          var rj = rr * (1 + 0.14 * Math.sin(a2 * 2 + u * 21.0 + s * 2.0) * grow);
           var o = (i * SEG + j) * 3;
           posA[o] = wx + nx * rj; posA[o + 1] = wy; posA[o + 2] = wz + nz * rj;
           norA[o] = nx; norA[o + 1] = 0; norA[o + 2] = nz;
           var rc = rj * 0.42;
-          posC[o] = wx + nx * rc; posC[o + 1] = wy; posC[o + 2] = wz + nz * rc;
+          posC[o] = cx + nx * rc; posC[o + 1] = wy; posC[o + 2] = cz + nz * rc;
         }
         nr = i + 1;
         if (wy <= waterY) break;
@@ -1875,7 +1883,7 @@
     _shedSpray(dt, pour, jet, waterY) {
       if (pour <= 0.05) return;
       var mesh = this._splash, data = this._splashData;
-      this._shedClock = (this._shedClock || 0) + dt * 42 * pour;
+      this._shedClock = (this._shedClock || 0) + dt * 60 * pour;
       var n = Math.floor(this._shedClock);
       this._shedClock -= n;
       if (!n) return;
@@ -1886,11 +1894,11 @@
       for (var k = 0; k < n && data.length < mesh.instanceMatrix.count; k++) {
         var tt = (0.12 + Math.random() * 0.8) * tofl;
         var ang = Math.random() * Math.PI * 2;
-        var kick = 0.06 + Math.random() * 0.24;
+        var kick = 0.08 + Math.random() * 0.34;
         data.push({
           x: jet.x0 + jet.vx * tt, y: jet.y0 + jet.vy * tt - 0.5 * G * tt * tt, z: 0,
           vx: jet.vx + Math.cos(ang) * kick, vy: jet.vy - G * tt, vz: Math.sin(ang) * kick,
-          life: 0.30 + Math.random() * 0.25, s: 0.35 + Math.random() * 0.5
+          life: 0.30 + Math.random() * 0.25, s: 0.3 + Math.random() * 0.8
         });
       }
     }
