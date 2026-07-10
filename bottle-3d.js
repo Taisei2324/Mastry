@@ -201,7 +201,7 @@
       var fresnel = new THREE.Mesh(glassGeo, new THREE.ShaderMaterial({
         transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide,
         vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
-        fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.6); float hot = pow(d, 7.0); vec3 tint = vec3(0.62, 0.88, 0.72); gl_FragColor = vec4(tint * f * 0.55 + vec3(1.0) * hot * 0.5, f * 0.6 + hot * 0.4); }'
+        fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.4); float hot = pow(d, 6.5); vec3 tint = vec3(0.62, 0.88, 0.72); gl_FragColor = vec4(tint * f * 0.78 + vec3(1.0) * hot * 0.62, f * 0.72 + hot * 0.5); }'
       }));
       fresnel.renderOrder = 6;
       parent.add(fresnel);
@@ -287,24 +287,19 @@
       parent.add(top);
       this._waterTop = top;
 
-      // mouth + neck threads: hidden while the bottle is sealed so nothing
-      // peeks through the cap; they appear as the cap lifts off
-      this._neckHardware = [];
+      // mouth + neck threads: always present, sized to sit inside the cap
+      // (the cap carries 5% extra radial room, so nothing pokes through)
       var mouth = new THREE.Mesh(new THREE.TorusGeometry(0.188, 0.018, 10, 40),
         new THREE.MeshPhysicalMaterial({ color: 0xdfe5dc, roughness: 0.1, transparent: true, opacity: 0.5, envMapIntensity: 1.6 }));
       mouth.rotation.x = Math.PI / 2; mouth.position.y = 3.24; mouth.renderOrder = 5;
-      mouth.visible = false;
       parent.add(mouth);
-      this._neckHardware.push(mouth);
       var threadMat = new THREE.MeshPhysicalMaterial({ color: 0xe8efe8, roughness: 0.08, transparent: true, opacity: 0.45, envMapIntensity: 1.8 });
       for (var th = 0; th < 2; th++) {
         var thread = new THREE.Mesh(new THREE.TorusGeometry(0.198, 0.007, 8, 48), threadMat);
         thread.rotation.x = Math.PI / 2;
         thread.position.y = 3.0 + th * 0.09;
         thread.renderOrder = 5;
-        thread.visible = false;
         parent.add(thread);
-        this._neckHardware.push(thread);
       }
       this._mouthAnchor = new THREE.Object3D();
       this._mouthAnchor.position.set(0, 3.3, 0);
@@ -682,10 +677,6 @@
       this._cap.rotation.y = -capT * 14;
       this._cap.rotation.z = -capT * 0.9;
       if (this._capBridges) this._capBridges.visible = capT < 0.15; // bridges snap on first turn
-      if (this._neckHardware) {
-        // mouth ring + threads only exist to the eye once the cap has lifted
-        for (var nh = 0; nh < this._neckHardware.length; nh++) this._neckHardware[nh].visible = capT > 0.3;
-      }
 
       // root placement
       var offsetX = this._narrow ? this._offsetX * 0.25 : this._offsetX;
