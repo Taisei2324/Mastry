@@ -1193,10 +1193,12 @@
       _pourHandoff.r = r0 * pxY;     // exit radius in px
       _pourHandoff.ps = ps;
       _pourHandoff.live = true;
-      if (_pourHandoff.hasGlass && _pourHandoff.glassActive) {
-        // the glass canvas is on screen and draws the jet from here; this
-        // scene keeps the bottle, cap and fizz. Until the glass arrives we
-        // draw the stream ourselves so the pour flows from the first drop.
+      if (_pourHandoff.hasGlass && _pourHandoff.glassActive &&
+          _pourHandoff.my >= _pourHandoff.glassTop + 40 &&
+          (performance.now() - _pourHandoff.beat) < 250) {
+        // the glass canvas covers the mouth and is alive: it draws the whole
+        // jet from here. Until then — and if it ever stalls — this scene
+        // draws its own stream, so water always visibly leaves the bottle.
         stream.visible = false; core.visible = false;
         stream.material.opacity = 0; core.material.opacity = 0;
         return null;
@@ -1333,7 +1335,7 @@
      radius — and the glass scene draws the ENTIRE stream from lip to cup in
      one canvas: there is no border for the water to be cut off at. One
      shared object, both elements live in this closure — no allocation. */
-  var _pourHandoff = { live: false, ps: 0, mx: 0, my: 0, vx: 0, vy: 0, g: 0, r: 0, hasBottle: false, hasGlass: false, glassActive: false };
+  var _pourHandoff = { live: false, ps: 0, mx: 0, my: 0, vx: 0, vy: 0, g: 0, r: 0, hasBottle: false, hasGlass: false, glassActive: false, glassTop: 1e9, beat: 0 };
   function tumblerInnerR(y) {         // inner wall radius at height y (fit to the lathe profile)
     return 0.255 + 0.045 * Math.max(0, Math.min(1, (y - 0.125) / (0.96 - 0.125)));
   }
@@ -1633,6 +1635,7 @@
       var dt = Math.min(0.05, this._clock.getDelta());
       if (this._hidden || this._offscreen) { _pourHandoff.glassActive = false; return; }
       _pourHandoff.glassActive = true;
+      _pourHandoff.beat = performance.now(); // heartbeat: the bottle resumes its own jet if this scene ever stalls
       var t = this._clock.elapsedTime;
 
       // fill target follows the scroll progress the page writes into --p
@@ -1683,8 +1686,14 @@
       // converts into this scene's world units, and the whole stream — lip to
       // cup — is drawn by this one overlapping canvas. No border, no cut.
       var jet = this._jet || (this._jet = {});
+      var covers = !live; // the default frame-top jet needs no coverage test
       if (live) {
         var gr = this.getBoundingClientRect();
+        _pourHandoff.glassTop = gr.top;
+        // only take the stream over once this canvas actually COVERS the
+        // bottle's mouth — otherwise our jet would start mid-air below it,
+        // and no water would seem to leave the bottle
+        covers = _pourHandoff.my >= gr.top + 40;
         var w2x = (2 * this._halfW) / Math.max(1, gr.width);
         var w2y = (2 * this._halfH) / Math.max(1, gr.height);
         jet.x0 = ((_pourHandoff.mx - gr.left) / Math.max(1, gr.width) - 0.5) * 2 * this._halfW;
@@ -1708,7 +1717,7 @@
       this._fx += (fxT - this._fx) * (1 - Math.pow(0.03, dt));
       this._glass.position.x = (this._fx - 0.5) * 2 * this._halfW;
       var jx = live ? landX : this._glass.position.x;
-      this._updateJet(pour, jet, waterY, t);
+      this._updateJet(covers ? pour : 0, jet, waterY, t);
       this._updateSplash(dt, pour, jx, waterY);
       this._updateBubbles(dt, pour, jx, waterY, rIn);
 
