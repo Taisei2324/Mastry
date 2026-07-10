@@ -754,7 +754,7 @@ html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL f
   .herowords__pour{left:14vw;height:40%;}
   .herowords__glass{width:64px;}
   .herowords .hero__copy{max-width:none;margin-right:0;}
-  .herowords .hero__title{transform:translateX(30px);}
+  .herowords .hero__title{transform:translateX(38px);} /* clears the bigger crystal */
   /* the panorama shrinks to a sliver at phone width — run it at 175% and
      crop the sides so Fuji, the boat and the acropolis stay legible */
   .footer{overflow:hidden;}

@@ -799,7 +799,11 @@
 
     /* ---------- per-frame ---------- */
     _tick() {
-      if (this._hidden || this._offscreen) { this._clock.getDelta(); return; }
+      // never freeze mid-pour: if the hero scrolls out of view while the
+      // water is still flowing, keep ticking until the transfer finishes —
+      // a frozen broadcast left the glass drawing a phantom, bent stream
+      // from stale screen coordinates and the cup never filled
+      if (this._hidden || (this._offscreen && !_pourHandoff.live)) { this._clock.getDelta(); return; }
       var dt = Math.min(0.05, this._clock.getDelta());
       var t = this._clock.elapsedTime;
 
@@ -1215,6 +1219,9 @@
       // almost immediately. At full pour the jet stays coherent all the way
       // off the bottom of the frame — it hands over to the glass below
       var Lb = Math.min(1.9 + 5.2 * ps, Math.max(0.14, 9 * v0 * Math.pow(r0, 0.75) * (1 + 2.2 * ps)));
+      // paired with a glass below, the stream continues past this frame —
+      // no mid-air Plateau-Rayleigh pinch (it read as a "split" in the fall)
+      if (_pourHandoff.hasGlass) Lb = 1e9;
 
       var posA = stream.geometry.attributes.position.array;
       var norA = stream.geometry.attributes.normal.array;
@@ -1662,6 +1669,7 @@
       var src = this.getAttribute('glass-src') || this.getAttribute('glasssrc');
       if (!src || !THREE.GLTFLoader) return;
       var self = this;
+      this._glbTries = (this._glbTries || 0) + 1;
       new THREE.GLTFLoader().load(src, function (m) {
         m.scene.updateMatrixWorld(true);
         var prims = [];
@@ -1693,6 +1701,10 @@
         self._innerR = function () { return rOut * 0.90; };
         self._waterBase = 0.08;
         self._rebuildWater();
+      }, undefined, function () {
+        // flaky fetch (1.5MB on mobile): retry the crystal before giving up —
+        // the procedural tumbler must only ever be a last resort
+        if (self._glbTries < 4) setTimeout(function () { self._loadGlassSrc(g); }, 1800);
       });
     }
 
@@ -1719,7 +1731,8 @@
       this._needsRender = true;
       // size the camera so the tumbler renders at a chosen pixel height, then
       // park the tumbler on the pour line at the right height of the section
-      var targetPx = this._narrow ? 120 : 210;
+      // sized to hold the bottle's pour: a ~500ml bottle needs a tall glass
+      var targetPx = this._narrow ? 140 : 268;
       var z = (GH * h) / (2 * 0.2867 * targetPx);
       this._camera.position.z = z;
       this._camera.aspect = w / h;
@@ -1907,12 +1920,14 @@
         var wx = jet.x0 + jet.vx * tt
                + (Math.sin(u * 7.3 + 1.5 * Math.sin(u * 2.1)) * 0.6 + Math.sin(u * 15.7 + s) * 0.4) * wob;
         var wz = (Math.cos(u * 9.1 + 1.7 * Math.sin(u * 2.9)) * 0.6 + Math.sin(u * 19.3 + s * 1.3) * 0.4) * wob * 0.8;
-        // the last stretch of the fall bends into the cup and calms down —
-        // the pour ends INSIDE the glass, never beside it
+        // the last stretch of the fall eases into the cup — late, gentle and
+        // capped, so it reads as momentum, not an unnatural elbow
         if (jet.cupX !== undefined && jet.tofl) {
-          var bw = Math.max(0, (tt / jet.tofl - 0.55) / 0.45);
+          var corr = jet.cupX - (jet.x0 + jet.vx * jet.tofl);
+          if (corr > 0.5) corr = 0.5; else if (corr < -0.5) corr = -0.5;
+          var bw = Math.max(0, (tt / jet.tofl - 0.7) / 0.3);
           bw = bw * bw * (3 - 2 * bw);
-          wx += (jet.cupX - (jet.x0 + jet.vx * jet.tofl)) * bw;
+          wx += corr * bw;
           wz *= 1 - bw * 0.85;
         }
         // the bright core spirals inside the sheath — an internal braid the
