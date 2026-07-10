@@ -8,6 +8,20 @@
   'use strict';
   if (customElements.get('bottle-3d')) return;
 
+  // every visit begins at the top: the hero pour is the front door. Browsers
+  // restore the old scroll position on reload, which respawns the reader
+  // halfway down with the story (and THE WALL) skipped — so restoration is
+  // taken over and the page always opens fresh. Deep links with a #hash
+  // keep their destination.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  if (!location.hash) window.scrollTo(0, 0);
+  window.addEventListener('pageshow', function (e) {
+    if (!e.persisted || location.hash) return; // bfcache restore: same rule
+    window.scrollTo(0, 0);
+    var b = document.querySelector('bottle-3d');
+    if (b) { b._level = 1; b._wallT = 0; } // full bottle, wall re-armed
+  });
+
   // Bottle silhouette: [radius, y] pairs, base y=0, top y≈3.26.
   // Sampled from the user's Blender model ("bottle only reset .blend"):
   // slim body, long shoulder taper, lip bead at the mouth.
