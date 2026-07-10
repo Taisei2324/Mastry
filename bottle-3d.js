@@ -1267,15 +1267,18 @@
         // taper floor 0.5: pure mass conservation over our theatrical fall
         // distance thins the stream to a thread — real pours entrain air and
         // keep visual body all the way down
-        var rBase = r0 * Math.max(0.5, Math.sqrt(v0 / Math.max(v0, spd)));
+        // gentle taper (pow 0.3, floor 0.68): the sqrt curve bottomed out in
+        // the first stretch of the fall, carving a visible waist — the pinch
+        var rBase = r0 * Math.max(0.68, Math.pow(v0 / Math.max(v0, spd), 0.3));
         var frac = s / Lb;
         // LAGRANGIAN turbulence (matches the glass jet): features are phased
         // by parcel birth time so they fall and stretch with the water
         var u = time - tt;
         var grw = Math.min(1, 0.3 + s / 1.4);
-        var r = rBase * (1 + (0.08 + 0.95 * frac * frac) * 0.26 * Math.sin(u * 45.0 + s * 1.5)
-                          + (0.13 * Math.sin(u * 11.0 + 1.8 * Math.sin(u * 3.7 + s))
-                           + 0.07 * Math.sin(u * 71.0 + s * 3.1)) * grw);
+        var modB = 1 + (0.08 + 0.95 * frac * frac) * 0.26 * Math.sin(u * 45.0 + s * 1.5)
+                     + (0.11 * Math.sin(u * 11.0 + 1.8 * Math.sin(u * 3.7 + s))
+                      + 0.06 * Math.sin(u * 71.0 + s * 3.1)) * grw;
+        var r = rBase * (modB < 0.84 ? 0.84 : modB); // troughs never gouge a pinch
         if (frac > 0.78) r *= Math.max(0.10, 1 - (frac - 0.78) * 3.6); // necks into the pinch-off
         if (r < 0.005) r = 0.005; // keep the thin tail legible against the cream page
         // lateral writhe rides down with the parcels — both cross axes
@@ -1910,7 +1913,7 @@
         var cvy = jet.vy - G * tt;
         var spd = Math.sqrt(jet.vx * jet.vx + cvy * cvy);
         if (i > 0) s += spd * dtt; // arc length ridden by the varicose wave
-        var rr = r0 * Math.max(0.5, Math.sqrt(vE / Math.max(vE, spd))); // mass conservation, floored — no thread-thin pinch
+        var rr = r0 * Math.max(0.68, Math.pow(vE / Math.max(vE, spd), 0.3)); // gentle taper, floor 0.68 — no waist
         // LAGRANGIAN turbulence: every feature belongs to a water parcel and
         // is phased by that parcel's birth time (u = time - tt), so lumps and
         // kinks visibly FALL and STRETCH with the accelerating water instead
@@ -1919,9 +1922,10 @@
         var u = time - tt;
         var wfr = tt / Math.max(1e-4, tofl);
         var grow = Math.min(1, 0.3 + s / 1.4);
-        rr *= 1 + (0.08 + 0.95 * wfr * wfr) * 0.26 * Math.sin(u * 45.0 + s * 1.5) * Math.min(1, s / 0.5)
-                + (0.13 * Math.sin(u * 11.0 + 1.8 * Math.sin(u * 3.7 + s))
-                 + 0.07 * Math.sin(u * 71.0 + s * 3.1)) * grow;
+        var mod = 1 + (0.08 + 0.95 * wfr * wfr) * 0.26 * Math.sin(u * 45.0 + s * 1.5) * Math.min(1, s / 0.5)
+                    + (0.11 * Math.sin(u * 11.0 + 1.8 * Math.sin(u * 3.7 + s))
+                     + 0.06 * Math.sin(u * 71.0 + s * 3.1)) * grow;
+        rr *= mod < 0.84 ? 0.84 : mod; // surges swell freely; troughs never gouge a pinch
         if (rr < 0.006) rr = 0.006;
         // 3D snaking — kinks born at the lip ride down with the water
         var wob = 0.034 * Math.min(1, s / 1.2);
