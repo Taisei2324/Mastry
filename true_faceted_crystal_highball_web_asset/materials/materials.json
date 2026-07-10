@@ -1,0 +1,44 @@
+{
+  "Crystal_Body_Smooth": {
+    "type": "MeshPhysicalMaterial",
+    "color": "#fbfeff",
+    "metalness": 0,
+    "roughness": 0.018,
+    "transmission": 1.0,
+    "ior": 1.52,
+    "thickness": 0.0042,
+    "attenuationColor": "#fbffff",
+    "attenuationDistance": 8.0,
+    "specularIntensity": 1.0,
+    "envMapIntensity": 2.4,
+    "flatShading": false
+  },
+  "Crystal_Cut_Facets_Hard": {
+    "type": "MeshPhysicalMaterial",
+    "color": "#ffffff",
+    "metalness": 0,
+    "roughness": 0.006,
+    "transmission": 1.0,
+    "ior": 1.545,
+    "thickness": 0.006,
+    "attenuationColor": "#ffffff",
+    "attenuationDistance": 10.0,
+    "specularIntensity": 1.0,
+    "envMapIntensity": 3.2,
+    "flatShading": true,
+    "dispersion": 0.055
+  },
+  "Amber_Whiskey": {
+    "type": "MeshPhysicalMaterial",
+    "color": "#8f2906",
+    "metalness": 0,
+    "roughness": 0.045,
+    "transmission": 0.82,
+    "ior": 1.36,
+    "thickness": 0.065,
+    "attenuationColor": "#a83006",
+    "attenuationDistance": 0.14,
+    "specularIntensity": 0.62,
+    "envMapIntensity": 1.8
+  }
+}
