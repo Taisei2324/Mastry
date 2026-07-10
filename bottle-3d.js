@@ -1262,7 +1262,10 @@
         var spd = Math.sqrt(cvx * cvx + cvy * cvy + cvz * cvz);
         if (i > 0) s += spd * TSTEP;
         // mass conservation: the jet thins as gravity stretches it
-        var rBase = r0 * Math.sqrt(v0 / Math.max(v0, spd));
+        // taper floor 0.5: pure mass conservation over our theatrical fall
+        // distance thins the stream to a thread — real pours entrain air and
+        // keep visual body all the way down
+        var rBase = r0 * Math.max(0.5, Math.sqrt(v0 / Math.max(v0, spd)));
         var frac = s / Lb;
         // LAGRANGIAN turbulence (matches the glass jet): features are phased
         // by parcel birth time so they fall and stretch with the water
@@ -1902,7 +1905,7 @@
         var cvy = jet.vy - G * tt;
         var spd = Math.sqrt(jet.vx * jet.vx + cvy * cvy);
         if (i > 0) s += spd * dtt; // arc length ridden by the varicose wave
-        var rr = r0 * Math.sqrt(vE / Math.max(vE, spd)); // mass conservation
+        var rr = r0 * Math.max(0.5, Math.sqrt(vE / Math.max(vE, spd))); // mass conservation, floored — no thread-thin pinch
         // LAGRANGIAN turbulence: every feature belongs to a water parcel and
         // is phased by that parcel's birth time (u = time - tt), so lumps and
         // kinks visibly FALL and STRETCH with the accelerating water instead
