@@ -132,6 +132,7 @@
         return;
       }
       this._started = true;
+      _pourHandoff.hasBottle = true;
       this.style.display = 'block';
       var canvas = document.createElement('canvas');
       canvas.style.cssText = 'width:100%;height:100%;display:block;';
@@ -148,6 +149,7 @@
     }
 
     disconnectedCallback() {
+      _pourHandoff.hasBottle = false; _pourHandoff.live = false;
       cancelAnimationFrame(this._raf);
       if (this._ro) this._ro.disconnect();
       if (this._io) this._io.disconnect();
@@ -1173,16 +1175,26 @@
       var RINGS = this._strRings, SEG = this._strSeg, TSTEP = 0.016;
       var edgeY = -(this._camera.position.z * 0.2867 + 1.0); // just past the frame bottom
 
-      // broadcast the jet's full state where it crosses the frame bottom —
-      // x-fraction AND direction — so the scene below can continue the very
-      // same parabola and the tumbler can slide under its landing point
-      var tl = (vy + Math.sqrt(vy * vy + 32 * Math.max(0.1, ey - edgeY))) / 16;
-      var vyE = vy - 16 * tl;
-      _pourHandoff.fx = Math.min(0.92, Math.max(0.04,
-        0.5 + (ex + vx * tl) / (2 * this._camera.position.z * 0.2867 * this._camera.aspect)));
-      _pourHandoff.slope = Math.max(-0.6, Math.min(0.6, vx / Math.max(0.2, Math.abs(vyE))));
+      // broadcast the jet's exit state in VIEWPORT PIXELS: the glass scene's
+      // canvas overlaps this one, converts back into its own world units and
+      // draws the ENTIRE stream itself — one canvas, no border to cut at
+      var hhB = this._camera.position.z * 0.2867, hwB = hhB * this._camera.aspect;
+      var rectB = this.getBoundingClientRect();
+      var pxX = rectB.width / (2 * hwB), pxY = rectB.height / (2 * hhB);
+      _pourHandoff.mx = rectB.left + (0.5 + ex / (2 * hwB)) * rectB.width;
+      _pourHandoff.my = rectB.top + (0.5 - ey / (2 * hhB)) * rectB.height;
+      _pourHandoff.vx = vx * pxX;
+      _pourHandoff.vy = -vy * pxY;   // px/s, +down
+      _pourHandoff.g = GP * pxY;     // px/s²
+      _pourHandoff.r = r0 * pxY;     // exit radius in px
       _pourHandoff.ps = ps;
       _pourHandoff.live = true;
+      if (_pourHandoff.hasGlass) {
+        // the glass draws the jet; this scene keeps the bottle, cap and fizz
+        stream.visible = false; core.visible = false;
+        stream.material.opacity = 0; core.material.opacity = 0;
+        return null;
+      }
       var s = 0, nr = 0, bk = null;
       for (var i = 0; i < RINGS; i++) {
         var tt = i * TSTEP;
@@ -1309,11 +1321,13 @@
   /* ══ <glass-3d> — the tumbler that catches the hero's pour. Same water,
      same jet physics, same three-pass glass as the bottle above it. ══ */
   var GH = 1.0;                       // tumbler height, world units
-  /* live handoff between the two scenes: while the bottle pours, it writes
-     where its jet actually lands (viewport-x fraction) and how hard it is
-     pouring; the tumbler below slides to catch it. One shared object, both
-     elements live in this closure — no globals, no allocation. */
-  var _pourHandoff = { live: false, fx: 0.3, slope: 0, ps: 0 };
+  /* live handoff between the two scenes. The glass's canvas overlaps the
+     hero (CSS top:-100svh), so while the bottle pours it broadcasts its
+     jet's exit state in VIEWPORT PIXELS — position, velocity, gravity,
+     radius — and the glass scene draws the ENTIRE stream from lip to cup in
+     one canvas: there is no border for the water to be cut off at. One
+     shared object, both elements live in this closure — no allocation. */
+  var _pourHandoff = { live: false, ps: 0, mx: 0, my: 0, vx: 0, vy: 0, g: 0, r: 0, hasBottle: false, hasGlass: false };
   function tumblerInnerR(y) {         // inner wall radius at height y (fit to the lathe profile)
     return 0.255 + 0.045 * Math.max(0, Math.min(1, (y - 0.125) / (0.96 - 0.125)));
   }
@@ -1327,6 +1341,7 @@
         return;
       }
       this._started = true;
+      _pourHandoff.hasGlass = true;
       this.style.display = 'block';
       var canvas = document.createElement('canvas');
       canvas.style.cssText = 'width:100%;height:100%;display:block;';
@@ -1352,6 +1367,7 @@
     }
 
     disconnectedCallback() {
+      _pourHandoff.hasGlass = false;
       cancelAnimationFrame(this._raf);
       if (this._ro) this._ro.disconnect();
       if (this._io) this._io.disconnect();
@@ -1440,7 +1456,7 @@
       installWaterTopShader(top.material, 1.0, this);
 
       // the falling jet — the same rewritten-in-place tube as the bottle's pour
-      var RINGS = this._strRings = 48, SEG = this._strSeg = 8;
+      var RINGS = this._strRings = 72, SEG = this._strSeg = 8;
       function tubeGeo(withNormals) {
         var geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
@@ -1588,12 +1604,23 @@
       this._camera.aspect = w / h;
       this._camera.updateProjectionMatrix();
       var halfH = z * 0.2867, halfW = halfH * (w / h);
-      this._halfW = halfW;
+      this._halfW = halfW; this._halfH = halfH;
       this._fxDefault = this._narrow ? 0.14 : 0.30; // the bottle's resting pour line
       if (this._fx === undefined) this._fx = this._fxDefault;
-      var baseFrac = this._narrow ? 0.40 : 0.62;   // glass BOTTOM, fraction of section height
-      this._glass.position.set((this._fx - 0.5) * 2 * halfW, (0.5 - baseFrac) * 2 * halfH, 0);
-      this._topY = halfH + 0.4;                    // jet enters from beyond the frame
+      // the canvas overlaps the hero above (CSS top:-100svh) so the jet never
+      // meets a canvas border; the glass itself is still placed against the
+      // SECTION, whose top sits E px below the canvas top
+      var E = 0;
+      if (this.parentElement) {
+        var pr = this.parentElement.getBoundingClientRect();
+        var sr = this.getBoundingClientRect();
+        E = Math.max(0, pr.top - sr.top);
+      }
+      var secH = Math.max(1, h - E);
+      var baseFrac = this._narrow ? 0.40 : 0.62;   // glass BOTTOM, fraction of SECTION height
+      var basePx = E + baseFrac * secH;
+      this._glass.position.set((this._fx - 0.5) * 2 * halfW, (0.5 - basePx / h) * 2 * halfH, 0);
+      this._topY = (0.5 - E / h) * 2 * halfH + 0.4; // default jet entry: just above the section
     }
 
     _tick() {
@@ -1607,9 +1634,11 @@
       var target = this._reduce ? 0.68 : Math.min(0.85, p * 0.95);
       var diff = target - this._level;
       var pour = this._reduce ? 0 : smoothstep(0.001, 0.03, diff);
-      // live handoff: while the bottle overhead pours, the glass accepts the
-      // arriving water regardless of scroll — it IS the same water
-      if (_pourHandoff.live && !this._reduce) {
+      var live = _pourHandoff.live && !this._reduce;
+      // paired with a bottle, water only ever ARRIVES from its pour — no
+      // scroll-conjured jet — though scroll-up still un-pours the glass
+      if (_pourHandoff.hasBottle && !live) pour = 0;
+      if (live) {
         pour = Math.max(pour, Math.min(1, _pourHandoff.ps * 1.15));
         if (this._level < 0.85) diff = Math.max(diff, 0.05);
       }
@@ -1643,30 +1672,46 @@
           !this._bubData.length && !this._needsRender) return;
       this._needsRender = false;
 
-      // the jet continues the bottle's exact parabola: it enters this frame
-      // at the crossing point and angle the bottle broadcast, gravity
-      // straightens it on the way down, and the cup slides under the spot
-      // where that same parabola will land
-      var live = _pourHandoff.live && !this._reduce;
-      var entryX = live ? (Math.min(0.92, Math.max(0.04, _pourHandoff.fx)) - 0.5) * 2 * this._halfW
-                        : this._glass.position.x;
-      var slope = live ? _pourHandoff.slope : 0;
-      var fall0 = Math.max(0.01, this._topY - waterY);
-      var tof0 = (Math.sqrt(100 + 25 * fall0) - 10) / 12.5;
-      var landX = entryX + slope * 10 * tof0;
+      // the jet IS the bottle's jet: its exit state arrives in viewport px,
+      // converts into this scene's world units, and the whole stream — lip to
+      // cup — is drawn by this one overlapping canvas. No border, no cut.
+      var jet = this._jet || (this._jet = {});
+      if (live) {
+        var gr = this.getBoundingClientRect();
+        var w2x = (2 * this._halfW) / Math.max(1, gr.width);
+        var w2y = (2 * this._halfH) / Math.max(1, gr.height);
+        jet.x0 = ((_pourHandoff.mx - gr.left) / Math.max(1, gr.width) - 0.5) * 2 * this._halfW;
+        jet.y0 = (0.5 - (_pourHandoff.my - gr.top) / Math.max(1, gr.height)) * 2 * this._halfH;
+        jet.vx = _pourHandoff.vx * w2x;
+        jet.vy = -_pourHandoff.vy * w2y;              // back to world, +up
+        jet.g = Math.max(0.5, _pourHandoff.g * w2y);
+        jet.r0 = Math.max(0.012, _pourHandoff.r * w2y);
+      } else {
+        jet.x0 = this._glass.position.x; jet.y0 = this._topY;
+        jet.vx = 0; jet.vy = -10; jet.g = 12.5;
+        jet.r0 = 0.024 + 0.018 * pour;
+      }
+      // where this ballistic arc lands = where the cup wants to be
+      var fall0 = Math.max(0.01, jet.y0 - waterY);
+      var vd0 = Math.max(0, -jet.vy);
+      var tof0 = (Math.sqrt(vd0 * vd0 + 2 * jet.g * fall0) - vd0) / jet.g;
+      var landX = jet.x0 + jet.vx * tof0;
       var fxT = live ? Math.min(0.45, Math.max(0.06, 0.5 + landX / (2 * this._halfW)))
                      : this._fxDefault;
       this._fx += (fxT - this._fx) * (1 - Math.pow(0.03, dt));
       this._glass.position.x = (this._fx - 0.5) * 2 * this._halfW;
       var jx = live ? landX : this._glass.position.x;
-      this._updateJet(pour, entryX, slope, this._topY, waterY, t);
+      this._updateJet(pour, jet, waterY, t);
       this._updateSplash(dt, pour, jx, waterY);
       this._updateBubbles(dt, pour, jx, waterY, rIn);
 
       this._renderer.render(this._scene, this._camera);
     }
 
-    _updateJet(pour, xTop, slope, topY, waterY, time) {
+    /* draws the jet as one ballistic arc from the `jet` entry state — either
+       the bottle's live mouth state (converted from viewport px) or the
+       default frame-top drop — down to the water surface */
+    _updateJet(pour, jet, waterY, time) {
       var stream = this._stream, core = this._core;
       if (pour <= 0.01) {
         stream.material.opacity = Math.max(0, stream.material.opacity - 0.08);
@@ -1678,26 +1723,24 @@
       var norA = stream.geometry.attributes.normal.array;
       var posC = core.geometry.attributes.position.array;
       var RINGS = this._strRings, SEG = this._strSeg;
-      // gravity matched to the bottle's on-screen stylization (16 u/s² at its
-      // scale ≈ 12.5 here). By the time the water enters this frame it has
-      // already fallen a full screen from the bottle's mouth, so it arrives
-      // FAST and THIN — visually continuous with the jet leaving the hero
-      var v0 = 10.0, G = 12.5;
-      var vxL = slope * v0; // lateral velocity inherited from the bottle's jet
-      var r0 = 0.024 + 0.018 * pour; // flux-matched to the fill rate at entry speed
-      var nr = 0;
-      var fall = Math.max(0.01, topY - waterY); // guard: sqrt stays real, tofl > 0
-      // time of flight to the surface, then param rings along it
-      var tofl = (Math.sqrt(v0 * v0 + 2 * G * fall) - v0) / G;
+      var G = jet.g, r0 = jet.r0;
+      var vE = Math.max(0.8, Math.sqrt(jet.vx * jet.vx + jet.vy * jet.vy)); // entry speed, taper reference
+      var fall = Math.max(0.01, jet.y0 - waterY); // guard: sqrt stays real, tofl > 0
+      var vd = Math.max(0, -jet.vy);
+      var tofl = (Math.sqrt(vd * vd + 2 * G * fall) - vd) / G;
+      var dtt = tofl / (RINGS - 1);
+      var nr = 0, s = 0;
       for (var i = 0; i < RINGS; i++) {
-        var tt = (i / (RINGS - 1)) * tofl;
-        var wy = topY - (v0 * tt + 0.5 * G * tt * tt);
-        var spd = v0 + G * tt;
-        var rr = r0 * Math.sqrt(v0 / spd);
-        var s = topY - wy;
-        rr *= 1 + 0.20 * Math.sin(s * 10.5 - time * 30.0) * Math.min(1, s / Math.max(0.3, fall)); // the bottle's exact varicose wave
-        var lat = Math.sin(s * 6.0 - time * 9.0) * 0.008 * (s / Math.max(0.3, fall));
-        var wx = xTop + vxL * tt + lat; // gravity straightens the inherited angle
+        var tt = i * dtt;
+        var wy = jet.y0 + jet.vy * tt - 0.5 * G * tt * tt;
+        var cvy = jet.vy - G * tt;
+        var spd = Math.sqrt(jet.vx * jet.vx + cvy * cvy);
+        if (i > 0) s += spd * dtt; // arc length ridden by the varicose wave
+        var rr = r0 * Math.sqrt(vE / Math.max(vE, spd)); // mass conservation
+        rr *= 1 + 0.20 * Math.sin(s * 10.5 - time * 30.0) * Math.min(1, s / 0.8); // the bottle's exact varicose wave
+        if (rr < 0.006) rr = 0.006;
+        var lat = Math.sin(s * 6.0 - time * 9.0) * 0.010 * Math.min(1, s / 2.0);
+        var wx = jet.x0 + jet.vx * tt + lat;
         for (var j = 0; j < SEG; j++) {
           var a2 = j / SEG * Math.PI * 2;
           var nx = Math.cos(a2), nz = Math.sin(a2);

@@ -288,7 +288,10 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
 /* the real pour: a second three.js scene — same water, same jet, same glass
    family as the bottle — catches the stream on the pour line */
 .herowords__glass3d{
-  position:absolute;inset:0;display:block;
+  /* extends a full viewport up over the hero (and over the copy — fine): the
+     jet is drawn end-to-end by this one canvas, so it can never be cut off
+     at a section border */
+  position:absolute;left:0;right:0;top:-100svh;bottom:0;display:block;
   pointer-events:none;z-index:1;
 }
 html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL fallback */
