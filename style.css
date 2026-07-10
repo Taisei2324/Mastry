@@ -257,9 +257,9 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   content:"";position:absolute;top:50%;left:50%;width:min(520px,90%);aspect-ratio:1;
   transform:translate(-50%,-52%);border-radius:50%;z-index:0;pointer-events:none;
   background:conic-gradient(from 20deg,
-    rgba(145,150,79,.5), rgba(109,157,170,.42), rgba(198,165,72,.4),
-    rgba(101,159,144,.42), rgba(145,150,79,.5));
-  filter:blur(48px);opacity:.8;
+    rgba(107,122,50,.72), rgba(101,159,144,.62), rgba(109,157,170,.68),
+    rgba(70,85,42,.58), rgba(107,122,50,.72));
+  filter:blur(42px);opacity:.92;
   animation:aurora 22s linear infinite;
 }
 @keyframes aurora{to{transform:translate(-50%,-52%) rotate(360deg);}}
