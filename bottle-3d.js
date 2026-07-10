@@ -764,8 +764,8 @@
       var offsetX = this._narrow ? this._offsetX * 0.25 : this._offsetX;
       var bob = Math.sin(t * 0.8) * 0.05;
       var halfW = this._camera.position.z * 0.2867 * this._camera.aspect;
-      // glass line: 30% of the viewport on desktop, 20% on phones
-      var pourX = (this._narrow ? -0.6 : -0.4) * halfW + 1.44; // mouth swings ~1.44 left of root at full tilt
+      // glass line: 30% of the viewport on desktop, 16% on phones
+      var pourX = (this._narrow ? -0.68 : -0.4) * halfW + 1.44; // mouth swings ~1.44 left of root at full tilt
       this._root.position.x = offsetX + this._driftX + tiltT * pourX;
       this._root.position.y = bob + this._driftY + tiltT * 0.55;
       this._root.rotation.z = this._tiltV + tiltT * 1.95;

@@ -737,10 +737,11 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   .section__title{font-size:clamp(1.65rem,7.4vw,2.1rem);}
   .flavours__bottlewrap{height:min(44vh,380px);}
   .seal__paper{width:min(300px,78vw);}
-  /* phones: pour line moves to 20vw so the glass clears the copy */
-  .herowords__pour{left:20vw;}
+  /* phones (per the user's sketch): words stay centred at full width; the
+     stream falls down the left edge into a glass parked at the title line */
+  .herowords__pour{left:16vw;height:40%;}
   .herowords__glass{width:68px;}
-  .herowords .hero__copy{max-width:60vw;margin-right:2vw;}
+  .herowords .hero__copy{max-width:none;margin-right:0;}
   /* the panorama shrinks to a sliver at phone width — run it at 175% and
      crop the sides so Fuji, the boat and the acropolis stay legible */
   .footer{overflow:hidden;}
