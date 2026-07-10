@@ -1257,26 +1257,31 @@
         // mass conservation: the jet thins as gravity stretches it
         var rBase = r0 * Math.sqrt(v0 / Math.max(v0, spd));
         var frac = s / Lb;
-        // Plateau–Rayleigh varicose wave rides down the jet and deepens;
-        // wavelength ≈ 9x jet radius, travelling with the flow
-        var r = rBase * (1 + (0.08 + 0.95 * frac * frac) * 0.42 * Math.sin(s * 10.5 - time * 30));
+        // Plateau–Rayleigh varicose wave + slower turbulent slugs + fast
+        // ripple — the flow trips up as it falls instead of staying laminar
+        var r = rBase * (1 + (0.08 + 0.95 * frac * frac) * 0.30 * Math.sin(s * 10.5 - time * 30)
+                          + (0.11 * Math.sin(s * 4.3 - time * 11.0)
+                           + 0.07 * Math.sin(s * 23.0 - time * 47.0)) * Math.min(1, 0.3 + s / 1.4));
         if (frac > 0.78) r *= Math.max(0.10, 1 - (frac - 0.78) * 3.6); // necks into the pinch-off
         if (r < 0.005) r = 0.005; // keep the thin tail legible against the cream page
-        // lateral wander grows down-stream
-        var lat = Math.sin(s * 7.5 - time * 11) * 0.016 * frac;
+        // lateral writhe grows down-stream — two octaves, both cross axes
+        var lat = (Math.sin(s * 7.5 - time * 11) * 0.6 + Math.sin(s * 16.9 - time * 21.7) * 0.4) * 0.030 * Math.min(1, frac * 2);
+        var lat2 = (Math.cos(s * 4.7 - time * 9.1) * 0.6 + Math.sin(s * 11.3 - time * 19.3) * 0.4) * 0.022 * Math.min(1, frac * 2);
         _v4.set(cvx / spd, cvy / spd, cvz / spd);
         if (Math.abs(_v4.y) > 0.985) _v5.set(1, 0, 0); else _v5.set(0, 1, 0);
         _v6.crossVectors(_v4, _v5).normalize();
         _v5.crossVectors(_v6, _v4);
-        wx += _v6.x * lat; wy += _v6.y * lat; wz += _v6.z * lat;
+        wx += _v6.x * lat + _v5.x * lat2; wy += _v6.y * lat + _v5.y * lat2; wz += _v6.z * lat + _v5.z * lat2;
         for (var j = 0; j < SEG; j++) {
           var a2 = j / SEG * Math.PI * 2;
           var ca = Math.cos(a2), sa = Math.sin(a2);
           var nx = _v6.x * ca + _v5.x * sa, ny = _v6.y * ca + _v5.y * sa, nz = _v6.z * ca + _v5.z * sa;
+          // ropey cross-section: angular lumps braid down the stream
+          var rj = r * (1 + 0.14 * Math.sin(a2 * 2 + s * 9.0 - time * 21.0));
           var o = (i * SEG + j) * 3;
-          posA[o] = wx + nx * r; posA[o + 1] = wy + ny * r; posA[o + 2] = wz + nz * r;
+          posA[o] = wx + nx * rj; posA[o + 1] = wy + ny * rj; posA[o + 2] = wz + nz * rj;
           norA[o] = nx; norA[o + 1] = ny; norA[o + 2] = nz;
-          var rc = r * 0.42;
+          var rc = rj * 0.42;
           posC[o] = wx + nx * rc; posC[o + 1] = wy + ny * rc; posC[o + 2] = wz + nz * rc;
         }
         nr = i + 1;
@@ -1544,7 +1549,7 @@
 
       // splash droplets kicked up at the impact point — the bottle drops' water
       var splash = new THREE.InstancedMesh(new THREE.SphereGeometry(0.014, 6, 6),
-        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false }), 90);
+        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false }), 150);
       splash.count = 0; splash.renderOrder = 3.7; splash.frustumCulled = false;
       scene.add(splash);
       this._splash = splash; this._splashData = []; this._splashClock = 0;
@@ -1770,6 +1775,7 @@
       var jx = live ? landX : this._glass.position.x;
       this._updateJet(covers ? pour : 0, jet, waterY, t);
       syncWaterSheen(this._stream, this._sheen);
+      if (covers) this._shedSpray(dt, pour, jet, waterY);
       this._updateSplash(dt, pour, jx, waterY);
       this._updateBubbles(dt, pour, jx, waterY, rIn);
 
@@ -1805,21 +1811,29 @@
         var spd = Math.sqrt(jet.vx * jet.vx + cvy * cvy);
         if (i > 0) s += spd * dtt; // arc length ridden by the varicose wave
         var rr = r0 * Math.sqrt(vE / Math.max(vE, spd)); // mass conservation
-        // the bottle's exact varicose wave, same phase AND same growth curve
-        // (deepens over the fall), so the two halves of the jet are one water
+        // turbulent, not laminar: the varicose wave (same phase as the
+        // bottle's) plus slower slugs and fast ripple, deepening with fall
         var wfr = tt / Math.max(1e-4, tofl);
-        rr *= 1 + (0.08 + 0.95 * wfr * wfr) * 0.42 * Math.sin(s * 10.5 - time * 30.0) * Math.min(1, s / 0.5);
+        var grow = Math.min(1, 0.3 + s / 1.4);
+        rr *= 1 + (0.08 + 0.95 * wfr * wfr) * 0.30 * Math.sin(s * 10.5 - time * 30.0) * Math.min(1, s / 0.5)
+                + (0.11 * Math.sin(s * 4.3 - time * 11.0)
+                 + 0.07 * Math.sin(s * 23.0 - time * 47.0)) * grow;
         if (rr < 0.006) rr = 0.006;
-        var lat = Math.sin(s * 6.0 - time * 9.0) * 0.010 * Math.min(1, s / 2.0);
-        var wx = jet.x0 + jet.vx * tt + lat;
+        // 3D snaking — the falling column writhes in x AND z, harder with fall
+        var wob = 0.030 * Math.min(1, s / 1.3);
+        var wx = jet.x0 + jet.vx * tt
+               + (Math.sin(s * 3.1 - time * 7.3) * 0.6 + Math.sin(s * 8.1 - time * 15.7) * 0.4) * wob;
+        var wz = (Math.cos(s * 4.7 - time * 9.1) * 0.6 + Math.sin(s * 11.3 - time * 19.3) * 0.4) * wob * 0.8;
         for (var j = 0; j < SEG; j++) {
           var a2 = j / SEG * Math.PI * 2;
           var nx = Math.cos(a2), nz = Math.sin(a2);
+          // ropey cross-section: angular lumps braid down the stream
+          var rj = rr * (1 + 0.14 * Math.sin(a2 * 2 + s * 9.0 - time * 21.0) * grow);
           var o = (i * SEG + j) * 3;
-          posA[o] = wx + nx * rr; posA[o + 1] = wy; posA[o + 2] = nz * rr;
+          posA[o] = wx + nx * rj; posA[o + 1] = wy; posA[o + 2] = wz + nz * rj;
           norA[o] = nx; norA[o + 1] = 0; norA[o + 2] = nz;
-          var rc = rr * 0.42;
-          posC[o] = wx + nx * rc; posC[o + 1] = wy; posC[o + 2] = nz * rc;
+          var rc = rj * 0.42;
+          posC[o] = wx + nx * rc; posC[o + 1] = wy; posC[o + 2] = wz + nz * rc;
         }
         nr = i + 1;
         if (wy <= waterY) break;
@@ -1832,6 +1846,32 @@
       stream.visible = true; core.visible = true;
       stream.material.opacity = Math.min(WATER_JET_OP * pour, stream.material.opacity + 0.06);
       core.material.opacity = Math.min(WATER_CORE_OP * pour, core.material.opacity + 0.08);
+    }
+
+    /* turbulent streams shed spray the whole way down, not just at impact:
+       droplets peel off random points along the jet, carrying the local
+       velocity plus a small outward kick, and rain into the pool with it */
+    _shedSpray(dt, pour, jet, waterY) {
+      if (pour <= 0.05) return;
+      var mesh = this._splash, data = this._splashData;
+      this._shedClock = (this._shedClock || 0) + dt * 42 * pour;
+      var n = Math.floor(this._shedClock);
+      this._shedClock -= n;
+      if (!n) return;
+      var G = jet.g;
+      var vd = Math.max(0, -jet.vy);
+      var fall = Math.max(0.01, jet.y0 - waterY);
+      var tofl = (Math.sqrt(vd * vd + 2 * G * fall) - vd) / G;
+      for (var k = 0; k < n && data.length < mesh.instanceMatrix.count; k++) {
+        var tt = (0.12 + Math.random() * 0.8) * tofl;
+        var ang = Math.random() * Math.PI * 2;
+        var kick = 0.06 + Math.random() * 0.24;
+        data.push({
+          x: jet.x0 + jet.vx * tt, y: jet.y0 + jet.vy * tt - 0.5 * G * tt * tt, z: 0,
+          vx: jet.vx + Math.cos(ang) * kick, vy: jet.vy - G * tt, vz: Math.sin(ang) * kick,
+          life: 0.30 + Math.random() * 0.25, s: 0.35 + Math.random() * 0.5
+        });
+      }
     }
 
     _updateSplash(dt, pour, x, waterY) {
