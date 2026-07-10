@@ -661,7 +661,7 @@
       // shared instanced pool: pour droplets, satellite drops, cap-off mist
       var MAX = 220;
       var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.02, 6, 6),
-        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.75, depthWrite: false, toneMapped: false }), MAX);
+        new THREE.MeshBasicMaterial({ color: 0xf6fbf6, transparent: true, opacity: 0.75, depthWrite: false }), MAX);
       mesh.renderOrder = 7;
       mesh.count = 0;
       mesh.frustumCulled = false;
@@ -693,7 +693,12 @@
         geo.setDrawRange(0, 0);
         return geo;
       }
-      var stream = new THREE.Mesh(tubeGeo(true), waterJetMaterial());
+      // ══ ORIGINAL materials, restored (9e68e98): the lit clearcoat sheath
+      // over the aurora backdrop + the bright solid-liquid core ══
+      var stream = new THREE.Mesh(tubeGeo(true), new THREE.MeshPhysicalMaterial({
+        color: 0xdceede, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.0,
+        envMapIntensity: 2.0, clearcoat: 1, clearcoatRoughness: 0.06, depthWrite: false
+      }));
       stream.renderOrder = 7;
       stream.visible = false;
       stream.frustumCulled = false;
@@ -701,18 +706,13 @@
       this._stream = stream;
       // bright inner core — reads as solid liquid inside the sheath
       var core = new THREE.Mesh(tubeGeo(false), new THREE.MeshBasicMaterial({
-        color: WATER_CORE_TINT, transparent: true, opacity: 0.0, depthWrite: false, toneMapped: false
+        color: 0xfbfefb, transparent: true, opacity: 0.0, depthWrite: false
       }));
       core.renderOrder = 8;
       core.visible = false;
       core.frustumCulled = false;
       scene.add(core);
       this._streamCore = core;
-      // wet-glint pass on the same tube — geometry (and drawRange) shared
-      var sheen = waterSheenMesh(stream.geometry);
-      sheen.renderOrder = 8.5;
-      scene.add(sheen);
-      this._streamSheen = sheen;
     }
 
     _buildShadow(scene) {
@@ -1005,15 +1005,13 @@
       var mesh = this._pour, data = this._pourData, dummy = this._dropDummy;
       var time = this._clock.elapsedTime;
 
+      // ══ ORIGINAL pour dynamics, restored (9e68e98) ══
       // pour strength = how far past the pour threshold the tilt is, scaled
       // by how much head of water is left to feed the stream — the pour
       // peters out into drips as the bottle empties
-      // gravity takes over as soon as the tilt passes the spill angle: full
-      // flow by ~80° instead of waiting for the last degrees of the tip, and
-      // the head only tapers the stream at the very end of the drain
-      var head = smoothstep(0.20, 0.30, this._level);
-      var ps = smoothstep(0.50, 0.72, tiltT) * head;
-      var pouring = tiltT > 0.50 && this._level > 0.201 && ps > 0.003;
+      var head = smoothstep(0.20, 0.42, this._level);
+      var ps = smoothstep(0.58, 0.96, tiltT) * head;
+      var pouring = tiltT > 0.58 && this._level > 0.201 && ps > 0.003;
 
       // glug: near-horizontal the mouth runs full of water, so air can only
       // get back in by starving the flow in pulses (glug… glug…)
@@ -1022,24 +1020,16 @@
         var glugAmp = smoothstep(0.80, 0.97, tiltT) * smoothstep(0.24, 0.40, this._level);
         this._glugPhase += dt * (5.2 + 2.2 * ps);
         var gl = 0.5 + 0.5 * Math.sin(this._glugPhase);
-        flow = 1 - glugAmp * 0.16 * (1 - gl * gl); // texture, not stoppage: the stream never chokes
+        flow = 1 - glugAmp * 0.45 * (1 - gl * gl);
         this._glugCool -= dt;
         if (glugAmp > 0.25 && gl < 0.12 && this._glugCool <= 0) {
           this._glugCool = 0.45;
           this._spawnGlugAir();
         }
-        // the bottle pours patiently until the glass is on screen to receive:
-        // the stream keeps flowing the whole way down while the user scrolls
-        // to it, then the last of the water transfers at full rate
-        // LOCKED CHOREOGRAPHY: the full ~2s transfer happens ONLY while the
-        // CUP is on screen — the user watches the water arrive. Until then
-        // the bottle trickles patiently with the stream flowing.
-        var recv = (_pourHandoff.hasGlass && !_pourHandoff.cupSeen) ? 0.1 : 1;
-        this._level = Math.max(0.20, this._level - dt * (0.10 + 0.38 * ps * flow) * recv); // it DUMPS — ~2s full transfer
+        this._level = Math.max(0.20, this._level - dt * (0.08 + 0.30 * ps * flow));
       }
 
       var bk = this._updateStream(pouring, ps, flow, time);
-      syncWaterSheen(this._stream, this._streamSheen);
 
       // past the breakup point the jet pinches into main drops + satellites
       if (pouring && bk) {
@@ -1208,93 +1198,84 @@
       // water leaves over the LOW edge of the lip, not the mouth centre
       _v3.set(0, -1, 0).addScaledVector(_v2, _v2.y);  // world-down projected onto the mouth plane
       if (_v3.lengthSq() > 1e-6) _v3.normalize(); else _v3.set(0, 0, 0);
-      // the stream is born EXACTLY at the glass rim (the anchor sits 0.04
-      // beyond it) — not inside the neck, not past the lip
-      var ex = _v1.x - _v2.x * 0.04, ey = _v1.y - _v2.y * 0.04, ez = _v1.z - _v2.z * 0.04;
+      // ══ THE ORIGINAL POUR, restored verbatim from the version the user
+      // loved (commit 9e68e98) — water leaves over the LOW edge of the lip,
+      // mass-conservation taper, Plateau–Rayleigh varicose wave, breakup
+      // into main drops + satellites. Only the frame-bottom kill bound is
+      // parametrised for today's full-hero canvas. ══
+      var ex = _v1.x + _v3.x * 0.10, ey = _v1.y + _v3.y * 0.10, ez = _v1.z + _v3.z * 0.10;
       var GP = 16;
-      var v0 = (0.65 + 0.95 * ps) * (0.85 + 0.15 * flow);
-      var r0 = (0.036 + 0.085 * ps) * (0.8 + 0.2 * flow);
-      // mostly straight down off the lip, with a whisper of carry
-      var droop = 0.55 * (1 - ps) + 0.15;
+      var v0 = (0.55 + 0.95 * ps) * (0.82 + 0.18 * flow);
+      var r0 = (0.016 + 0.062 * ps) * (0.55 + 0.45 * flow);
+      // weak pours droop off the lip; hard pours jet along the axis
+      var droop = 0.55 * (1 - ps);
       _v4.set(_v2.x + _v3.x * droop, _v2.y + _v3.y * droop, _v2.z + _v3.z * droop).normalize();
-      var vx = _v4.x * v0 * 0.6, vy = _v4.y * v0, vz = _v4.z * v0 * 0.6;
+      var vx = _v4.x * v0, vy = _v4.y * v0, vz = _v4.z * v0;
+      // breakup length: fat fast jets hold together, thin dribbles pinch off
+      // almost immediately (capped so the breakup stays inside the frame)
+      var Lb = Math.min(1.9, Math.max(0.14, 9 * v0 * Math.pow(r0, 0.75)));
 
       var posA = stream.geometry.attributes.position.array;
       var norA = stream.geometry.attributes.normal.array;
-      var colA = stream.geometry.attributes.color.array;
       var posC = core.geometry.attributes.position.array;
       var RINGS = this._strRings, SEG = this._strSeg, TSTEP = 0.016;
       var edgeY = -(this._camera.position.z * 0.2867 + 1.0); // just past the frame bottom
-
-      // broadcast the jet's exit state in VIEWPORT PIXELS: the glass scene's
-      // canvas overlaps this one, converts back into its own world units and
-      // draws the ENTIRE stream itself — one canvas, no border to cut at
-      var hhB = this._camera.position.z * 0.2867, hwB = hhB * this._camera.aspect;
-      var rectB = this.getBoundingClientRect();
-      var pxX = rectB.width / (2 * hwB), pxY = rectB.height / (2 * hhB);
-      _pourHandoff.mx = rectB.left + (0.5 + ex / (2 * hwB)) * rectB.width;
-      _pourHandoff.my = rectB.top + (0.5 - ey / (2 * hhB)) * rectB.height;
-      _pourHandoff.vx = vx * pxX;
-      _pourHandoff.vy = -vy * pxY;   // px/s, +down
-      _pourHandoff.g = GP * pxY;     // px/s²
-      _pourHandoff.r = r0 * pxY;     // exit radius in px
-      _pourHandoff.ps = ps;
-      _pourHandoff.live = true;
-      if (_pourHandoff.hasGlass && _pourHandoff.glassActive &&
-          _pourHandoff.covered === true &&
-          (performance.now() - _pourHandoff.beat) < 250) {
-        // the glass canvas covers the mouth and is alive: it draws the whole
-        // jet from here. Until then — and if it ever stalls — this scene
-        // draws its own stream, so water always visibly leaves the bottle.
-        stream.visible = false; core.visible = false;
-        stream.material.opacity = 0; core.material.opacity = 0;
-        return null;
-      }
-      // ── the clean column: a pure ballistic arc solved exactly from the
-      // lip to the frame bottom. Gentle linear taper, ONE subtle ripple
-      // riding down with the water, horizontal rings (no frames, no folds).
-      // Water falling this far looks like calm glass, not spaghetti.
-      var vd0 = Math.max(0.2, -vy);
-      var fall = Math.max(0.2, ey - edgeY);
-      var tof = (vd0 + Math.sqrt(vd0 * vd0 + 2 * GP * fall)) / GP;
-      var dtt = tof / (RINGS - 1);
-      var nr = 0;
+      var s = 0, nr = 0, bk = null;
       for (var i = 0; i < RINGS; i++) {
-        var tt = i * dtt;
+        var tt = i * TSTEP;
         var wx = ex + vx * tt, wy = ey + vy * tt - 0.5 * GP * tt * tt, wz = ez + vz * tt;
-        var u = time - tt;
-        var fr0 = tt / tof;
-        // throat flare: the first stretch fills the whole mouth opening
-        // (bore ≈ 1.35× the column), so the water visibly leaves the LIP
-        var thr = 1 - fr0 / 0.10; if (thr < 0) thr = 0;
-        var r = r0 * (1 - 0.22 * fr0) * (1 + 0.07 * Math.sin(u * 22.0)) * (1 + 0.35 * thr * thr);
+        var cvx = vx, cvy = vy - GP * tt, cvz = vz;
+        var spd = Math.sqrt(cvx * cvx + cvy * cvy + cvz * cvz);
+        if (i > 0) s += spd * TSTEP;
+        // mass conservation: the jet thins as gravity stretches it
+        var rBase = r0 * Math.sqrt(v0 / Math.max(v0, spd));
+        var frac = s / Lb;
+        // Plateau–Rayleigh varicose wave rides down the jet and deepens;
+        // wavelength ≈ 9x jet radius, travelling with the flow
+        var r = rBase * (1 + (0.08 + 0.95 * frac * frac) * 0.42 * Math.sin(s * 10.5 - time * 30));
+        if (frac > 0.78) r *= Math.max(0.10, 1 - (frac - 0.78) * 3.6); // necks into the pinch-off
+        if (r < 0.003) r = 0.003;
+        // lateral wander grows down-stream
+        var lat = Math.sin(s * 7.5 - time * 11) * 0.016 * frac;
+        _v4.set(cvx / spd, cvy / spd, cvz / spd);
+        if (Math.abs(_v4.y) > 0.985) _v5.set(1, 0, 0); else _v5.set(0, 1, 0);
+        _v6.crossVectors(_v4, _v5).normalize();
+        _v5.crossVectors(_v6, _v4);
+        wx += _v6.x * lat; wy += _v6.y * lat; wz += _v6.z * lat;
         for (var j = 0; j < SEG; j++) {
           var a2 = j / SEG * Math.PI * 2;
-          var nx = Math.cos(a2), nz = Math.sin(a2);
+          var ca = Math.cos(a2), sa = Math.sin(a2);
+          var nx = _v6.x * ca + _v5.x * sa, ny = _v6.y * ca + _v5.y * sa, nz = _v6.z * ca + _v5.z * sa;
           var o = (i * SEG + j) * 3;
-          var aer = 0.94 + 0.10 * Math.max(0, Math.sin(u * 13.0 + a2 * 0.5));
-          colA[o] = aer; colA[o + 1] = aer; colA[o + 2] = aer;
-          posA[o] = wx + nx * r; posA[o + 1] = wy; posA[o + 2] = wz + nz * r;
-          norA[o] = nx; norA[o + 1] = 0; norA[o + 2] = nz;
-          var rc = r * 0.45;
-          posC[o] = wx + nx * rc; posC[o + 1] = wy; posC[o + 2] = wz + nz * rc;
+          posA[o] = wx + nx * r; posA[o + 1] = wy + ny * r; posA[o + 2] = wz + nz * r;
+          norA[o] = nx; norA[o + 1] = ny; norA[o + 2] = nz;
+          var rc = r * 0.42;
+          posC[o] = wx + nx * rc; posC[o + 1] = wy + ny * rc; posC[o + 2] = wz + nz * rc;
         }
         nr = i + 1;
-        if (wy < edgeY) break;
+        if (s >= Lb || wy < edgeY) {
+          if (s >= Lb) bk = { x: wx, y: wy, z: wz, vx: cvx, vy: cvy, vz: cvz, r: rBase };
+          break;
+        }
       }
+      if (!bk && nr === RINGS) {
+        // ran out of rings before the jet broke — hand over where the tube ends
+        var lt = (RINGS - 1) * TSTEP;
+        bk = { x: ex + vx * lt, y: ey + vy * lt - 0.5 * GP * lt * lt, z: ez + vz * lt, vx: vx, vy: vy - GP * lt, vz: vz, r: 0.003 };
+      }
+      if (nr < 2) { stream.visible = false; core.visible = false; return bk; }
       stream.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
       core.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
       stream.geometry.attributes.position.needsUpdate = true;
       stream.geometry.attributes.normal.needsUpdate = true;
-      stream.geometry.attributes.color.needsUpdate = true;
       core.geometry.attributes.position.needsUpdate = true;
       stream.visible = true; core.visible = true;
-      // full presence the instant it pours — the fade-in ramp read as a
-      // transparent stretch at the lip
-      var k = Math.min(1, 0.35 + ps * 3);
-      stream.material.opacity = WATER_JET_OP * k;
-      core.material.opacity = WATER_CORE_OP * k;
-      return null; // no mid-air breakup, ever — the stream ends in the cup
+      // faint for a dribble, solid for a committed pour — but always
+      // translucent enough to read as water, not paint
+      var k = Math.min(1, 0.3 + ps * 4);
+      stream.material.opacity = Math.min(0.55 * k, stream.material.opacity + 0.06);
+      core.material.opacity = Math.min(0.5 * k, core.material.opacity + 0.08);
+      return bk;
     }
   }
 
