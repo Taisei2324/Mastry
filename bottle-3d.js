@@ -121,6 +121,35 @@
     mat.needsUpdate = true;
   }
 
+  /* ── one water look for the WHOLE flow, shared by both scenes ─────────
+     The jet is UNLIT: a lit/env-mapped material on a thin tube is all
+     grazing angles, and its fresnel reflections of the grey studio env
+     composite as a dark outline over the transparent canvas. MeshBasic
+     can never go dark; the wet sheen comes from an additive fresnel pass
+     (additive only ever brightens) drawn over the same tube geometry. */
+  var WATER_JET_TINT = 0xe8f4ea;   // sheath — the poured body of water
+  var WATER_CORE_TINT = 0xfbfefb;  // bright solid-liquid core
+  var WATER_DROP_TINT = 0xeef7f0;  // droplets, satellites, splash, mist
+  function waterJetMaterial() {
+    return new THREE.MeshBasicMaterial({ color: WATER_JET_TINT, transparent: true, opacity: 0.0, depthWrite: false });
+  }
+  function waterSheenMesh(geo) {
+    var m = new THREE.Mesh(geo, new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide,
+      uniforms: { uK: { value: 0 } },
+      vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+      fragmentShader: 'uniform float uK; varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.6); float hot = pow(d, 7.0); gl_FragColor = vec4((vec3(0.70, 0.86, 0.76) * f + vec3(1.0) * hot * 0.55) * uK, (f * 0.55 + hot * 0.35) * uK); }'
+    }));
+    m.visible = false;
+    m.frustumCulled = false;
+    return m;
+  }
+  function syncWaterSheen(stream, sheen) {
+    // the sheen shares the stream's geometry; only visibility + strength track
+    sheen.visible = stream.visible;
+    sheen.material.uniforms.uK.value = stream.material.opacity / 0.55;
+  }
+
   class Bottle3D extends HTMLElement {
     static get observedAttributes() { return ['condensation', 'spin-speed', 'spinspeed', 'offset-x', 'offsetx', 'pour']; }
 
@@ -625,7 +654,7 @@
       // shared instanced pool: pour droplets, satellite drops, cap-off mist
       var MAX = 220;
       var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.02, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0xf6fbf6, transparent: true, opacity: 0.75, depthWrite: false }), MAX);
+        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.75, depthWrite: false }), MAX);
       mesh.renderOrder = 7;
       mesh.count = 0;
       mesh.frustumCulled = false;
@@ -656,10 +685,7 @@
         geo.setDrawRange(0, 0);
         return geo;
       }
-      var stream = new THREE.Mesh(tubeGeo(true), new THREE.MeshPhysicalMaterial({
-        color: 0xdceede, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.0,
-        envMapIntensity: 2.0, clearcoat: 1, clearcoatRoughness: 0.06, depthWrite: false
-      }));
+      var stream = new THREE.Mesh(tubeGeo(true), waterJetMaterial());
       stream.renderOrder = 7;
       stream.visible = false;
       stream.frustumCulled = false;
@@ -667,13 +693,18 @@
       this._stream = stream;
       // bright inner core — reads as solid liquid inside the sheath
       var core = new THREE.Mesh(tubeGeo(false), new THREE.MeshBasicMaterial({
-        color: 0xfbfefb, transparent: true, opacity: 0.0, depthWrite: false
+        color: WATER_CORE_TINT, transparent: true, opacity: 0.0, depthWrite: false
       }));
       core.renderOrder = 8;
       core.visible = false;
       core.frustumCulled = false;
       scene.add(core);
       this._streamCore = core;
+      // wet-glint pass on the same tube — geometry (and drawRange) shared
+      var sheen = waterSheenMesh(stream.geometry);
+      sheen.renderOrder = 8.5;
+      scene.add(sheen);
+      this._streamSheen = sheen;
     }
 
     _buildShadow(scene) {
@@ -989,6 +1020,7 @@
       }
 
       var bk = this._updateStream(pouring, ps, flow, time);
+      syncWaterSheen(this._stream, this._streamSheen);
 
       // past the breakup point the jet pinches into main drops + satellites
       if (pouring && bk) {
@@ -1480,32 +1512,34 @@
         geo.setDrawRange(0, 0);
         return geo;
       }
-      var stream = new THREE.Mesh(tubeGeo(true), new THREE.MeshPhysicalMaterial({
-        color: 0xdceede, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.0,
-        envMapIntensity: 2.0, clearcoat: 1, clearcoatRoughness: 0.06, depthWrite: false
-      }));
+      var stream = new THREE.Mesh(tubeGeo(true), waterJetMaterial()); // the bottle jet's exact water
       // between the water body (2) and the front wall (5): the glass and its
       // dark rim veil the submerged stretch, so the jet falls INTO the glass
       stream.renderOrder = 3; stream.visible = false; stream.frustumCulled = false;
       scene.add(stream);
       this._stream = stream;
       var core = new THREE.Mesh(tubeGeo(false), new THREE.MeshBasicMaterial({
-        color: 0xfbfefb, transparent: true, opacity: 0.0, depthWrite: false // the bottle core's exact white
+        color: WATER_CORE_TINT, transparent: true, opacity: 0.0, depthWrite: false // the bottle core's exact white
       }));
       core.renderOrder = 3.5; core.visible = false; core.frustumCulled = false;
       scene.add(core);
       this._core = core;
+      // wet-glint pass on the same tube — geometry (and drawRange) shared
+      var sheen = waterSheenMesh(stream.geometry);
+      sheen.renderOrder = 3.6;
+      scene.add(sheen);
+      this._sheen = sheen;
 
-      // splash droplets kicked up at the impact point
+      // splash droplets kicked up at the impact point — the bottle drops' water
       var splash = new THREE.InstancedMesh(new THREE.SphereGeometry(0.014, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0xe8f2ea, transparent: true, opacity: 0.8, depthWrite: false }), 90);
+        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.8, depthWrite: false }), 90);
       splash.count = 0; splash.renderOrder = 3.7; splash.frustumCulled = false;
       scene.add(splash);
       this._splash = splash; this._splashData = []; this._splashClock = 0;
 
       // bubbles churned under the impact, rising through the water
       var bub = new THREE.InstancedMesh(new THREE.SphereGeometry(0.010, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0xdfeee6, transparent: true, opacity: 0.55, depthWrite: false, clippingPlanes: [this._waterPlane] }), 70);
+        new THREE.MeshBasicMaterial({ color: 0xdff1e4, transparent: true, opacity: 0.55, depthWrite: false, clippingPlanes: [this._waterPlane] }), 70);
       bub.count = 0; bub.renderOrder = 4; bub.frustumCulled = false;
       scene.add(bub);
       this._bub = bub; this._bubData = []; this._bubClock = 0;
@@ -1718,6 +1752,7 @@
       this._glass.position.x = (this._fx - 0.5) * 2 * this._halfW;
       var jx = live ? landX : this._glass.position.x;
       this._updateJet(covers ? pour : 0, jet, waterY, t);
+      syncWaterSheen(this._stream, this._sheen);
       this._updateSplash(dt, pour, jx, waterY);
       this._updateBubbles(dt, pour, jx, waterY, rIn);
 
@@ -1753,7 +1788,10 @@
         var spd = Math.sqrt(jet.vx * jet.vx + cvy * cvy);
         if (i > 0) s += spd * dtt; // arc length ridden by the varicose wave
         var rr = r0 * Math.sqrt(vE / Math.max(vE, spd)); // mass conservation
-        rr *= 1 + 0.20 * Math.sin(s * 10.5 - time * 30.0) * Math.min(1, s / 0.8); // the bottle's exact varicose wave
+        // the bottle's exact varicose wave, same phase AND same growth curve
+        // (deepens over the fall), so the two halves of the jet are one water
+        var wfr = tt / Math.max(1e-4, tofl);
+        rr *= 1 + (0.08 + 0.95 * wfr * wfr) * 0.42 * Math.sin(s * 10.5 - time * 30.0) * Math.min(1, s / 0.5);
         if (rr < 0.006) rr = 0.006;
         var lat = Math.sin(s * 6.0 - time * 9.0) * 0.010 * Math.min(1, s / 2.0);
         var wx = jet.x0 + jet.vx * tt + lat;
