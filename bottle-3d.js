@@ -44,6 +44,83 @@
   }
   function lerp(a, b, t) { return a + (b - a) * t; }
 
+  /* ── shared water-realism shaders (bottle + tumbler) ──────────────────
+     Injected into the EXISTING water MeshPhysicalMaterials via
+     onBeforeCompile using r147 chunk names (common / begin_vertex /
+     output_fragment), so the PMREM env, the ACES+sRGB output tail and
+     the _waterPlane clip keep working untouched. `holder` (the custom
+     element instance) receives ._waterUniforms / ._waterTopUniforms
+     once the program first compiles — feed them per frame from _tick.
+     Body: Beer-Lambert depth absorption with a 25% reflection floor
+     (mix(1,absorb,0.75)) so grazing env highlights never dull to mud,
+     fresnel silhouette density, and a caustic band pinned to
+     uWaterlineY. Alpha is capped at 0.72 so nothing goes inky over the
+     cream page. */
+  function installWaterBodyShader(mat, holder) {
+    mat.onBeforeCompile = function (shader) {
+      shader.uniforms.uWaterlineY = { value: 2.32 };
+      shader.uniforms.uBaseY = { value: 0.0 };
+      shader.uniforms.uTime = { value: 0.0 };
+      shader.uniforms.uAgitate = { value: 0.0 };
+      holder._waterUniforms = shader.uniforms;
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vWPosW;')
+        .replace('#include <begin_vertex>',
+                 '#include <begin_vertex>\n  vWPosW = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>',
+          '#include <common>\nvarying vec3 vWPosW;\nuniform float uWaterlineY, uBaseY, uTime, uAgitate;')
+        .replace('#include <output_fragment>', [
+          'vec3  V     = normalize( vViewPosition );',
+          'float ndv   = abs( dot( normalize( normal ), V ) );',
+          'float fres  = pow( 1.0 - ndv, 3.0 );',
+          'float wy    = vWPosW.y;',
+          'float d     = wy - uWaterlineY;',
+          'float depth = clamp( ( uWaterlineY - wy ) / max( 0.05, uWaterlineY - uBaseY ), 0.0, 1.0 );',
+          'float thick = depth * 0.9 + fres * 0.8;',
+          'vec3  absorb = exp( -vec3( 0.42, 0.14, 0.28 ) * thick );',
+          'vec3  col    = outgoingLight * mix( vec3( 1.0 ), absorb, 0.75 );',
+          'float line   = exp( -( d * d ) / ( 0.020 * 0.020 ) );',
+          'float shim   = 0.7 + 0.3 * sin( wy * 38.0 + uTime * 5.0 );',
+          'col += vec3( 0.34, 0.40, 0.36 ) * line * ( 0.35 + 0.5 * uAgitate ) * shim;',
+          'col += vec3( 0.30, 0.36, 0.33 ) * line * fres * 0.5;',
+          'float a = clamp( diffuseColor.a + fres * 0.42 + line * 0.30 + depth * 0.10, 0.0, 0.72 );',
+          'gl_FragColor = vec4( col, a );'
+        ].join('\n'));
+    };
+    mat.needsUpdate = true;
+  }
+
+  /* surface disc: fresnel sheen + capillary meniscus rim + faint moving
+     ripple. vR is OBJECT-space radius / uDiscR (CircleGeometry lies in
+     local XY), so it is immune to the per-frame world-up orientation
+     slerp AND the per-frame scale.set(rs,rs,1) / rIn resizing. */
+  function installWaterTopShader(mat, discR, holder) {
+    mat.onBeforeCompile = function (shader) {
+      shader.uniforms.uTime = { value: 0.0 };
+      shader.uniforms.uDiscR = { value: discR };
+      holder._waterTopUniforms = shader.uniforms;
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying float vR;\nuniform float uDiscR;')
+        .replace('#include <begin_vertex>',
+                 '#include <begin_vertex>\n  vR = length( position.xy ) / uDiscR;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying float vR;\nuniform float uTime;')
+        .replace('#include <output_fragment>', [
+          'vec3  V    = normalize( vViewPosition );',
+          'float fres = pow( 1.0 - abs( dot( normalize( normal ), V ) ), 4.0 );',
+          'float rim  = smoothstep( 0.80, 0.99, vR );',
+          'float rip  = 0.5 + 0.5 * sin( vR * 24.0 - uTime * 2.2 );',
+          'vec3  col  = outgoingLight;',
+          'col += vec3( 0.42, 0.52, 0.47 ) * fres * 0.28;',
+          'col += vec3( 0.72, 0.84, 0.78 ) * rim * ( 0.22 + 0.10 * rip );',
+          'float a = clamp( diffuseColor.a + fres * 0.30 + rim * 0.35, 0.0, 0.72 );',
+          'gl_FragColor = vec4( col, a );'
+        ].join('\n'));
+    };
+    mat.needsUpdate = true;
+  }
+
   class Bottle3D extends HTMLElement {
     static get observedAttributes() { return ['condensation', 'spin-speed', 'spinspeed', 'offset-x', 'offsetx', 'pour']; }
 
@@ -51,7 +128,7 @@
       if (this._started) return;
       if (!window.THREE) { // three.js may still be loading from the helmet
         var self = this;
-        setTimeout(function () { self.connectedCallback(); }, 60);
+        setTimeout(function () { if (self.isConnected) self.connectedCallback(); }, 60);
         return;
       }
       this._started = true;
@@ -77,7 +154,11 @@
       document.removeEventListener('visibilitychange', this._onVis);
       window.removeEventListener('scroll', this._onScroll);
       window.removeEventListener('wheel', this._onWheel);
-      if (this._renderer) this._renderer.dispose();
+      // dispose() alone does not free the GL context; without forceContextLoss
+      // a detach/re-attach stacks contexts until mobile Safari evicts one
+      if (this._renderer) { this._renderer.dispose(); this._renderer.forceContextLoss(); }
+      if (this._canvas && this._canvas.parentNode === this) this.removeChild(this._canvas);
+      this._canvas = null;
       this._started = false;
     }
 
@@ -267,12 +348,14 @@
       water.renderOrder = 2;
       parent.add(water);
       this._water = water;
+      installWaterBodyShader(water.material, this);
       this._level = 1; // 1 = full; drains toward 0.32 while pouring
       var top = new THREE.Mesh(new THREE.CircleGeometry(radiusAt(2.32) * 0.90, 48),
-        new THREE.MeshPhysicalMaterial({ color: 0xdfeee6, roughness: 0.04, transparent: true, opacity: 0.25, envMapIntensity: 1.2, depthWrite: false }));
+        new THREE.MeshPhysicalMaterial({ color: 0xdfeee6, roughness: 0.04, transparent: true, opacity: 0.25, envMapIntensity: 1.4, depthWrite: false }));
       top.rotation.x = -Math.PI / 2; top.position.y = 2.32; top.renderOrder = 2;
       parent.add(top);
       this._waterTop = top;
+      installWaterTopShader(top.material, radiusAt(2.32) * 0.90, this);
 
       // screw-top neck finish: the GLB glass ends where the cap begins, so we
       // continue it — neck wall, a true helical screw thread, and a rolled
@@ -783,6 +866,19 @@
         this._waterLocalY = 2.31;
       }
 
+      // feed the water-realism shader uniforms (installed via onBeforeCompile;
+      // guarded — they only exist after the first program compile). h is the
+      // per-frame world waterline Y (== this._waterPlane.constant), _v2 still
+      // holds the bottle-base world position from the block above.
+      if (this._waterUniforms) {
+        this._waterUniforms.uWaterlineY.value = h;
+        this._waterUniforms.uBaseY.value = _v2.y;
+        this._waterUniforms.uTime.value = t;
+        this._waterUniforms.uAgitate.value =
+          Math.min(1, Math.abs(vel) * 0.008 + tiltT * 0.8 + this._fizzBurst * 0.8);
+      }
+      if (this._waterTopUniforms) this._waterTopUniforms.uTime.value = t;
+
       // bubbles — 2x speed and 2x count once the cap is off, plus a hard
       // surge while the cap-off fizz burst is live
       var surge = (Math.min(3.5, Math.abs(vel) * 0.012) + tiltT * 3.0) * (1 + capT) + this._fizzBurst * 5;
@@ -1187,14 +1283,17 @@
     panel(-3, 2, 7, 0.7, 11, [10, 10, 9.5]);   // tall vertical highlight streak (hot glare band)
     panel(4.5, 2, 6, 0.5, 11, [5.5, 5.5, 5.3]);
     var pmrem = new THREE.PMREMGenerator(renderer);
-    return pmrem.fromScene(env, 0.04).texture;
+    var tex = pmrem.fromScene(env, 0.04).texture; // the baked cubeUV texture survives generator dispose
+    pmrem.dispose();
+    env.traverse(function (o) { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+    return tex;
   }
 
   /* ══ <glass-3d> — the tumbler that catches the hero's pour. Same water,
      same jet physics, same three-pass glass as the bottle above it. ══ */
   var GH = 1.0;                       // tumbler height, world units
-  function tumblerInnerR(y) {         // inner wall radius at height y
-    return 0.252 + (0.296 - 0.252) * Math.max(0, Math.min(1, (y - 0.125) / (0.97 - 0.125)));
+  function tumblerInnerR(y) {         // inner wall radius at height y (fit to the lathe profile)
+    return 0.255 + 0.045 * Math.max(0, Math.min(1, (y - 0.125) / (0.96 - 0.125)));
   }
 
   class Glass3D extends HTMLElement {
@@ -1202,7 +1301,7 @@
       if (this._started) return;
       if (!window.THREE) {
         var self0 = this;
-        setTimeout(function () { self0.connectedCallback(); }, 60);
+        setTimeout(function () { if (self0.isConnected) self0.connectedCallback(); }, 60);
         return;
       }
       this._started = true;
@@ -1235,12 +1334,17 @@
       if (this._ro) this._ro.disconnect();
       if (this._io) this._io.disconnect();
       document.removeEventListener('visibilitychange', this._onVis);
-      if (this._renderer) this._renderer.dispose();
+      // dispose() alone does not free the GL context; without forceContextLoss
+      // a detach/re-attach stacks contexts until mobile Safari evicts one
+      if (this._renderer) { this._renderer.dispose(); this._renderer.forceContextLoss(); }
+      if (this._canvas && this._canvas.parentNode === this) this.removeChild(this._canvas);
+      this._canvas = null;
       this._started = false;
     }
 
     _initScene() {
-      var renderer = new THREE.WebGLRenderer({ canvas: this._canvas, alpha: true, antialias: true });
+      // at DPR>=2 pixel density already smooths edges — dropping MSAA halves fill cost
+      var renderer = new THREE.WebGLRenderer({ canvas: this._canvas, alpha: true, antialias: (window.devicePixelRatio || 1) < 2 });
       renderer.setClearColor(0x000000, 0);
       renderer.outputEncoding = THREE.sRGBEncoding;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1293,14 +1397,15 @@
 
       // the water body — same material family as inside the bottle
       var wpts = [new THREE.Vector2(0, 0.125)];
-      for (var wy = 0.125; wy <= 0.97; wy += 0.12) wpts.push(new THREE.Vector2(tumblerInnerR(wy) * 0.985, wy));
-      wpts.push(new THREE.Vector2(tumblerInnerR(0.97) * 0.985, 0.97));
+      for (var wy = 0.125; wy <= 0.97; wy += 0.12) wpts.push(new THREE.Vector2(tumblerInnerR(wy) * 0.995, wy));
+      wpts.push(new THREE.Vector2(tumblerInnerR(0.97) * 0.995, 0.97));
       var water = new THREE.Mesh(new THREE.LatheGeometry(wpts, 48), new THREE.MeshPhysicalMaterial({
         color: 0xa7cbb4, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.34,
         envMapIntensity: 1.1, depthWrite: false, side: THREE.DoubleSide,
         clippingPlanes: [this._waterPlane]
       }));
       water.renderOrder = 2; g.add(water);
+      installWaterBodyShader(water.material, this);
       var top = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshPhysicalMaterial({
         color: 0xdfeee6, roughness: 0.04, transparent: true, opacity: 0.30,
         envMapIntensity: 1.3, depthWrite: false
@@ -1308,6 +1413,7 @@
       top.rotation.x = -Math.PI / 2; top.renderOrder = 2;
       g.add(top);
       this._waterTop = top;
+      installWaterTopShader(top.material, 1.0, this);
 
       // the falling jet — the same rewritten-in-place tube as the bottle's pour
       var RINGS = this._strRings = 48, SEG = this._strSeg = 8;
@@ -1330,26 +1436,28 @@
         color: 0xdceede, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.0,
         envMapIntensity: 2.0, clearcoat: 1, clearcoatRoughness: 0.06, depthWrite: false
       }));
-      stream.renderOrder = 7; stream.visible = false; stream.frustumCulled = false;
+      // between the water body (2) and the front wall (5): the glass and its
+      // dark rim veil the submerged stretch, so the jet falls INTO the glass
+      stream.renderOrder = 3; stream.visible = false; stream.frustumCulled = false;
       scene.add(stream);
       this._stream = stream;
       var core = new THREE.Mesh(tubeGeo(false), new THREE.MeshBasicMaterial({
-        color: 0xfbfefb, transparent: true, opacity: 0.0, depthWrite: false
+        color: 0xe3efe6, transparent: true, opacity: 0.0, depthWrite: false
       }));
-      core.renderOrder = 8; core.visible = false; core.frustumCulled = false;
+      core.renderOrder = 3.5; core.visible = false; core.frustumCulled = false;
       scene.add(core);
       this._core = core;
 
       // splash droplets kicked up at the impact point
       var splash = new THREE.InstancedMesh(new THREE.SphereGeometry(0.014, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0xf6fbf6, transparent: true, opacity: 0.8, depthWrite: false }), 90);
-      splash.count = 0; splash.renderOrder = 7; splash.frustumCulled = false;
+        new THREE.MeshBasicMaterial({ color: 0xe8f2ea, transparent: true, opacity: 0.8, depthWrite: false }), 90);
+      splash.count = 0; splash.renderOrder = 3.7; splash.frustumCulled = false;
       scene.add(splash);
       this._splash = splash; this._splashData = []; this._splashClock = 0;
 
       // bubbles churned under the impact, rising through the water
       var bub = new THREE.InstancedMesh(new THREE.SphereGeometry(0.010, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0xeaf6ef, transparent: true, opacity: 0.55, depthWrite: false, clippingPlanes: [this._waterPlane] }), 70);
+        new THREE.MeshBasicMaterial({ color: 0xdfeee6, transparent: true, opacity: 0.55, depthWrite: false, clippingPlanes: [this._waterPlane] }), 70);
       bub.count = 0; bub.renderOrder = 4; bub.frustumCulled = false;
       scene.add(bub);
       this._bub = bub; this._bubData = []; this._bubClock = 0;
@@ -1358,8 +1466,8 @@
       this._resize();
     }
 
-    /* clear reflective glass: BackSide tint + FrontSide clearcoat + additive
-       fresnel rim over one geometry — the bottle's recipe, uncoloured */
+    /* clear reflective glass: BackSide tint + FrontSide clearcoat + a
+       normal-blended dark-edge fresnel over one geometry */
     _shellify(parent, geo) {
       // clear glass over a light page = almost invisible body, dark edge
       // bands where the wall goes edge-on, hot speculars from the env streaks
@@ -1401,7 +1509,8 @@
         var norm = new THREE.Matrix4().makeScale(s, s, s).multiply(
           new THREE.Matrix4().makeTranslation(
             -(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2));
-        self._tumblerShells.forEach(function (mesh) { g.remove(mesh); });
+        if (self._tumblerShells[0]) self._tumblerShells[0].geometry.dispose(); // the three shells share one geometry
+        self._tumblerShells.forEach(function (mesh) { g.remove(mesh); mesh.material.dispose(); });
         self._tumblerShells = [];
         prims.forEach(function (o) {
           var geo = o.geometry.clone();
@@ -1413,10 +1522,11 @@
 
     _resize() {
       var w = this.clientWidth || 1, h = this.clientHeight || 1;
-      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      var dpr = Math.min(window.innerWidth <= 760 ? 1.5 : 2, window.devicePixelRatio || 1);
       this._renderer.setPixelRatio(dpr);
       this._renderer.setSize(w, h, false);
       this._narrow = window.innerWidth <= 760;
+      this._needsRender = true;
       // size the camera so the tumbler renders at a chosen pixel height, then
       // park the tumbler on the pour line at the right height of the section
       var targetPx = this._narrow ? 120 : 210;
@@ -1441,17 +1551,36 @@
       if (isNaN(p)) p = 0;
       var target = this._reduce ? 0.68 : Math.min(0.85, p * 0.95);
       var diff = target - this._level;
-      var pour = this._reduce ? 0 : smoothstep(0.005, 0.05, diff);
-      if (diff > 0) this._level += Math.min(diff, dt * 0.14 * (0.25 + pour));
+      var pour = this._reduce ? 0 : smoothstep(0.001, 0.03, diff);
+      // fill is gated ENTIRELY on the jet: water only accumulates while the
+      // stream is visibly delivering it, at a rate the jet's flux can supply,
+      // on the same clock as the bottle's ~2.5s drain
+      if (diff > 0) this._level += Math.min(diff, dt * 0.30 * pour);
       else this._level += Math.max(diff, -dt * 0.5);   // scroll-up: it un-pours with the bottle
 
       // waterline
-      var waterY = this._glass.position.y + 0.125 + this._level * (0.97 - 0.16);
+      var waterY = this._glass.position.y + 0.125 + this._level * (0.97 - 0.125);
       this._waterPlane.constant = waterY;
-      var rIn = tumblerInnerR(waterY - this._glass.position.y) * 0.985;
+      var rIn = tumblerInnerR(waterY - this._glass.position.y) * 0.995;
       this._waterTop.position.set(0, waterY + 0.002 - this._glass.position.y, 0); // local to the glass group
       this._waterTop.scale.set(rIn, rIn, 1);
       this._waterTop.visible = this._level > 0.02;
+
+      // feed the shared water-realism shader uniforms (guarded — they only
+      // exist after the first program compile)
+      if (this._waterUniforms) {
+        this._waterUniforms.uWaterlineY.value = waterY;
+        this._waterUniforms.uBaseY.value = this._glass.position.y + 0.125;
+        this._waterUniforms.uTime.value = t;
+        this._waterUniforms.uAgitate.value = pour;
+      }
+      if (this._waterTopUniforms) this._waterTopUniforms.uTime.value = t;
+
+      // reduced-motion is a still-life: once settled with no particles alive,
+      // skip the render entirely — a second WebGL context costs nothing idle
+      if (this._reduce && Math.abs(diff) < 0.001 && !this._splashData.length &&
+          !this._bubData.length && !this._needsRender) return;
+      this._needsRender = false;
 
       var jetX = this._glass.position.x, jetTop = this._topY;
       this._updateJet(pour, jetX, jetTop, waterY, t);
@@ -1473,10 +1602,12 @@
       var norA = stream.geometry.attributes.normal.array;
       var posC = core.geometry.attributes.position.array;
       var RINGS = this._strRings, SEG = this._strSeg;
-      var v0 = 1.6, G = 3.2;
-      var r0 = 0.020 + 0.030 * pour;
+      // gravity matched to the bottle's on-screen stylization (16 u/s² at its
+      // scale ≈ 12.5 here) so the same water falls the same way in both scenes
+      var v0 = 3.0, G = 12.5;
+      var r0 = 0.030 + 0.042 * pour; // sized so flux ≈ the fill rate it feeds
       var nr = 0;
-      var fall = topY - waterY;
+      var fall = Math.max(0.01, topY - waterY); // guard: sqrt stays real, tofl > 0
       // time of flight to the surface, then param rings along it
       var tofl = (Math.sqrt(v0 * v0 + 2 * G * fall) - v0) / G;
       for (var i = 0; i < RINGS; i++) {
@@ -1519,19 +1650,24 @@
         for (var k = 0; k < n && data.length < mesh.instanceMatrix.count; k++) {
           var ang = Math.random() * Math.PI * 2;
           var sp = 0.15 + Math.random() * 0.5 * pour;
+          var rs = 0.03 + Math.random() * 0.02; // the ejecta sheet starts at the jet's rim, not its core
           data.push({
-            x: x + (Math.random() - 0.5) * 0.03, y: waterY + 0.005, z: (Math.random() - 0.5) * 0.03,
-            vx: Math.cos(ang) * sp, vy: 0.45 + Math.random() * 0.9 * pour, vz: Math.sin(ang) * sp,
+            x: x + Math.cos(ang) * rs, y: waterY + 0.005, z: Math.sin(ang) * rs,
+            vx: Math.cos(ang) * sp, vy: 1.5 + Math.random() * 1.8 * pour, vz: Math.sin(ang) * sp,
             life: 0.55, s: 0.5 + Math.random() * 0.9
           });
         }
       }
+      var gx0 = this._glass.position.x, gy0 = this._glass.position.y;
       for (var i = data.length - 1; i >= 0; i--) {
         var q = data[i];
-        q.vy -= 3.2 * dt;
+        q.vy -= 12.5 * dt; // same stylized gravity as the jet
         q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
         q.life -= dt;
-        if (q.life <= 0 || (q.vy < 0 && q.y < waterY)) data.splice(i, 1);
+        // the glass is a wall: droplets that reach it wet it and die there
+        var lrr = Math.sqrt((q.x - gx0) * (q.x - gx0) + q.z * q.z);
+        var hitWall = (q.y - gy0) < GH && lrr > tumblerInnerR(q.y - gy0) * 0.95;
+        if (q.life <= 0 || hitWall || (q.vy < 0 && q.y < waterY)) { data[i] = data[data.length - 1]; data.pop(); }
       }
       mesh.count = data.length;
       for (var m = 0; m < data.length; m++) {
@@ -1559,7 +1695,7 @@
             x: x + (Math.random() - 0.5) * 0.08,
             y: Math.max(floorY, waterY - 0.10 - Math.random() * 0.25),
             z: (Math.random() - 0.5) * 0.08,
-            v: 0.10 + Math.random() * 0.16, w: Math.random() * Math.PI * 2,
+            v: 0.30 + Math.random() * 0.35, w: Math.random() * Math.PI * 2,
             s: 0.5 + Math.random() * 1.1
           });
         }
@@ -1574,7 +1710,7 @@
         var rr = Math.sqrt((b.x - gx) * (b.x - gx) + b.z * b.z);
         var rMax = tumblerInnerR(b.y - this._glass.position.y) * 0.92;
         if (rr > rMax && rr > 0) { b.x = gx + (b.x - gx) * rMax / rr; b.z *= rMax / rr; }
-        if (b.y >= waterY - 0.004) { data.splice(i, 1); continue; }
+        if (b.y >= waterY - 0.004) { data[i] = data[data.length - 1]; data.pop(); continue; }
       }
       mesh.count = data.length;
       for (var m = 0; m < data.length; m++) {
