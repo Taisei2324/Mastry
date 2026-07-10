@@ -620,13 +620,18 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
 /* ═══ FOOTER ═══ */
 .footer{
   background:var(--dark);color:rgba(249,245,233,.6);
-  padding:60px clamp(20px,7vw,110px) 36px;position:relative;
+  padding:132px clamp(20px,7vw,110px) 36px;position:relative;
 }
-/* seigaiha scalloped edge rising into the page */
+/* seigaiha — two interlocking rows of nested wave arcs, the real motif
+   (not just a scalloped edge trim), sitting at the very top of the footer */
 .footer::before{
-  content:"";position:absolute;top:-15px;left:0;right:0;height:16px;pointer-events:none;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='16'%3E%3Cpath d='M0 16 A16 16 0 0 1 32 16 Z' fill='%231F2A1C'/%3E%3C/svg%3E") repeat-x;
-  background-size:32px 16px;
+  content:"";position:absolute;top:0;left:0;right:0;height:64px;pointer-events:none;
+  opacity:.9;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='32' viewBox='0 0 64 32'%3E%3Cpath d='M2 32 A30 30 0 0 1 62 32' fill='none' stroke='%23F9F5E9' stroke-opacity='.16' stroke-width='1.4'/%3E%3Cpath d='M10 32 A22 22 0 0 1 54 32' fill='none' stroke='%23F9F5E9' stroke-opacity='.26' stroke-width='1.4'/%3E%3Cpath d='M18 32 A14 14 0 0 1 46 32' fill='none' stroke='%23F9F5E9' stroke-opacity='.38' stroke-width='1.4'/%3E%3Cpath d='M26 32 A6 6 0 0 1 38 32' fill='none' stroke='%23F9F5E9' stroke-opacity='.52' stroke-width='1.4'/%3E%3C/svg%3E")
+      repeat-x 0 0/64px 32px,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='32' viewBox='0 0 64 32'%3E%3Cpath d='M2 32 A30 30 0 0 1 62 32' fill='none' stroke='%23F9F5E9' stroke-opacity='.16' stroke-width='1.4'/%3E%3Cpath d='M10 32 A22 22 0 0 1 54 32' fill='none' stroke='%23F9F5E9' stroke-opacity='.26' stroke-width='1.4'/%3E%3Cpath d='M18 32 A14 14 0 0 1 46 32' fill='none' stroke='%23F9F5E9' stroke-opacity='.38' stroke-width='1.4'/%3E%3Cpath d='M26 32 A6 6 0 0 1 38 32' fill='none' stroke='%23F9F5E9' stroke-opacity='.52' stroke-width='1.4'/%3E%3C/svg%3E")
+      repeat-x 32px 22px/64px 32px;
 }
 .footer__top{
   display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
