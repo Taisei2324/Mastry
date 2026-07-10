@@ -640,8 +640,14 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
 
 /* ═══ FOOTER ═══ */
 .footer{
-  background:var(--dark);color:rgba(249,245,233,.6);
-  padding:60px clamp(20px,7vw,110px) 36px;position:relative;
+  /* #202C22 = the panorama's own ground, so art and footer read as one surface */
+  background:#202C22;color:rgba(249,245,233,.6);
+  padding:60px clamp(20px,7vw,110px) 0;position:relative;
+}
+.footer__art{
+  display:block;height:auto;
+  width:calc(100% + 2*clamp(20px,7vw,110px));max-width:none; /* escape the global img clamp */
+  margin:40px calc(-1*clamp(20px,7vw,110px)) 0; /* bleed to the page edges */
 }
 .footer__top{
   display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;

@@ -1019,6 +1019,11 @@
         b.x += (b.dx * b.v + Math.sin(b.w) * 0.06) * dt;
         b.y += b.dy * b.v * dt;
         b.z += (b.dz * b.v + Math.cos(b.w * 0.9) * 0.06) * dt;
+        // glass is a wall: hold every bubble inside the profile, which also
+        // funnels the swarm through the shoulder as the neck narrows
+        var rMax = radiusAt(Math.min(Math.max(b.y, 0), H)) * 0.84;
+        var rr = Math.sqrt(b.x * b.x + b.z * b.z);
+        if (rr > rMax && rr > 0) { b.x *= rMax / rr; b.z *= rMax / rr; }
         b.life -= dt;
         if (b.life <= 0 || (b.pop && b.y >= wrap)) { fd.splice(i, 1); continue; }
       }
