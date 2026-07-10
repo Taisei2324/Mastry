@@ -1026,7 +1026,7 @@
         // the stream keeps flowing the whole way down while the user scrolls
         // to it, then the last of the water transfers at full rate
         var recv = (_pourHandoff.hasGlass && !_pourHandoff.glassActive) ? 0.12 : 1;
-        this._level = Math.max(0.20, this._level - dt * (0.08 + 0.30 * ps * flow) * recv);
+        this._level = Math.max(0.20, this._level - dt * (0.10 + 0.38 * ps * flow) * recv); // it DUMPS — ~2s full transfer
       }
 
       var bk = this._updateStream(pouring, ps, flow, time);
@@ -1205,7 +1205,9 @@
       // moon-weak on a water jet — pump it so the arc bends down decisively
       var GP = 16;
       var v0 = (0.65 + 0.95 * ps) * (0.85 + 0.15 * flow);
-      var r0 = (0.022 + 0.062 * ps) * (0.72 + 0.28 * flow); // steadier column, no bottleneck pinch
+      // a proper gush at the lip: thick column at the mouth (still inside the
+      // 0.176 bore), and the sqrt(v0/v) taper thins it on the way down
+      var r0 = (0.036 + 0.085 * ps) * (0.72 + 0.28 * flow);
       // weak pours droop off the lip; hard pours jet along the axis
       var droop = 0.55 * (1 - ps);
       _v4.set(_v2.x + _v3.x * droop, _v2.y + _v3.y * droop, _v2.z + _v3.z * droop).normalize();
@@ -1702,7 +1704,7 @@
       var sy = window.scrollY;
       var goingUp = this._lastSy !== undefined && sy < this._lastSy - 1;
       this._lastSy = sy;
-      if (diff > 0) this._level += Math.min(diff, dt * 0.30 * pour);
+      if (diff > 0) this._level += Math.min(diff, dt * 0.38 * pour); // lockstep with the bottle's faster dump
       // received water STAYS in the glass — it only un-pours when the user
       // actually rewinds (scrolls up), matching the bottle's refill
       else if (!_pourHandoff.hasBottle || goingUp) this._level += Math.max(diff, -dt * 0.5);
