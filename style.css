@@ -751,10 +751,10 @@ html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL f
   /* phones (per the user's sketch): words stay centred at full width; the
      stream falls down the left edge into a glass parked at the title line,
      and the headline steps a few pixels right so the two never collide */
-  .herowords__pour{left:14vw;height:40%;}
+  .herowords__pour{left:13vw;height:40%;}
   .herowords__glass{width:64px;}
   .herowords .hero__copy{max-width:none;margin-right:0;}
-  .herowords .hero__title{transform:translateX(46px);} /* clears the bigger crystal */
+  .herowords .hero__title{transform:translateX(54px);} /* clears the bigger crystal */
   /* the panorama shrinks to a sliver at phone width — run it at 175% and
      crop the sides so Fuji, the boat and the acropolis stay legible */
   .footer{overflow:hidden;}

@@ -221,7 +221,7 @@
 
     /* ---------- scene ---------- */
     _initThree() {
-      if (!_v1) { _v1 = new THREE.Vector3(); _v2 = new THREE.Vector3(); _v3 = new THREE.Vector3(); _v4 = new THREE.Vector3(); _v5 = new THREE.Vector3(); _v6 = new THREE.Vector3(); _vZ = new THREE.Vector3(0, 0, 1); _vY = new THREE.Vector3(0, 1, 0); _q1 = new THREE.Quaternion(); _q2 = new THREE.Quaternion(); }
+      if (!_v1) { _v1 = new THREE.Vector3(); _v2 = new THREE.Vector3(); _v3 = new THREE.Vector3(); _v4 = new THREE.Vector3(); _v5 = new THREE.Vector3(); _v6 = new THREE.Vector3(); _v7 = new THREE.Vector3(); _vZ = new THREE.Vector3(0, 0, 1); _vY = new THREE.Vector3(0, 1, 0); _q1 = new THREE.Quaternion(); _q2 = new THREE.Quaternion(); }
       var renderer = new THREE.WebGLRenderer({ canvas: this._canvas, alpha: true, antialias: true });
       renderer.setClearColor(0x000000, 0);
       renderer.outputEncoding = THREE.sRGBEncoding;
@@ -419,12 +419,12 @@
       }
       var screw = new THREE.Mesh(
         new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helixPts), 96, 0.0085, 8, false),
-        new THREE.MeshPhysicalMaterial({ color: 0xd9e8dc, roughness: 0.08, transparent: true, opacity: 0.6, envMapIntensity: 1.6, depthWrite: false }));
+        new THREE.MeshPhysicalMaterial({ color: 0xb9d3c4, roughness: 0.08, transparent: true, opacity: 0.4, envMapIntensity: 1.2, depthWrite: false })); // glass-green, not frosted white — read as a plug at pour angle
       screw.renderOrder = 5;
       parent.add(screw);
       // rolled lip at the mouth
       var mouth = new THREE.Mesh(new THREE.TorusGeometry(0.176, 0.013, 10, 48),
-        new THREE.MeshPhysicalMaterial({ color: 0xdfe5dc, roughness: 0.1, transparent: true, opacity: 0.55, envMapIntensity: 1.6 }));
+        new THREE.MeshPhysicalMaterial({ color: 0xbdd6c7, roughness: 0.1, transparent: true, opacity: 0.4, envMapIntensity: 1.2 }));
       mouth.rotation.x = Math.PI / 2; mouth.position.y = 3.14; mouth.renderOrder = 5;
       parent.add(mouth);
       this._mouthAnchor = new THREE.Object3D();
@@ -879,7 +879,7 @@
       var bob = Math.sin(t * 0.8) * 0.05 * (1 - tiltT); // rock-still while pouring
       var halfW = this._camera.position.z * 0.2867 * this._camera.aspect;
       // glass line: 30% of the viewport on desktop, 14% on phones
-      var pourX = (this._narrow ? -0.72 : -0.4) * halfW + 1.44; // mouth swings ~1.44 left of root at full tilt
+      var pourX = (this._narrow ? -0.74 : -0.4) * halfW + 1.44; // mouth swings ~1.44 left of root at full tilt
       // the bottle holds ONE fixed pour stance — it tilts, it does not wander.
       // The +0.5 lean splits the jet's sideways carry so both strong and weak
       // pours land on-screen; the landing walk is the CUP's job to chase.
@@ -1217,6 +1217,9 @@
       var droop = 0.55 * (1 - ps) + 0.15; // always some droop — bottles dump DOWN off the lip
       _v4.set(_v2.x + _v3.x * droop, _v2.y + _v3.y * droop, _v2.z + _v3.z * droop).normalize();
       var vx = _v4.x * v0 * 0.62, vy = _v4.y * v0, vz = _v4.z * v0 * 0.62; // water dumps DOWN — little sideways throw, no screen-crossing diagonal
+      // start the stream INSIDE the neck so it visibly emerges through the
+      // mouth — no transparent gap between the lip and the flow
+      ex -= _v4.x * 0.26; ey -= _v4.y * 0.26; ez -= _v4.z * 0.26;
       // breakup length: fat fast jets hold together, thin dribbles pinch off
       // almost immediately. At full pour the jet stays coherent all the way
       // off the bottom of the frame — it hands over to the glass below
@@ -1284,7 +1287,17 @@
         // lateral writhe rides down with the parcels — both cross axes
         var lat = (Math.sin(u * 7.3 + 1.5 * Math.sin(u * 2.1)) * 0.6 + Math.sin(u * 15.7 + s) * 0.4) * 0.032 * Math.min(1, frac * 2);
         var lat2 = (Math.cos(u * 9.1 + 1.7 * Math.sin(u * 2.9)) * 0.6 + Math.sin(u * 19.3 + s * 1.3) * 0.4) * 0.024 * Math.min(1, frac * 2);
-        _v4.set(cvx / spd, cvy / spd, cvz / spd);
+        // lagged frame (parallel-transport style): at the elbow the velocity
+        // direction swings fast and rigid ring planes fold into a pinch on
+        // the inner edge — the lag spreads the bend across many rings
+        if (i === 0) _v7.set(cvx / spd, cvy / spd, cvz / spd);
+        else {
+          _v7.x = _v7.x * 0.6 + (cvx / spd) * 0.4;
+          _v7.y = _v7.y * 0.6 + (cvy / spd) * 0.4;
+          _v7.z = _v7.z * 0.6 + (cvz / spd) * 0.4;
+          _v7.normalize();
+        }
+        _v4.copy(_v7);
         if (Math.abs(_v4.y) > 0.985) _v5.set(1, 0, 0); else _v5.set(0, 1, 0);
         _v6.crossVectors(_v4, _v5).normalize();
         _v5.crossVectors(_v6, _v4);
@@ -1332,7 +1345,7 @@
     }
   }
 
-  var _v1, _v2, _v3, _v4, _v5, _v6, _vZ, _vY, _q1, _q2;
+  var _v1, _v2, _v3, _v4, _v5, _v6, _v7, _vZ, _vY, _q1, _q2;
 
   // minimal OBJ parser — v/vn/f with o|g groups, fan-triangulated, non-indexed
   function parseOBJGroups(text) {
@@ -1740,14 +1753,14 @@
       // size the camera so the tumbler renders at a chosen pixel height, then
       // park the tumbler on the pour line at the right height of the section
       // sized to hold the bottle's pour: a ~500ml bottle needs a tall glass
-      var targetPx = this._narrow ? 158 : 300;
+      var targetPx = this._narrow ? 190 : 360;
       var z = (GH * h) / (2 * 0.2867 * targetPx);
       this._camera.position.z = z;
       this._camera.aspect = w / h;
       this._camera.updateProjectionMatrix();
       var halfH = z * 0.2867, halfW = halfH * (w / h);
       this._halfW = halfW; this._halfH = halfH;
-      this._fxDefault = this._narrow ? 0.14 : 0.30; // the bottle's resting pour line
+      this._fxDefault = this._narrow ? 0.13 : 0.30; // the bottle's resting pour line
       if (this._fx === undefined) this._fx = this._fxDefault;
       // the canvas overlaps the hero above (CSS top:-100svh) so the jet never
       // meets a canvas border; the glass itself is still placed against the
