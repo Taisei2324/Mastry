@@ -449,8 +449,15 @@
       // the neck went TRANSPARENT while pouring. This slim slug fills the
       // bore once the bottle tips past horizontal, rides the LOW side of
       // the neck and pulses with the glug — the water the lip drinks from.
-      var nrPts = [new THREE.Vector2(0.001, 2.30)];
-      for (var ny = 2.30; ny <= 3.10; ny += 0.08) nrPts.push(new THREE.Vector2(Math.min(radiusAt(ny) * 0.82, 0.148), ny));
+      // the run follows the BORE the whole way (a flat radius cap here once
+      // shrank the shoulder stretch to a skinny inset rod — the mismatched
+      // slab the user photographed); only the screw-finish zone clamps in
+      var nrPts = [new THREE.Vector2(0.001, 2.26)];
+      for (var ny = 2.26; ny <= 3.08; ny += 0.06) {
+        var nrr = radiusAt(ny) * 0.88; // just inside the glass, matching the body water's 0.90
+        if (ny > 2.92) nrr = Math.min(nrr, 0.148);
+        nrPts.push(new THREE.Vector2(nrr, ny));
+      }
       nrPts.push(new THREE.Vector2(0.142, 3.16));
       nrPts.push(new THREE.Vector2(0.001, 3.16));
       var neckRun = new THREE.Mesh(new THREE.LatheGeometry(nrPts, 48), new THREE.MeshPhysicalMaterial({
@@ -1118,7 +1125,7 @@
       if (this._neckRun) {
         this._neckRun.visible = tiltT > 0.25 && this._level > 0.205;
         if (this._neckRun.visible) {
-          this._neckRun.material.opacity = 0.5 * (0.85 + 0.15 * flow);
+          this._neckRun.material.opacity = 0.42 * (0.85 + 0.15 * flow); // sits nearer the body water's density
           this._neckRun.parent.getWorldQuaternion(_q1);
           _v2.set(0, 1, 0).applyQuaternion(_q1);            // neck axis, world
           _v3.set(0, -1, 0).addScaledVector(_v2, _v2.y);    // world-down on the mouth plane
