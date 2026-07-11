@@ -90,6 +90,10 @@ input,select,textarea{accent-color:var(--olive);}
   transition:background .4s,border-color .4s,box-shadow .4s,transform .45s var(--ease);
 }
 .nav.hidden{transform:translateY(-100%);}
+/* the hero sequence owns the screen: bottle-3d sets html.heroseq while the
+   pour show runs (p 0.35→0.995) and the bar stays out of the frame — it
+   used to flicker against THE WALL's per-frame scroll clamps */
+html.heroseq .nav{transform:translateY(-100%) !important;}
 .nav.solid{
   background:rgba(249,245,233,.88);
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);

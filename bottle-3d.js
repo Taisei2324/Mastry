@@ -858,6 +858,15 @@
       // position + remaining water, enforced every frame. Never traps: 12s
       // hard release, reduced-motion exempt, scroll-up free, and only for
       // readers who actually came down through the hero.
+      // the top bar sits out the show: on before the sequence, off once it
+      // is underway (the wall's per-frame clamps made it flicker), back the
+      // moment the reader is through to the cup
+      var navOff = p > 0.35 && p < 0.995 && !this._noWall;
+      if (navOff !== this._navOff) {
+        this._navOff = navOff;
+        document.documentElement.classList.toggle('heroseq', navOff);
+      }
+
       if (p < 0.7) { this._sawHero = true; if (this._level > 0.9) this._wallT = 0; }
       var wall = this._sawHero && !this._noWall && this._pin && this._level > 0.245;
       if (wall) {
@@ -1265,8 +1274,12 @@
       _v4.set(_v2.x + _v3.x * droop, _v2.y + _v3.y * droop, _v2.z + _v3.z * droop).normalize();
       var vx = _v4.x * v0, vy = _v4.y * v0, vz = _v4.z * v0;
       // breakup length: fat fast jets hold together, thin dribbles pinch off
-      // almost immediately (capped so the breakup stays inside the frame)
-      var Lb = Math.min(1.9, Math.max(0.14, 9 * v0 * Math.pow(r0, 0.75)));
+      // almost immediately. The old 1.9 cap kept the breakup "inside the
+      // frame" of the small hero box — on today's full-height canvas that
+      // split the stream into blobs in plain view (user: "it's just
+      // splitting"). A committed pour now rides coherent past the frame
+      // bottom (the edgeY kill), and only a thinning flow pinches on-screen.
+      var Lb = Math.min(6.5, Math.max(0.14, 26 * v0 * Math.pow(r0, 0.75)));
 
       var posA = stream.geometry.attributes.position.array;
       var norA = stream.geometry.attributes.normal.array;
@@ -1583,39 +1596,12 @@
       scene.add(bub);
       this._bub = bub; this._bubData = []; this._bubClock = 0;
 
-      // ── the whisky act: a scotch bottle that visits the cup on the blank
-      // highball stage below the words — built now, parked invisible
-      var wb = new THREE.Group();
-      scene.add(wb);
-      this._wb = wb;
-      var wpts2 = [
-        [0.00, 0.00], [0.26, 0.00], [0.30, 0.03], [0.30, 0.72],
-        [0.28, 0.80], [0.16, 0.94], [0.085, 1.04], [0.08, 1.38],
-        [0.095, 1.44], [0.095, 1.50], [0.00, 1.50]
-      ].map(function (q) { return new THREE.Vector2(q[0], q[1]); });
-      var wgeo = new THREE.LatheGeometry(wpts2, 48);
-      wgeo.translate(0, -0.75, 0); // rotate about the bottle's middle
-      var wback = new THREE.Mesh(wgeo, new THREE.MeshPhysicalMaterial({
-        color: 0x1d0c03, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.8,
-        side: THREE.BackSide, envMapIntensity: 0.55, depthWrite: false }));
-      wback.renderOrder = 0.5; wb.add(wback);
-      var wliq = new THREE.Mesh(wgeo, new THREE.MeshBasicMaterial({
-        color: 0x86440c, transparent: true, opacity: 0.82, depthWrite: false, toneMapped: false }));
-      wliq.scale.set(0.93, 0.985, 0.93);
-      wliq.renderOrder = 0.55; wb.add(wliq);
-      var wfront = new THREE.Mesh(wgeo, new THREE.MeshPhysicalMaterial({
-        color: 0x5e2c0c, roughness: 0.06, metalness: 0, transparent: true, opacity: 0.5,
-        clearcoat: 1, clearcoatRoughness: 0.06, side: THREE.FrontSide, envMapIntensity: 1.0, depthWrite: false }));
-      wfront.renderOrder = 0.6; wb.add(wfront);
-      var wcap = new THREE.Mesh(new THREE.CylinderGeometry(0.093, 0.093, 0.16, 24),
-        new THREE.MeshStandardMaterial({ color: 0x17130e, roughness: 0.5, metalness: 0.25, transparent: true }));
-      wcap.position.y = 0.70; wcap.renderOrder = 0.7; wb.add(wcap);
-      var wlabel = new THREE.Mesh(new THREE.CylinderGeometry(0.302, 0.302, 0.30, 32, 1, true),
-        new THREE.MeshStandardMaterial({ color: 0xf1ead8, roughness: 0.85, metalness: 0, transparent: true }));
-      wlabel.position.y = -0.35; wlabel.renderOrder = 0.65; wb.add(wlabel);
-      wb.visible = false;
-      this._wbMats = [wback.material, wliq.material, wfront.material, wcap.material, wlabel.material];
-      this._wbMats.forEach(function (m) { m._op0 = m.opacity; });
+      // ── the whisky act awaits the USER'S bottle file (they will deliver a
+      // model; the procedural stand-in was cut at their word). While _wb is
+      // null the whole act sleeps — no bottle, no amber jet, no gold mix, no
+      // copy cue — but the cup still rides the stage and keeps its fizz.
+      this._wb = null;
+      this._wbMats = [];
       this._extra = 0;        // whisky in the cup, on top of the water's level
       this._whiskyOn = false;
       this._hb = document.querySelector('.highball');
@@ -1892,31 +1878,34 @@
         // never drifting toward the centre (the user was firm on this)
         this._glass.position.x = (this._fxDefault - 0.5) * 2 * this._halfW;
         this._glass.position.y = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
-        // whisky timeline, scrubbed by how deep the stage has been ridden
-        var w = Math.max(0, Math.min(1, (vh * 0.80 - hb.top) / Math.max(1, hb.height - vh * 0.20)));
-        this._extra = 0.07 * smoothstep(0.50, 0.74, w);
-        var a2 = smoothstep(0.06, 0.24, w) * (1 - smoothstep(0.90, 0.995, w));
-        if (a2 > 0.002) {
-          this._whiskyArm();
-          var k2 = smoothstep(0.28, 0.52, w) * (1 - smoothstep(0.76, 0.92, w));
-          var rz2 = k2 * 1.45;
-          var wbx = this._glass.position.x + (this._narrow ? 0.95 : 1.30) - k2 * 0.45;
-          var wby = this._glass.position.y + 0.55 + (1 - a2) * 1.4 + k2 * 0.62;
-          this._wb.visible = true;
-          this._wb.position.set(wbx, wby, 0);
-          this._wb.rotation.z = rz2;
-          this._wbMats.forEach(function (m) { m.opacity = m._op0 * a2; });
-          wp = smoothstep(0.50, 0.56, w) * (1 - smoothstep(0.70, 0.78, w));
-          if (wp > 0.01) {
-            wjet = { x0: wbx - 0.75 * Math.sin(rz2), y0: wby + 0.75 * Math.cos(rz2),
-                     vx: -0.25 * k2, vy: -0.6, g: 12.5, r0: 0.022 + 0.02 * wp,
-                     cupX: this._glass.position.x };
+        // whisky timeline, scrubbed by how deep the stage has been ridden —
+        // asleep until the user's bottle file gives us _wb again
+        if (this._wb) {
+          var w = Math.max(0, Math.min(1, (vh * 0.80 - hb.top) / Math.max(1, hb.height - vh * 0.20)));
+          this._extra = 0.07 * smoothstep(0.50, 0.74, w);
+          var a2 = smoothstep(0.06, 0.24, w) * (1 - smoothstep(0.90, 0.995, w));
+          if (a2 > 0.002) {
+            this._whiskyArm();
+            var k2 = smoothstep(0.28, 0.52, w) * (1 - smoothstep(0.76, 0.92, w));
+            var rz2 = k2 * 1.45;
+            var wbx = this._glass.position.x + (this._narrow ? 0.95 : 1.30) - k2 * 0.45;
+            var wby = this._glass.position.y + 0.55 + (1 - a2) * 1.4 + k2 * 0.62;
+            this._wb.visible = true;
+            this._wb.position.set(wbx, wby, 0);
+            this._wb.rotation.z = rz2;
+            this._wbMats.forEach(function (m) { m.opacity = m._op0 * a2; });
+            wp = smoothstep(0.50, 0.56, w) * (1 - smoothstep(0.70, 0.78, w));
+            if (wp > 0.01) {
+              wjet = { x0: wbx - 0.75 * Math.sin(rz2), y0: wby + 0.75 * Math.cos(rz2),
+                       vx: -0.25 * k2, vy: -0.6, g: 12.5, r0: 0.022 + 0.02 * wp,
+                       cupX: this._glass.position.x };
+            }
+          } else this._wb.visible = false;
+          // hand the copy its cue (CSS reads --hb): the line lands after the pour
+          if (Math.abs((this._hbLast || 0) - w) > 0.002) {
+            this._hbLast = w;
+            this._hb.style.setProperty('--hb', w.toFixed(3));
           }
-        } else this._wb.visible = false;
-        // hand the copy its cue (CSS reads --hb): the line lands after the pour
-        if (Math.abs((this._hbLast || 0) - w) > 0.002) {
-          this._hbLast = w;
-          this._hb.style.setProperty('--hb', w.toFixed(3));
         }
       } else if (this._wb) this._wb.visible = false;
 
