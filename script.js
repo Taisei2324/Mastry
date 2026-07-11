@@ -161,7 +161,7 @@
     var highball = document.querySelector(".highball");
     var story = document.getElementById("story");
     if (!highball || !story) return;
-    var DAMP = 0.55;
+    var DAMP = 0.8;   // gentle — closer to native so it never feels stubborn
     window.addEventListener("wheel", function (e) {
       if (e.deltaY <= 0 || e.ctrlKey) return;             // only the downward pass; ignore pinch-zoom
       var y = window.scrollY;

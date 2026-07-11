@@ -1895,13 +1895,32 @@
           var geo = o.geometry.clone();
           geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(norm, o.matrixWorld));
           if (nm.indexOf('whisk') !== -1 || nm.indexOf('liquid') !== -1) {
-            // the pour it holds — a warm, lit amber so it glows through the crystal
+            // realistic liquid: instead of the GLB's static puddle (which tilts
+            // with the glass), fill the body with an amber column and clip it
+            // with a WORLD-horizontal plane. As the decanter tips the column
+            // tilts with it, but the plane stays level — so the whiskey surface
+            // stays horizontal and the liquid pools to the low side. Same clip
+            // trick the cup's water uses. The plane's height is fed per frame.
+            geo.computeBoundingBox();
+            var gb = geo.boundingBox;
+            var rIn = Math.max(Math.abs(gb.max.x), Math.abs(gb.min.x), Math.abs(gb.max.z), Math.abs(gb.min.z)) * 0.8;
+            var lBase = gb.min.y - 0.04;
+            var lRest = gb.max.y;              // upright fill line = the level plane's rest height
+            var lTop = 0.66;                   // fill up the body toward the mouth (mouth ≈ 0.75)
+            if (lTop < lRest + 0.1) lTop = lRest + 0.4;
+            self._wbFill = lRest;
+            self._wbLiquidPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), lRest);
+            var lgeo = new THREE.CylinderGeometry(rIn, rIn, lTop - lBase, 40, 1, false);
             var lm = new THREE.MeshPhysicalMaterial({
-              color: 0x9a4d16, roughness: 0.25, metalness: 0,
+              color: 0x9a4d16, roughness: 0.22, metalness: 0,
               emissive: 0x35190a, emissiveIntensity: 0.5,
-              transparent: true, opacity: 0.94, envMapIntensity: 1.3, depthWrite: false
+              transparent: true, opacity: 0.92, envMapIntensity: 1.35, depthWrite: false,
+              side: THREE.DoubleSide, clippingPlanes: [self._wbLiquidPlane]
             });
-            var mesh = new THREE.Mesh(geo, lm); mesh.renderOrder = 3; holder.add(mesh);
+            var lmesh = new THREE.Mesh(lgeo, lm);
+            lmesh.position.y = (lBase + lTop) / 2;
+            lmesh.renderOrder = 3;
+            holder.add(lmesh);
             mats.push(lm);
           } else if (nm.indexOf('stopper') !== -1 || nm.indexOf('cap') !== -1 || nm.indexOf('lid') !== -1) {
             stopperGeos.push(geo);          // seated separately so it can pop off
@@ -2115,24 +2134,14 @@
         if (this._rideY === undefined) this._rideY = rideY;
         this._rideY += (rideY - this._rideY) * (1 - Math.pow(0.0025, dt));
         this._glass.position.y = this._rideY;
-        // ── snap: the stationary blue aura sits at the snap line; --snap blooms
-        // it as the cup ARRIVES and fades as the cup rides on past to the bottom,
-        // so the aura never follows the cup. The first time it locks, the scroll
-        // is held a beat so the reader takes it in, then released. One-shot,
-        // rewind-safe, capped at SNAP_HOLD so it can never trap.
-        var SNAP_HOLD = 0.85;
+        // ── snap (MAGNETIC): the stationary blue aura sits at the snap line, and
+        // --snap blooms it as the cup ARRIVES, fading as the cup rides on past to
+        // the bottom (so the aura never follows the cup). The cup itself eases
+        // onto the snap line through the low-pass glide above — no scroll is ever
+        // held or clamped, so nothing bounces or fights the wheel.
         var nearSnap = 1 - Math.min(1, Math.abs(baseScr - baseLock) / Math.max(1, cupPx * 1.1));
         var lockAmt = (baseLock >= base0) ? nearSnap * (1 - descend) : 0;
         document.documentElement.style.setProperty('--snap', lockAmt.toFixed(3));
-        if (!this._reduce) {
-          var atLock = baseLock >= base0 && Math.abs(baseScr - baseLock) <= 3 && descend < 0.08 && (hb.bottom - M2) > baseLock + 4;
-          if (atLock && !this._snapDone && !goingUp) {
-            if (!this._snapT) { this._snapT = t; this._snapY = window.scrollY; }
-            if (t - this._snapT < SNAP_HOLD) { if (window.scrollY > this._snapY) window.scrollTo(0, this._snapY); }
-            else this._snapDone = true;
-          }
-          if (goingUp && baseLock < base0) { this._snapDone = false; this._snapT = 0; }
-        }
         // whisky timeline, scrubbed by how deep the stage has been ridden —
         // asleep until the user's bottle file gives us _wb again (w computed above)
         if (this._wb) {
@@ -2146,6 +2155,9 @@
             var wby = this._glass.position.y + 0.55 + (1 - a2) * 1.4 + k2 * 0.62;
             this._wb.visible = true;
             this._wb.position.set(wbx, wby, 0);
+            // hold the whisky surface level at a fixed world height as the vessel
+            // moves and tilts (world-horizontal clip plane, so it never tilts)
+            if (this._wbLiquidPlane) this._wbLiquidPlane.constant = wby + this._wbFill;
             this._wb.rotation.z = rz2;
             this._wbMats.forEach(function (m) { m.opacity = m._op0 * a2; });
             // the stopper pops off BEFORE the pour and seats back AFTER — a quiet
