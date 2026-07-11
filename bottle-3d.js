@@ -1000,9 +1000,14 @@
       if (this._waterTopUniforms) this._waterTopUniforms.uTime.value = t;
 
       // bubbles — 2x speed and 2x count once the cap is off, plus a hard
-      // surge while the cap-off fizz burst is live
+      // surge while the cap-off fizz burst is live. But once the bottle
+      // TILTS to pour, the in-bottle carbonation clears away so the pour
+      // reads as clean flowing water (the gargle lives in the flow, not in
+      // bubbles) — user: "delete the bubbles, make the gargle the flow".
+      var pourClean = smoothstep(0.34, 0.60, tiltT); // 0 upright … 1 pouring
       var surge = (Math.min(3.5, Math.abs(vel) * 0.012) + tiltT * 3.0) * (1 + capT) + this._fizzBurst * 5;
-      this._bubbles.count = Math.min(this._bubbleData.length, Math.round(this._bubbleBase * (1 + capT + this._fizzBurst)));
+      this._bubbles.count = Math.min(this._bubbleData.length,
+        Math.round(this._bubbleBase * (1 + capT + this._fizzBurst) * (1 - pourClean)));
       var wrapY = Math.min(this._waterLocalY || 2.28, 2.28);
       var bd = this._bubbleData, dummy = this._dropDummy;
       for (var i = 0; i < bd.length; i++) {
@@ -1089,37 +1094,31 @@
       //  • once the level DROPS, air finds a steady open channel up one side
       //    of the bore, so inflow and outflow coexist and the pour runs
       //    smooth — no choke, no glug, just a clean thread of rising air.
+      // ══ THE GARGLE, expressed purely as the FLOW OF THE WATER ══
+      // No bubbles, no air pockets. While the neck is packed (level high)
+      // the pour PULSATES — the column swells and pinches, big/small/big/
+      // small, and those bulges travel down the stream (see _updateStream,
+      // which reads this._glugAmp + this._glugPhase). As the bottle drains
+      // past ~0.62→0.40 the pulse fades and the water simply runs down
+      // smoothly: air now has a clear path, so no more glug.
       var flow = 1;
       if (pouring) {
         var tiltG = smoothstep(0.72, 0.95, tiltT);
-        var gargle = tiltG * smoothstep(0.40, 0.62, this._level); // 1 = neck packed, gargling; 0 = air channel open
-        var smooth = tiltG * (1 - gargle);                        // the clean-flow regime that takes over
-        this._glugPhase += dt * (5.0 + 2.2 * ps);
-        var gl = 0.5 + 0.5 * Math.sin(this._glugPhase);
-        flow = 1 - gargle * 0.62 * (1 - gl * gl);   // choke only while gargling; steady once smooth
+        var gargle = tiltG * smoothstep(0.40, 0.62, this._level); // 1 = packed & gargling, 0 = drained & smooth
         this._glugAmp = gargle;
-        this._glugCool -= dt;
-        if (gargle > 0.16 && gl < 0.10 && this._glugCool <= 0) {
-          this._glugCool = 0.32;              // a steadier glug-glug-glug cadence
-          this._spawnGlugAir();
-          this._glugKick = 1;                 // the surface heaves as the air bursts in
-        }
-        this._glugKick = Math.max(0, (this._glugKick || 0) - dt * 2.6);
-        // the pocket breathes: water surges down toward the mouth as air
-        // rushes up, so the surface bobs with the glug wave — only while
-        // gargling; the smooth regime runs flat
-        this._surfBob = (gl - 0.5) * 0.055 * gargle + this._glugKick * 0.03;
-        // once the channel is open, a steady thread of air runs up one side
-        // of the neck — continuous, no pulse
-        if (smooth > 0.05) this._spawnAirChannel(dt, smooth);
-        // a fuller column moves more water: the bottle now empties in ~4s
-        // (thicker exit = shorter drain — the user asked for the physics
-        // to stay honest about it)
+        this._glugPhase += dt * (9.0 + 3.0 * ps);                 // the glug cadence (~1.5 Hz)
+        var gl = 0.5 + 0.5 * Math.sin(this._glugPhase);
+        // STEADY mean choke (= the time-average of the old oscillation): the
+        // whole column no longer throbs in lockstep — the big/small rhythm
+        // lives ONLY in the travelling wave in _updateStream. Drain timing
+        // and mean thickness are unchanged; at gargle=0 the base pour is exact.
+        flow = 1 - 0.19 * gargle;
+        // the water INSIDE heaves on the same beat — surface only, no particles
+        this._surfBob = (gl - 0.5) * 0.05 * gargle;
         this._level = Math.max(0.20, this._level - dt * (0.05 + 0.16 * ps * flow));
       } else {
-        // upright / not pouring: let the surface settle, no residual heave
-        this._surfBob = (this._surfBob || 0) * Math.pow(0.02, dt);
-        this._glugKick = Math.max(0, (this._glugKick || 0) - dt * 3);
+        this._glugAmp = 0;
+        this._surfBob = (this._surfBob || 0) * Math.pow(0.02, dt); // settle when not pouring
       }
 
       var bk = this._updateStream(pouring, ps, flow, time);
@@ -1261,7 +1260,10 @@
 
     _updateFizz(dt) {
       var mesh = this._fizz, fd = this._fizzData, dummy = this._dropDummy;
-      if (this._fizzBurst > 0.02) {
+      // the cap-off nucleation burst only fires while the bottle is upright;
+      // once it tilts to pour, no new bubbles nucleate (existing ones rise
+      // out within a beat) so the pour is clean water, no fizz in the bottle
+      if (this._fizzBurst > 0.02 && (this._tiltT || 0) < 0.34) {
         // cap-off burst: nucleation sites on the glass wall and base fire
         // streams of fast-rising bubbles for a couple of seconds
         this._fizzClock += dt * this._fizzBurst * 70;
@@ -1295,7 +1297,9 @@
         var rMax = radiusAt(Math.min(Math.max(b.y, 0), H)) * 0.84;
         var rr = Math.sqrt(b.x * b.x + b.z * b.z);
         if (rr > rMax && rr > 0) { b.x *= rMax / rr; b.z *= rMax / rr; }
-        b.life -= dt;
+        // once the bottle tilts to pour, any lingering cap-off bubbles are
+        // culled fast so the pour is clean water (no fizz in the bottle)
+        b.life -= dt * (1 + 60 * smoothstep(0.34, 0.60, this._tiltT || 0));
         if (b.life <= 0 || (b.pop && b.y >= wrap)) { fd.splice(i, 1); continue; }
       }
       mesh.count = fd.length;
@@ -1371,6 +1375,23 @@
         // Plateau–Rayleigh varicose wave rides down the jet and deepens;
         // wavelength ≈ 9x jet radius, travelling with the flow
         var r = rBase * (1 + (0.08 + 0.95 * frac * frac) * 0.42 * Math.sin(s * 10.5 - time * 30));
+        // THE GARGLE: a low-frequency thickness wave that TRAVELS down the
+        // column — fat runs separated by sharp pinches (big/small/big/small),
+        // its phase lagging with arclength so a parcel emitted on a surge
+        // stays fat as it falls. Distinct from the fine P-R ripple above;
+        // amplitude is this._glugAmp (full when the neck is packed, 0 once
+        // drained → the column then runs smooth). Held full at the very lip
+        // so the stream never looks detached from the mouth.
+        var gAmp = this._glugAmp || 0;
+        if (gAmp > 0.01) {
+          // time-of-flight phase: a parcel now at flight-time tt down the
+          // column shows the emission state from tt ago (the integrator rate
+          // matches _glugPhase's), so the bulge is BORN at the lip and marches
+          // down carrying its birth thickness — big, small, big, small
+          var gv = 0.5 + 0.5 * Math.sin(this._glugPhase - (9.0 + 3.0 * ps) * tt);
+          var gEdge = Math.min(1, s / 0.15);
+          r *= 1 - gAmp * 0.55 * gEdge * (1 - gv * gv);            // fat runs, sharp pinches between
+        }
         if (frac > 0.78) r *= Math.max(0.10, 1 - (frac - 0.78) * 3.6); // necks into the pinch-off
         if (r < 0.003) r = 0.003;
         // lateral wander grows down-stream
