@@ -287,9 +287,24 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
 }
 .herowords .hero__copy{
   display:flex;flex-direction:column;align-items:center;
-  max-width:min(640px,58vw);
-  margin-right:clamp(40px,10vw,220px); /* nearer the centre — the bigger glass still clears it */
+  max-width:min(580px,52vw);
+  margin-right:clamp(40px,12vw,300px); /* nudged left toward centre, still clear of the cup */
 }
+/* the blue aura the cup snaps into — a mineral-blue glow parked on the pour
+   line at screen centre, brought up by --snap (0..1, written per frame while
+   the cup settles into its lock) so it blooms exactly as the glass arrives */
+.herowords__aura{
+  position:fixed;z-index:0;pointer-events:none;
+  left:30vw;top:50vh;width:min(520px,68vw);aspect-ratio:1;
+  transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,
+    rgba(109,157,170,.45), rgba(101,159,144,.22) 46%, rgba(109,157,170,0) 72%);
+  filter:blur(38px);
+  opacity:calc(var(--snap,0) * .92);
+  transition:opacity .35s var(--ease);
+}
+@media (max-width:760px){ .herowords__aura{ left:13vw; } } /* the mobile pour line */
+@media (prefers-reduced-motion:reduce){ .herowords__aura{ display:none; } }
 .herowords .hero__sub{margin-left:auto;margin-right:auto;}
 .herowords .hero__actions{justify-content:center;}
 /* the real pour: a second three.js scene — same water, same jet, same glass
