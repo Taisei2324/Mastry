@@ -295,7 +295,7 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
    the cup settles into its lock) so it blooms exactly as the glass arrives */
 .herowords__aura{
   position:fixed;z-index:0;pointer-events:none;
-  left:30vw;top:50vh;width:min(520px,68vw);aspect-ratio:1;
+  left:30vw;top:62vh;width:min(520px,68vw);aspect-ratio:1; /* on the pour line, at the snap height */
   transform:translate(-50%,-50%);border-radius:50%;
   background:radial-gradient(circle at 50% 50%,
     rgba(109,157,170,.45), rgba(101,159,144,.22) 46%, rgba(109,157,170,0) 72%);
@@ -303,7 +303,7 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   opacity:calc(var(--snap,0) * .92);
   transition:opacity .35s var(--ease);
 }
-@media (max-width:760px){ .herowords__aura{ left:13vw; } } /* the mobile pour line */
+@media (max-width:760px){ .herowords__aura{ left:13vw;top:56vh; } } /* the mobile pour line + snap */
 @media (prefers-reduced-motion:reduce){ .herowords__aura{ display:none; } }
 .herowords .hero__sub{margin-left:auto;margin-right:auto;}
 .herowords .hero__actions{justify-content:center;}

@@ -2093,28 +2093,39 @@
         var cupPx = this._cupPx || 269;
         var pr2 = this.parentElement.getBoundingClientRect();
         var base0 = pr2.top + (this._narrow ? 0.40 : 0.62) * Math.max(1, pr2.height); // the herowords park
-        var baseLock = vh * 0.5 + cupPx * 0.5;               // cup centred on screen
-        var M2 = Math.max(20, (vh - cupPx) * 0.5);           // sticky margin inside the stage
-        var baseScr = Math.min(Math.max(baseLock, base0), hb.bottom - M2);
-        // the cup keeps its longitude: it rides straight down the pour line,
-        // never drifting toward the centre (the user was firm on this)
+        // highball progress — computed up here so the cup can react to it (it
+        // depends only on the section rect, not on the cup's own position)
+        var w = Math.max(0, Math.min(1, (vh * 0.80 - hb.top) / Math.max(1, hb.height - vh * 0.20)));
+        // where the cup snaps: a low resting line (not screen-centre), which is
+        // exactly where the stationary blue aura sits. baseScr is the cup's
+        // BOTTOM screen-Y, so SNAP_FRAC*vh is the cup's centre when locked.
+        var SNAP_FRAC = this._narrow ? 0.56 : 0.62;
+        var baseLock = vh * SNAP_FRAC + cupPx * 0.5;
+        // once the decanter is up, the cup keeps going — down to the bottom of
+        // the screen — to open room above it for the vessel and its pour
+        var descend = this._wb ? smoothstep(0.14, 0.52, w) : 0;
+        var bottomScr = vh - 12;                             // cup bottom at the screen floor
+        var lock = baseLock + (bottomScr - baseLock) * descend;
+        var M2 = Math.max(8, (vh - cupPx) * 0.5 * (1 - descend)); // margin relaxes as it drops
+        var baseScr = Math.min(Math.max(lock, base0), hb.bottom - M2);
+        // the cup keeps its longitude: it rides straight down the pour line
         this._glass.position.x = (this._fxDefault - 0.5) * 2 * this._halfW;
-        // one smooth glide: the raw target follows scroll frame-to-frame and
-        // jitters with wheel speed, so low-pass it into a single eased motion
+        // one smooth glide: low-pass the scroll-driven target into one eased motion
         var rideY = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
         if (this._rideY === undefined) this._rideY = rideY;
         this._rideY += (rideY - this._rideY) * (1 - Math.pow(0.0025, dt));
         this._glass.position.y = this._rideY;
-        // ── snap: the cup settles into its lock (level with the "two ancient
-        // islands" title, inside the blue aura). --snap blooms the aura, and
-        // the first time it locks the scroll is held for a beat so the reader
-        // takes it in, then released. One-shot, rewind-safe, and capped at
-        // SNAP_HOLD seconds so it can never trap. Reduced-motion skips the hold.
+        // ── snap: the stationary blue aura sits at the snap line; --snap blooms
+        // it as the cup ARRIVES and fades as the cup rides on past to the bottom,
+        // so the aura never follows the cup. The first time it locks, the scroll
+        // is held a beat so the reader takes it in, then released. One-shot,
+        // rewind-safe, capped at SNAP_HOLD so it can never trap.
         var SNAP_HOLD = 0.85;
-        var lockAmt = (baseLock >= base0) ? (1 - Math.min(1, Math.abs(baseScr - baseLock) / Math.max(1, cupPx * 0.7))) : 0;
+        var nearSnap = 1 - Math.min(1, Math.abs(baseScr - baseLock) / Math.max(1, cupPx * 1.1));
+        var lockAmt = (baseLock >= base0) ? nearSnap * (1 - descend) : 0;
         document.documentElement.style.setProperty('--snap', lockAmt.toFixed(3));
         if (!this._reduce) {
-          var atLock = baseLock >= base0 && (baseScr - baseLock) <= 2 && (hb.bottom - M2) > baseLock + 4;
+          var atLock = baseLock >= base0 && Math.abs(baseScr - baseLock) <= 3 && descend < 0.08 && (hb.bottom - M2) > baseLock + 4;
           if (atLock && !this._snapDone && !goingUp) {
             if (!this._snapT) { this._snapT = t; this._snapY = window.scrollY; }
             if (t - this._snapT < SNAP_HOLD) { if (window.scrollY > this._snapY) window.scrollTo(0, this._snapY); }
@@ -2123,9 +2134,8 @@
           if (goingUp && baseLock < base0) { this._snapDone = false; this._snapT = 0; }
         }
         // whisky timeline, scrubbed by how deep the stage has been ridden —
-        // asleep until the user's bottle file gives us _wb again
+        // asleep until the user's bottle file gives us _wb again (w computed above)
         if (this._wb) {
-          var w = Math.max(0, Math.min(1, (vh * 0.80 - hb.top) / Math.max(1, hb.height - vh * 0.20)));
           this._extra = 0.07 * smoothstep(0.50, 0.74, w);
           var a2 = smoothstep(0.06, 0.24, w) * (1 - smoothstep(0.90, 0.995, w));
           if (a2 > 0.002) {
