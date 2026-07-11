@@ -1083,27 +1083,35 @@
       var pouring = tiltT > 0.58 && this._level > 0.201 && ps > 0.003;
       this._pourActive = pouring; // keeps the tick alive offscreen until the pour completes
 
-      // glug: near-horizontal the mouth runs full of water, so air can only
-      // get back in by starving the flow in pulses (glug… glug…). The choke
-      // is deep and rhythmic, and on each dip a fat air slug punches back up
-      // the neck into the trapped pocket — the classic gargle.
+      // two regimes, set by how full the neck is:
+      //  • FULL neck → air can only barge in through pulses: the flow chokes
+      //    rhythmically and fat slugs punch up the neck (the gargle).
+      //  • once the level DROPS, air finds a steady open channel up one side
+      //    of the bore, so inflow and outflow coexist and the pour runs
+      //    smooth — no choke, no glug, just a clean thread of rising air.
       var flow = 1;
       if (pouring) {
-        var glugAmp = smoothstep(0.72, 0.95, tiltT) * smoothstep(0.22, 0.40, this._level);
+        var tiltG = smoothstep(0.72, 0.95, tiltT);
+        var gargle = tiltG * smoothstep(0.40, 0.62, this._level); // 1 = neck packed, gargling; 0 = air channel open
+        var smooth = tiltG * (1 - gargle);                        // the clean-flow regime that takes over
         this._glugPhase += dt * (5.0 + 2.2 * ps);
         var gl = 0.5 + 0.5 * Math.sin(this._glugPhase);
-        flow = 1 - glugAmp * 0.62 * (1 - gl * gl);   // deeper choke: the flow really stalls, then surges
-        this._glugAmp = glugAmp;
+        flow = 1 - gargle * 0.62 * (1 - gl * gl);   // choke only while gargling; steady once smooth
+        this._glugAmp = gargle;
         this._glugCool -= dt;
-        if (glugAmp > 0.16 && gl < 0.10 && this._glugCool <= 0) {
+        if (gargle > 0.16 && gl < 0.10 && this._glugCool <= 0) {
           this._glugCool = 0.32;              // a steadier glug-glug-glug cadence
           this._spawnGlugAir();
           this._glugKick = 1;                 // the surface heaves as the air bursts in
         }
         this._glugKick = Math.max(0, (this._glugKick || 0) - dt * 2.6);
         // the pocket breathes: water surges down toward the mouth as air
-        // rushes up, so the whole surface bobs with the glug wave
-        this._surfBob = (gl - 0.5) * 0.055 * glugAmp + this._glugKick * 0.03;
+        // rushes up, so the surface bobs with the glug wave — only while
+        // gargling; the smooth regime runs flat
+        this._surfBob = (gl - 0.5) * 0.055 * gargle + this._glugKick * 0.03;
+        // once the channel is open, a steady thread of air runs up one side
+        // of the neck — continuous, no pulse
+        if (smooth > 0.05) this._spawnAirChannel(dt, smooth);
         // a fuller column moves more water: the bottle now empties in ~4s
         // (thicker exit = shorter drain — the user asked for the physics
         // to stay honest about it)
@@ -1222,6 +1230,31 @@
           dx: _v1.x, dy: _v1.y, dz: _v1.z,
           v: 1.0 + Math.random() * 0.9, s: 2.0 + Math.random() * 2.2,
           life: 1.4, w: Math.random() * Math.PI * 2, pop: false
+        });
+      }
+    }
+
+    /* the smooth regime: once the level drops enough that air has an open
+       path, it runs up ONE side of the bore in a steady thin thread —
+       continuous inflow beside the outflow, no glug. Bubbles hug the
+       world-up side of the neck (where air travels) and rise cleanly. */
+    _spawnAirChannel(dt, intensity) {
+      this._bottle.getWorldQuaternion(_q1);
+      _v1.set(0, 1, 0).applyQuaternion(_q1.invert());   // world-up in bottle space
+      var sx = _v1.x, sz = _v1.z, sl = Math.sqrt(sx * sx + sz * sz);
+      if (sl > 1e-6) { sx /= sl; sz /= sl; } else { sx = 1; sz = 0; } // lateral toward the up-side of the bore
+      var fd = this._fizzData, cap = this._fizz.instanceMatrix.count;
+      this._airClock = (this._airClock || 0) + dt * 30 * intensity;
+      var nn = Math.floor(this._airClock);
+      this._airClock -= nn;
+      for (var i = 0; i < nn && fd.length < cap; i++) {
+        var off = 0.055 + Math.random() * 0.055;        // ride the channel, offset to one wall
+        var jit = (Math.random() - 0.5) * 0.05;         // slight spread across the channel
+        fd.push({
+          x: sx * off - sz * jit, y: 2.86 + Math.random() * 0.24, z: sz * off + sx * jit,
+          dx: _v1.x, dy: _v1.y, dz: _v1.z,
+          v: 1.2 + Math.random() * 0.5, s: 1.3 + Math.random() * 1.1,
+          life: 1.3, w: Math.random() * Math.PI * 2, pop: false
         });
       }
     }
