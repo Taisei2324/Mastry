@@ -460,10 +460,14 @@
       }
       nrPts.push(new THREE.Vector2(0.142, 3.16));
       nrPts.push(new THREE.Vector2(0.001, 3.16));
+      // its own plane rides a hair ABOVE the body's: the body water's shader
+      // paints a caustic band at its waterline, so the plain neck material
+      // read a touch lower — this lines the two visible surfaces up
+      this._neckPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2.32);
       var neckRun = new THREE.Mesh(new THREE.LatheGeometry(nrPts, 48), new THREE.MeshPhysicalMaterial({
         color: 0xa7cbb4, roughness: 0.05, metalness: 0, transparent: true, opacity: 0,
         envMapIntensity: 1.1, depthWrite: false, side: THREE.DoubleSide,
-        clippingPlanes: [this._waterPlane] // the SAME waterline as the body: one shared surface
+        clippingPlanes: [this._neckPlane]
       }));
       neckRun.renderOrder = 2.5;
       neckRun.visible = false;
@@ -1125,6 +1129,7 @@
       if (this._neckRun) {
         this._neckRun.visible = tiltT > 0.25 && this._level > 0.205;
         if (this._neckRun.visible) {
+          this._neckPlane.constant = this._waterPlane.constant + 0.04; // top raised a touch (user)
           this._neckRun.material.opacity = 0.42 * (0.85 + 0.15 * flow); // sits nearer the body water's density
           this._neckRun.parent.getWorldQuaternion(_q1);
           _v2.set(0, 1, 0).applyQuaternion(_q1);            // neck axis, world
