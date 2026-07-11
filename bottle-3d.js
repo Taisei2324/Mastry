@@ -616,9 +616,11 @@
       // event bubbles, separate from the ambient column: the cap-off burst
       // firing every nucleation site at once, and the fat air slugs that
       // glug back in through the neck while pouring
-      var MAX = 130;
+      var MAX = 150;
+      // bright, near-white air so the gulp reads clearly against the sage
+      // water (a submerged air bubble catches the light as a pale sphere)
       var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.013, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0xdff1e4, transparent: true, opacity: 0.6, depthWrite: false, clippingPlanes: [this._waterPlane] }), MAX);
+        new THREE.MeshBasicMaterial({ color: 0xf3fbf6, transparent: true, opacity: 0.78, depthWrite: false, toneMapped: false, clippingPlanes: [this._waterPlane] }), MAX);
       mesh.count = 0;
       mesh.renderOrder = 4;
       parent.add(mesh);
@@ -965,7 +967,7 @@
       var dyPer = (_v3.y - _v2.y) / 3.26;
       var rEff = 0.52 * (1 - Math.min(1, Math.abs(dyPer))); // tilted → span includes the barrel radius
       var minY = Math.min(_v2.y, _v3.y) - rEff, maxY = Math.max(_v2.y, _v3.y) + rEff;
-      var h = lerp(minY, maxY, 0.712 * lvl);   // pooled water height
+      var h = lerp(minY, maxY, 0.712 * lvl) + (this._surfBob || 0); // pooled water height, heaving with the glug
       this._waterPlane.constant = h;
       // surface disc rides the waterline along the bottle axis, always world-level
       if (dyPer > 0.25) { // upright-ish ONLY: inverted, the disc escaped the silhouette as a floating bar
@@ -993,7 +995,7 @@
         this._waterUniforms.uBaseY.value = _v2.y;
         this._waterUniforms.uTime.value = t;
         this._waterUniforms.uAgitate.value =
-          Math.min(1, Math.abs(vel) * 0.008 + tiltT * 0.8 + this._fizzBurst * 0.8);
+          Math.min(1, Math.abs(vel) * 0.008 + tiltT * 0.8 + this._fizzBurst * 0.8 + (this._glugKick || 0) * 0.6);
       }
       if (this._waterTopUniforms) this._waterTopUniforms.uTime.value = t;
 
@@ -1082,22 +1084,34 @@
       this._pourActive = pouring; // keeps the tick alive offscreen until the pour completes
 
       // glug: near-horizontal the mouth runs full of water, so air can only
-      // get back in by starving the flow in pulses (glug… glug…)
+      // get back in by starving the flow in pulses (glug… glug…). The choke
+      // is deep and rhythmic, and on each dip a fat air slug punches back up
+      // the neck into the trapped pocket — the classic gargle.
       var flow = 1;
       if (pouring) {
-        var glugAmp = smoothstep(0.80, 0.97, tiltT) * smoothstep(0.24, 0.40, this._level);
-        this._glugPhase += dt * (5.2 + 2.2 * ps);
+        var glugAmp = smoothstep(0.72, 0.95, tiltT) * smoothstep(0.22, 0.40, this._level);
+        this._glugPhase += dt * (5.0 + 2.2 * ps);
         var gl = 0.5 + 0.5 * Math.sin(this._glugPhase);
-        flow = 1 - glugAmp * 0.45 * (1 - gl * gl);
+        flow = 1 - glugAmp * 0.62 * (1 - gl * gl);   // deeper choke: the flow really stalls, then surges
+        this._glugAmp = glugAmp;
         this._glugCool -= dt;
-        if (glugAmp > 0.25 && gl < 0.12 && this._glugCool <= 0) {
-          this._glugCool = 0.45;
+        if (glugAmp > 0.16 && gl < 0.10 && this._glugCool <= 0) {
+          this._glugCool = 0.32;              // a steadier glug-glug-glug cadence
           this._spawnGlugAir();
+          this._glugKick = 1;                 // the surface heaves as the air bursts in
         }
+        this._glugKick = Math.max(0, (this._glugKick || 0) - dt * 2.6);
+        // the pocket breathes: water surges down toward the mouth as air
+        // rushes up, so the whole surface bobs with the glug wave
+        this._surfBob = (gl - 0.5) * 0.055 * glugAmp + this._glugKick * 0.03;
         // a fuller column moves more water: the bottle now empties in ~4s
         // (thicker exit = shorter drain — the user asked for the physics
         // to stay honest about it)
         this._level = Math.max(0.20, this._level - dt * (0.05 + 0.16 * ps * flow));
+      } else {
+        // upright / not pouring: let the surface settle, no residual heave
+        this._surfBob = (this._surfBob || 0) * Math.pow(0.02, dt);
+        this._glugKick = Math.max(0, (this._glugKick || 0) - dt * 3);
       }
 
       var bk = this._updateStream(pouring, ps, flow, time);
@@ -1182,19 +1196,31 @@
     }
 
     _spawnGlugAir() {
-      // the glug is air forcing its way back through the neck: a few fat
-      // bubbles wobble from the mouth toward the trapped air pocket, i.e.
-      // world-up expressed in bottle space
+      // the glug is air forcing its way back through the neck toward the
+      // trapped pocket — world-up expressed in bottle space. It enters as
+      // ONE fat slug that fills the bore (the audible "glug"), with a short
+      // train of smaller bubbles chasing it up.
       this._bottle.getWorldQuaternion(_q1);
       _v1.set(0, 1, 0).applyQuaternion(_q1.invert());
       var fd = this._fizzData, cap = this._fizz.instanceMatrix.count;
-      var n = 2 + Math.floor(Math.random() * 3);
-      for (var i = 0; i < n && fd.length < cap; i++) {
-        var ang = Math.random() * Math.PI * 2, rr = Math.random() * 0.06;
+      // the slug: a bore-filling air pocket punched in at the mouth
+      if (fd.length < cap) {
+        var a0 = Math.random() * Math.PI * 2, r0 = Math.random() * 0.025;
         fd.push({
-          x: Math.cos(ang) * rr, y: 2.5 + Math.random() * 0.35, z: Math.sin(ang) * rr,
+          x: Math.cos(a0) * r0, y: 2.98 + Math.random() * 0.12, z: Math.sin(a0) * r0,
           dx: _v1.x, dy: _v1.y, dz: _v1.z,
-          v: 1.0 + Math.random() * 0.8, s: 2.4 + Math.random() * 1.8,
+          v: 1.7 + Math.random() * 0.6, s: 9.5 + Math.random() * 3.5,
+          life: 1.7, w: Math.random() * Math.PI * 2, pop: false
+        });
+      }
+      // the train: bubbles shed off the slug as it tears up the neck
+      var n = 3 + Math.floor(Math.random() * 4);
+      for (var i = 0; i < n && fd.length < cap; i++) {
+        var ang = Math.random() * Math.PI * 2, rr = Math.random() * 0.075;
+        fd.push({
+          x: Math.cos(ang) * rr, y: 2.55 + Math.random() * 0.45, z: Math.sin(ang) * rr,
+          dx: _v1.x, dy: _v1.y, dz: _v1.z,
+          v: 1.0 + Math.random() * 0.9, s: 2.0 + Math.random() * 2.2,
           life: 1.4, w: Math.random() * Math.PI * 2, pop: false
         });
       }
