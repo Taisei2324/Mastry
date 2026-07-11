@@ -444,6 +444,23 @@
       this._mouthAnchor = new THREE.Object3D();
       this._mouthAnchor.position.set(0, 3.18, 0);
       parent.add(this._mouthAnchor);
+
+      // the neck run: the body water lathe ends at the shoulder (2.32), so
+      // the neck went TRANSPARENT while pouring. This slim slug fills the
+      // bore once the bottle tips past horizontal, rides the LOW side of
+      // the neck and pulses with the glug — the water the lip drinks from.
+      var nrPts = [new THREE.Vector2(0.001, 2.30)];
+      for (var ny = 2.30; ny <= 3.10; ny += 0.08) nrPts.push(new THREE.Vector2(Math.min(radiusAt(ny) * 0.82, 0.148), ny));
+      nrPts.push(new THREE.Vector2(0.142, 3.16));
+      nrPts.push(new THREE.Vector2(0.001, 3.16));
+      var neckRun = new THREE.Mesh(new THREE.LatheGeometry(nrPts, 48), new THREE.MeshPhysicalMaterial({
+        color: 0xa7cbb4, roughness: 0.05, metalness: 0, transparent: true, opacity: 0,
+        envMapIntensity: 1.1, depthWrite: false
+      }));
+      neckRun.renderOrder = 2.5;
+      neckRun.visible = false;
+      parent.add(neckRun);
+      this._neckRun = neckRun;
     }
 
     _buildCapGroups(parent) {
@@ -1090,6 +1107,25 @@
         // (thicker exit = shorter drain — the user asked for the physics
         // to stay honest about it)
         this._level = Math.max(0.20, this._level - dt * (0.05 + 0.16 * ps * flow));
+      }
+
+      // the neck run reacts to the tilt: it fades in as the bottle passes
+      // horizontal (water reaches the neck just before the lip), lies on the
+      // LOW side of the bore, pulses with the glug, and dries up with the head
+      if (this._neckRun) {
+        var nk = smoothstep(0.45, 0.62, tiltT) * smoothstep(0.22, 0.34, this._level);
+        this._neckRun.material.opacity = 0.52 * nk * (0.8 + 0.2 * flow);
+        this._neckRun.visible = nk > 0.01;
+        if (this._neckRun.visible) {
+          this._neckRun.parent.getWorldQuaternion(_q1);
+          _v2.set(0, 1, 0).applyQuaternion(_q1);            // neck axis, world
+          _v3.set(0, -1, 0).addScaledVector(_v2, _v2.y);    // world-down on the mouth plane
+          if (_v3.lengthSq() > 1e-6) _v3.normalize(); else _v3.set(0, 0, 0);
+          _v3.applyQuaternion(_q2.copy(_q1).invert());      // -> bottle-local
+          this._neckRun.position.set(_v3.x * 0.045, 0, _v3.z * 0.045);
+          var npulse = 1 + 0.1 * (flow - 1);
+          this._neckRun.scale.set(npulse, 1, npulse);
+        }
       }
 
       var bk = this._updateStream(pouring, ps, flow, time);
