@@ -1267,7 +1267,11 @@
       // parametrised for today's full-hero canvas. ══
       var ex = _v1.x + _v3.x * 0.10, ey = _v1.y + _v3.y * 0.10, ez = _v1.z + _v3.z * 0.10;
       var GP = 16;
-      var v0 = (0.55 + 0.95 * ps) * (0.82 + 0.18 * flow);
+      // exit velocity doubled (user: "no urge for the water to leave the
+      // bottle") — nearer Torricelli for the head behind the lip at this
+      // scene's stylised gravity; the water now JETS off the lip instead of
+      // dribbling. Same taper/wave/breakup physics downstream.
+      var v0 = (1.1 + 1.9 * ps) * (0.82 + 0.18 * flow);
       var r0 = (0.024 + 0.085 * ps) * (0.55 + 0.45 * flow); // ~40% fuller column at the lip (user: "a little thin")
       // weak pours droop off the lip; hard pours jet along the axis
       var droop = 0.55 * (1 - ps);
@@ -2116,15 +2120,20 @@
 
     _updateBubbles(dt, pour, x, waterY, rIn) {
       var mesh = this._bub, data = this._bubData, dummy = this._dummy;
-      var floorY = this._glass.position.y + this._waterBase + 0.015;
-      if (pour > 0.05 && waterY - floorY > 0.05) {
+      // bead positions are LOCAL to the glass group: the cup rides the page
+      // (its world position changes every frame), and world-anchored beads
+      // smeared down the screen behind it — locals travel with the drink
+      var gx = this._glass.position.x, gy = this._glass.position.y;
+      var floorY = this._waterBase + 0.015;
+      var wyr = waterY - gy;
+      if (pour > 0.05 && wyr - floorY > 0.05) {
         this._bubClock += dt * 26 * pour;
         var n = Math.floor(this._bubClock);
         this._bubClock -= n;
         for (var k = 0; k < n && data.length < mesh.instanceMatrix.count; k++) {
           data.push({
-            x: x + (Math.random() - 0.5) * 0.08,
-            y: Math.max(floorY, waterY - 0.10 - Math.random() * 0.25),
+            x: (x - gx) + (Math.random() - 0.5) * 0.08,
+            y: Math.max(floorY, wyr - 0.10 - Math.random() * 0.25),
             z: (Math.random() - 0.5) * 0.08,
             v: 0.30 + Math.random() * 0.35, w: Math.random() * Math.PI * 2,
             s: 0.5 + Math.random() * 1.1
@@ -2134,7 +2143,7 @@
       // it's SPARKLING water: fine carbonation beads nucleate across the
       // glass floor and lower walls and climb whenever the cup holds any —
       // slower and smaller than the pour churn, champagne-style
-      if (!this._reduce && waterY - floorY > 0.04) {
+      if (!this._reduce && wyr - floorY > 0.04) {
         this._fizzClock = (this._fizzClock || 0) + dt * 13;
         var nf = Math.floor(this._fizzClock);
         this._fizzClock -= nf;
@@ -2142,30 +2151,29 @@
           var fa = Math.random() * Math.PI * 2;
           var fr = Math.sqrt(Math.random()) * rIn * 0.85;
           data.push({
-            x: this._glass.position.x + Math.cos(fa) * fr,
-            y: floorY + Math.random() * Math.max(0.02, (waterY - floorY) * 0.5),
+            x: Math.cos(fa) * fr,
+            y: floorY + Math.random() * Math.max(0.02, (wyr - floorY) * 0.5),
             z: Math.sin(fa) * fr,
             v: 0.10 + Math.random() * 0.16, w: Math.random() * Math.PI * 2,
             s: 0.5 + Math.random() * 0.75
           });
         }
       }
-      var gx = this._glass.position.x;
       for (var i = data.length - 1; i >= 0; i--) {
         var b = data[i];
         b.w += dt * 6;
         b.y += b.v * dt;
         b.x += Math.sin(b.w) * 0.01 * dt * 60 * 0.016 * 4;
         // stay inside the tumbler wall
-        var rr = Math.sqrt((b.x - gx) * (b.x - gx) + b.z * b.z);
-        var rMax = this._innerR(b.y - this._glass.position.y) * 0.92;
-        if (rr > rMax && rr > 0) { b.x = gx + (b.x - gx) * rMax / rr; b.z *= rMax / rr; }
-        if (b.y >= waterY - 0.004) { data[i] = data[data.length - 1]; data.pop(); continue; }
+        var rr = Math.sqrt(b.x * b.x + b.z * b.z);
+        var rMax = this._innerR(b.y) * 0.92;
+        if (rr > rMax && rr > 0) { b.x *= rMax / rr; b.z *= rMax / rr; }
+        if (b.y >= wyr - 0.004) { data[i] = data[data.length - 1]; data.pop(); continue; }
       }
       mesh.count = data.length;
       for (var m = 0; m < data.length; m++) {
         var q = data[m];
-        dummy.position.set(q.x, q.y, q.z);
+        dummy.position.set(gx + q.x, gy + q.y, q.z);
         var sq = 1 + Math.sin(q.w * 1.7) * 0.15;
         dummy.rotation.set(0, 0, 0);
         dummy.scale.set(q.s * sq, q.s / sq, q.s * sq);

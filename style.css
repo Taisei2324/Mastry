@@ -239,13 +239,14 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
 /* ── pinned hero: three screens of scroll drive twist → cap-off → tilt → pour,
       then the page releases and the words rise in ── */
 .heropin{
-  height:560svh;position:relative;
+  height:460svh;position:relative;
   background:linear-gradient(180deg,var(--wash-sky) 0%,var(--paper) 36%);
 }
-/* desktop wheels cover distance fast — give the sequence a longer runway
-   (stretched again so the pour, the wall and the cup breathe apart) */
+/* desktop wheels cover distance fast — a longer runway, but snappy: the
+   user wants the sequence responsive under the wheel (THE WALL does the
+   story-gating now, the pin doesn't have to) */
 @media (min-width:1001px){
-  .heropin{height:920svh;}
+  .heropin{height:720svh;}
 }
 .heropin__sticky{
   position:sticky;top:0;height:100svh;overflow:hidden;
@@ -301,20 +302,6 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   pointer-events:none;z-index:1;
   /* bottom extends over the .highball stage below, so the cup can ride
      down into it (same one-canvas trick as the hero overlap above) */
-}
-/* the bottle's aura, squared — but MINERAL-BLUE, not the mastic milk: the
-   Greek circle stays on the bottle, the Japanese water-blue square sits
-   behind the cup so the pale water clearly reads against it */
-.herowords__blob{
-  /* --cuppx is written by the glass element: the tile tracks the cup */
-  position:absolute;left:30%;top:calc(62% - var(--cuppx,270px)*0.5);transform:translate(-50%,-50%);
-  width:calc(var(--cuppx,270px)*1.22);aspect-ratio:1;border-radius:30px;
-  background:
-    radial-gradient(circle at 34% 24%,rgba(243,250,252,.85) 0%,rgba(243,250,252,0) 48%),
-    radial-gradient(140% 140% at 52% 46%,#C3DCE3 0%,#93B9C4 70%,rgba(109,157,170,.35) 100%);
-  filter:blur(5px);
-  animation:breathe 9s var(--ease) infinite;
-  pointer-events:none;z-index:0;
 }
 html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL fallback */
 /* the pour from the hero above: a stream falls in from beyond the top of the
@@ -806,7 +793,6 @@ html:not(.bottle3d-on) .highball__copy{
      stream falls down the left edge into a glass parked at the title line,
      and the headline steps a few pixels right so the two never collide */
   .herowords__pour{left:13vw;height:40%;}
-  .herowords__blob{left:13%;top:calc(40% - var(--cuppx,140px)*0.5);width:calc(var(--cuppx,140px)*1.30);border-radius:20px;filter:blur(5px);}
   .highball__copy{
     justify-content:flex-end;align-items:center;text-align:center;
     padding:0 20px 12svh;
@@ -831,7 +817,6 @@ html:not(.bottle3d-on) .highball__copy{
   .hero__scrollcue{display:none;}
   #bubbles{display:none;}
   .hero__blob{animation:none;}
-  .herowords__blob{animation:none;}
   .island__stage model-viewer{animation:none;}
   .island__shadow{animation:none;}
   .island__ripple{display:none;}
