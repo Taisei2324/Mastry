@@ -455,7 +455,8 @@
       nrPts.push(new THREE.Vector2(0.001, 3.16));
       var neckRun = new THREE.Mesh(new THREE.LatheGeometry(nrPts, 48), new THREE.MeshPhysicalMaterial({
         color: 0xa7cbb4, roughness: 0.05, metalness: 0, transparent: true, opacity: 0,
-        envMapIntensity: 1.1, depthWrite: false
+        envMapIntensity: 1.1, depthWrite: false, side: THREE.DoubleSide,
+        clippingPlanes: [this._waterPlane] // the SAME waterline as the body: one shared surface
       }));
       neckRun.renderOrder = 2.5;
       neckRun.visible = false;
@@ -1109,14 +1110,15 @@
         this._level = Math.max(0.20, this._level - dt * (0.05 + 0.16 * ps * flow));
       }
 
-      // the neck run reacts to the tilt: it fades in as the bottle passes
-      // horizontal (water reaches the neck just before the lip), lies on the
-      // LOW side of the bore, pulses with the glug, and dries up with the head
+      // the neck water shares the body's waterline: the same world-horizontal
+      // clip plane cuts it, so its top surface IS the pooled surface — it
+      // recedes as the level drops and the high side of the neck runs empty,
+      // exactly like the body (user: "match the top surface level of the
+      // water, make it reactive to that"). Low-side hug and glug pulse stay.
       if (this._neckRun) {
-        var nk = smoothstep(0.45, 0.62, tiltT) * smoothstep(0.22, 0.34, this._level);
-        this._neckRun.material.opacity = 0.52 * nk * (0.8 + 0.2 * flow);
-        this._neckRun.visible = nk > 0.01;
+        this._neckRun.visible = tiltT > 0.25 && this._level > 0.205;
         if (this._neckRun.visible) {
+          this._neckRun.material.opacity = 0.5 * (0.85 + 0.15 * flow);
           this._neckRun.parent.getWorldQuaternion(_q1);
           _v2.set(0, 1, 0).applyQuaternion(_q1);            // neck axis, world
           _v3.set(0, -1, 0).addScaledVector(_v2, _v2.y);    // world-down on the mouth plane
