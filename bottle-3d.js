@@ -673,8 +673,8 @@
 
     _buildPour(scene) {
       // shared instanced pool: pour droplets, satellite drops, cap-off mist
-      var MAX = 220;
-      var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.02, 6, 6),
+      var MAX = 300; // max LOD: more drops in flight, rounder drops
+      var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.02, 10, 8),
         new THREE.MeshBasicMaterial({ color: 0xf6fbf6, transparent: true, opacity: 0.75, depthWrite: false }), MAX);
       mesh.renderOrder = 7;
       mesh.count = 0;
@@ -690,7 +690,7 @@
       // accelerates it (mass conservation), a Plateau–Rayleigh varicose wave
       // deepens down-stream, and past the breakup length it hands over to
       // the droplet pool above.
-      var RINGS = this._strRings = 64, SEG = this._strSeg = 10;
+      var RINGS = this._strRings = 96, SEG = this._strSeg = 16; // max LOD on the jet
       function tubeGeo(withNormals) {
         var geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
@@ -1086,9 +1086,10 @@
           this._glugCool = 0.45;
           this._spawnGlugAir();
         }
-        // a long, savoured pour: the full bottle takes ~6s to empty, so the
-        // user experiences the whole thing before moving down to the cup
-        this._level = Math.max(0.20, this._level - dt * (0.035 + 0.115 * ps * flow));
+        // a fuller column moves more water: the bottle now empties in ~4s
+        // (thicker exit = shorter drain — the user asked for the physics
+        // to stay honest about it)
+        this._level = Math.max(0.20, this._level - dt * (0.05 + 0.16 * ps * flow));
       }
 
       var bk = this._updateStream(pouring, ps, flow, time);
@@ -1272,7 +1273,7 @@
       // scene's stylised gravity; the water now JETS off the lip instead of
       // dribbling. Same taper/wave/breakup physics downstream.
       var v0 = (1.1 + 1.9 * ps) * (0.82 + 0.18 * flow);
-      var r0 = (0.024 + 0.085 * ps) * (0.55 + 0.45 * flow); // ~40% fuller column at the lip (user: "a little thin")
+      var r0 = (0.032 + 0.105 * ps) * (0.55 + 0.45 * flow); // thicker at the lip (user), thinning downstream by mass conservation
       // weak pours droop off the lip; hard pours jet along the axis
       var droop = 0.55 * (1 - ps);
       _v4.set(_v2.x + _v3.x * droop, _v2.y + _v3.y * droop, _v2.z + _v3.z * droop).normalize();
@@ -1288,7 +1289,7 @@
       var posA = stream.geometry.attributes.position.array;
       var norA = stream.geometry.attributes.normal.array;
       var posC = core.geometry.attributes.position.array;
-      var RINGS = this._strRings, SEG = this._strSeg, TSTEP = 0.016;
+      var RINGS = this._strRings, SEG = this._strSeg, TSTEP = 0.011; // finer rings, same reach
       var edgeY = -(this._camera.position.z * 0.2867 + 1.0); // just past the frame bottom
       var s = 0, nr = 0, bk = null;
       for (var i = 0; i < RINGS; i++) {
@@ -1551,7 +1552,7 @@
       installWaterTopShader(top.material, 1.0, this);
 
       // the falling jet — the same rewritten-in-place tube as the bottle's pour
-      var RINGS = this._strRings = 72, SEG = this._strSeg = 8;
+      var RINGS = this._strRings = 96, SEG = this._strSeg = 12; // max LOD, matching the bottle's jet
       function tubeGeo(withNormals) {
         var geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
@@ -1587,14 +1588,14 @@
       this._sheen = sheen;
 
       // splash droplets kicked up at the impact point — the bottle drops' water
-      var splash = new THREE.InstancedMesh(new THREE.SphereGeometry(0.014, 6, 6),
+      var splash = new THREE.InstancedMesh(new THREE.SphereGeometry(0.014, 8, 6),
         new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false }), 150);
       splash.count = 0; splash.renderOrder = 3.7; splash.frustumCulled = false;
       scene.add(splash);
       this._splash = splash; this._splashData = []; this._splashClock = 0;
 
       // bubbles churned under the impact, rising through the water
-      var bub = new THREE.InstancedMesh(new THREE.SphereGeometry(0.013, 6, 6),
+      var bub = new THREE.InstancedMesh(new THREE.SphereGeometry(0.013, 8, 6),
         new THREE.MeshBasicMaterial({ color: 0xf2fbf5, transparent: true, opacity: 0.75, depthWrite: false, toneMapped: false, clippingPlanes: [this._waterPlane] }), 120);
       bub.count = 0; bub.renderOrder = 4; bub.frustumCulled = false;
       scene.add(bub);
