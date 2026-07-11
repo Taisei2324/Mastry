@@ -151,27 +151,8 @@
   }, { threshold: 0.15, rootMargin: "0px 0px -40px 0px" });
   document.querySelectorAll(".reveal, .reveal--fade").forEach(function (el) { revealObserver.observe(el); });
 
-  /* ── scroll dampening: the cup's exit → the story ──
-     the stretch from where the cup leaves the highball down to the story
-     heading ("A resin the Aegean has guarded…") reads too fast under the
-     wheel, so slow it there. Wheel/trackpad only — touch momentum is left
-     native, which also leaves phones untouched. DAMP<1 slows; tune to taste. */
-  (function () {
-    if (calmScroll) return;
-    var highball = document.querySelector(".highball");
-    var story = document.getElementById("story");
-    if (!highball || !story) return;
-    var DAMP = 0.8;   // gentle — closer to native so it never feels stubborn
-    window.addEventListener("wheel", function (e) {
-      if (e.deltaY <= 0 || e.ctrlKey) return;             // only the downward pass; ignore pinch-zoom
-      var y = window.scrollY;
-      var from = highball.offsetTop + highball.offsetHeight * 0.5; // the cup is leaving
-      var to = story.offsetTop + 40;                              // to the story heading
-      if (y < from || y > to) return;
-      e.preventDefault();
-      window.scrollBy(0, e.deltaY * DAMP);
-    }, { passive: false });
-  })();
+  /* (Scroll dampening between the cup's exit and the story was removed — the
+     wheel hijack made the page feel stuck. The stretch scrolls natively now.) */
 
   /* ── stat counters ── */
   var statObserver = new IntersectionObserver(function (entries) {

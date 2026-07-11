@@ -2118,14 +2118,18 @@
         // where the cup snaps: a low resting line (not screen-centre), which is
         // exactly where the stationary blue aura sits. baseScr is the cup's
         // BOTTOM screen-Y, so SNAP_FRAC*vh is the cup's centre when locked.
-        var SNAP_FRAC = this._narrow ? 0.56 : 0.62;
-        var baseLock = vh * SNAP_FRAC + cupPx * 0.5;
-        // once the decanter is up, the cup keeps going — down to the bottom of
-        // the screen — to open room above it for the vessel and its pour
+        var SNAP_FRAC = this._narrow ? 0.58 : 0.66;          // the cup's snap line (low)
+        var baseLock = vh * SNAP_FRAC + cupPx * 0.5;         // baseScr is the cup BOTTOM, so this centres it at SNAP_FRAC
+        // the pour resting line: the cup's MIDDLE lined up with the MIDDLE of the
+        // "splits with a little whisky" copy (measured live), which is the cap on
+        // how low the cup can go once the decanter is pouring
+        var hbLine = this._hbLine || (this._hbLine = this._hb.querySelector('.highball__line'));
+        var pourMid = vh * 0.5;
+        if (hbLine) { var lr = hbLine.getBoundingClientRect(); if (lr.height) pourMid = lr.top + lr.height * 0.5; }
+        var pourScr = pourMid + cupPx * 0.5;                 // cup bottom when its middle sits on the line
         var descend = this._wb ? smoothstep(0.14, 0.52, w) : 0;
-        var bottomScr = vh - 12;                             // cup bottom at the screen floor
-        var lock = baseLock + (bottomScr - baseLock) * descend;
-        var M2 = Math.max(8, (vh - cupPx) * 0.5 * (1 - descend)); // margin relaxes as it drops
+        var lock = baseLock + (pourScr - baseLock) * descend; // snap line → the pour line, never past it
+        var M2 = Math.max(8, (vh - cupPx) * 0.5 * (1 - descend)); // margin relaxes as it settles
         var baseScr = Math.min(Math.max(lock, base0), hb.bottom - M2);
         // the cup keeps its longitude: it rides straight down the pour line
         this._glass.position.x = (this._fxDefault - 0.5) * 2 * this._halfW;
