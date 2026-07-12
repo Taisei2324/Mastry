@@ -1940,8 +1940,13 @@
             gg.translate(-cc.x, -cc.y, -cc.z);
             mats = mats.concat(self._whiskyShellify(cork, gg));
           });
-          holder.add(cork);
+          // cork lives in WORLD space (not under the tilting vessel) so it can
+          // pop off, wait at the side while the decanter tips and pours, then
+          // seat back on when the decanter returns upright.
+          cork.visible = false;
+          self._scene.add(cork);
           self._wbCork = cork;
+          self._wbHolder = holder;   // to compute where the cork WOULD sit seated
         }
         // the fade contract the act drives: transparent, remember op0, start hidden
         mats.forEach(function (mm) { mm.transparent = true; mm._op0 = (mm.opacity == null ? 1 : mm.opacity); mm.opacity = 0; });
@@ -2118,7 +2123,7 @@
         // where the cup snaps: a low resting line (not screen-centre), which is
         // exactly where the stationary blue aura sits. baseScr is the cup's
         // BOTTOM screen-Y, so SNAP_FRAC*vh is the cup's centre when locked.
-        var SNAP_FRAC = this._narrow ? 0.58 : 0.66;          // the cup's snap line (low)
+        var SNAP_FRAC = this._narrow ? 0.55 : 0.60;          // the cup's snap line — glued beside the title
         var baseLock = vh * SNAP_FRAC + cupPx * 0.5;         // baseScr is the cup BOTTOM, so this centres it at SNAP_FRAC
         // the pour resting line: the cup's MIDDLE lined up with the MIDDLE of the
         // "splits with a little whisky" copy (measured live), which is the cap on
@@ -2127,7 +2132,7 @@
         var pourMid = vh * 0.5;
         if (hbLine) { var lr = hbLine.getBoundingClientRect(); if (lr.height) pourMid = lr.top + lr.height * 0.5; }
         var pourScr = pourMid + cupPx * 0.5;                 // cup bottom when its middle sits on the line
-        var descend = this._wb ? smoothstep(0.14, 0.52, w) : 0;
+        var descend = (this._wb ? smoothstep(0.14, 0.52, w) : 0) * 0.18; // barely descends — cup stays glued to its snap line
         var lock = baseLock + (pourScr - baseLock) * descend; // snap line → the pour line, never past it
         var M2 = Math.max(8, (vh - cupPx) * 0.5 * (1 - descend)); // margin relaxes as it settles
         var baseScr = Math.min(Math.max(lock, base0), hb.bottom - M2);
@@ -2136,7 +2141,7 @@
         // one smooth glide: low-pass the scroll-driven target into one eased motion
         var rideY = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
         if (this._rideY === undefined) this._rideY = rideY;
-        this._rideY += (rideY - this._rideY) * (1 - Math.pow(0.0025, dt));
+        this._rideY += (rideY - this._rideY) * (1 - Math.pow(0.02, dt)); // heavier low-pass → glued, absorbs scroll jitter
         this._glass.position.y = this._rideY;
         // ── snap (MAGNETIC): the stationary blue aura sits at the snap line, and
         // --snap blooms it as the cup ARRIVES, fading as the cup rides on past to
@@ -2169,9 +2174,29 @@
             //   lift  0.20 -> 0.34 : fully off before the pour ramps in at ~0.50
             //   hold  0.34 -> 0.82 : held above the mouth through the whole pour
             //   seat  0.82 -> 0.90 : back on after the pour, before the fade-out
-            if (this._wbCork) {
-              var s2 = smoothstep(0.20, 0.34, w) * (1 - smoothstep(0.82, 0.90, w));
-              this._wbCork.position.set(this._corkSeat.x, this._corkSeat.y + s2 * 0.42, this._corkSeat.z);
+            if (this._wbCork && this._wbHolder) {
+              this._wbCork.visible = true;
+              // off: fully off the mouth BEFORE the tilt (~0.28) and held to the
+              // side until the decanter returns upright AFTER the pour (~0.92)
+              var off = smoothstep(0.14, 0.26, w) * (1 - smoothstep(0.905, 0.965, w));
+              this._wb.updateMatrixWorld(true);
+              // seated pose: where the cork sits ON the vessel (follows its tilt)
+              var seatM = new THREE.Matrix4().multiplyMatrices(
+                this._wbHolder.matrixWorld,
+                new THREE.Matrix4().makeTranslation(this._corkSeat.x, this._corkSeat.y, this._corkSeat.z));
+              var _sp = this._corkSP || (this._corkSP = new THREE.Vector3());
+              var _sq = this._corkSQ || (this._corkSQ = new THREE.Quaternion());
+              var _ss = this._corkSS || (this._corkSS = new THREE.Vector3());
+              seatM.decompose(_sp, _sq, _ss);
+              // waiting pose: upright, off to the outer side, held level in the world
+              var upX = this._glass.position.x + (this._narrow ? 0.95 : 1.30);
+              var upY = this._glass.position.y + 0.55;
+              var restW = this._corkRest || (this._corkRest = new THREE.Vector3());
+              restW.set(upX + 0.58, upY + 1.00, 0.34);
+              var upQ = this._corkUpQ || (this._corkUpQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -0.4, 0)));
+              this._wbCork.position.copy(_sp).lerp(restW, off);
+              this._wbCork.quaternion.copy(_sq).slerp(upQ, off);
+              this._wbCork.scale.copy(_ss);
             }
             wp = smoothstep(0.50, 0.56, w) * (1 - smoothstep(0.70, 0.78, w));
             if (wp > 0.01) {
@@ -2179,14 +2204,14 @@
                        vx: -0.25 * k2, vy: -0.6, g: 12.5, r0: 0.022 + 0.02 * wp,
                        cupX: this._glass.position.x };
             }
-          } else this._wb.visible = false;
+          } else { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; }
           // hand the copy its cue (CSS reads --hb): the line lands after the pour
           if (Math.abs((this._hbLast || 0) - w) > 0.002) {
             this._hbLast = w;
             this._hb.style.setProperty('--hb', w.toFixed(3));
           }
         }
-      } else if (this._wb) this._wb.visible = false;
+      } else if (this._wb) { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; }
 
       // waterline
       var waterY = this._glass.position.y + this._waterBase + Math.min(0.92, this._level + this._extra) * (0.97 - this._waterBase);
