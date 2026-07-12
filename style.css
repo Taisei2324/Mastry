@@ -792,14 +792,17 @@ html:not(.bottle3d-on) .highball__copy{
   /* phones (per the user's sketch): words stay centred at full width; the
      stream falls down the left edge into a glass parked at the title line,
      and the headline steps a few pixels right so the two never collide */
-  .herowords__pour{left:13vw;height:40%;}
+  .herowords__pour{left:50%;height:40%;}
   .highball__copy{
     justify-content:flex-end;align-items:center;text-align:center;
     padding:0 20px 12svh;
   }
   .herowords__glass{width:64px;}
-  .herowords .hero__copy{max-width:none;margin-right:0;}
-  .herowords .hero__title{transform:translateX(54px);} /* clears the bigger crystal */
+  /* phones: the crystal cup rides CENTRED and softly BEHIND the words, so the
+     headline and copy stay full-width, centred and fully legible over it */
+  .herowords__glass3d{opacity:.6;}
+  .herowords .hero__copy{max-width:none;margin-right:0;position:relative;z-index:3;}
+  .herowords .hero__title{transform:none;}
   /* the panorama shrinks to a sliver at phone width — run it at 175% and
      crop the sides so Fuji, the boat and the acropolis stay legible */
   .footer{overflow:hidden;}

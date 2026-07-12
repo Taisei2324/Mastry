@@ -1872,8 +1872,9 @@
       this._cupSrc = bPx;
       var targetPx;
       if (this._narrow) {
-        var maxNarrow = Math.max(120, (0.13 * window.innerWidth - 8) / 0.213);
-        targetPx = Math.min(bPx ? bPx * 0.85 : 138, maxNarrow);
+        // phones: a smaller cup that sits softly CENTRED behind the words —
+        // big enough to read as the crystal tumbler, small enough to fit the frame
+        targetPx = Math.max(96, Math.min(bPx ? bPx * 0.85 : 138, 0.34 * window.innerWidth, 150));
       } else {
         targetPx = Math.max(240, Math.min(520, bPx ? bPx * 0.85 : 269));
       }
@@ -1886,7 +1887,7 @@
       this._camera.updateProjectionMatrix();
       var halfH = z * 0.2867, halfW = halfH * (w / h);
       this._halfW = halfW; this._halfH = halfH;
-      this._fxDefault = this._narrow ? 0.13 : 0.30; // the bottle's resting pour line
+      this._fxDefault = this._narrow ? 0.5 : 0.30; // phones: centre the cup behind the words; desktop: the pour line
       if (this._fx === undefined) this._fx = this._fxDefault;
       // the canvas overlaps the hero above (CSS top:-100svh) so the jet never
       // meets a canvas border; the glass itself is still placed against the
@@ -1981,7 +1982,7 @@
         if (tEl) {
           var trr = tEl.getBoundingClientRect();
           if (trr.height && trr.top < vh && trr.bottom > 0) {
-            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : 265; // ~7cm below the title midline; live-tunable via ?coords slider
+            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : (this._narrow ? 0 : 265); // desktop: ~7cm below the title midline; phones: centred right behind the words. Live-tunable via ?coords
             var titleMid = trr.top + trr.height * 0.5;
             var baseOn = titleMid + cupPx * 0.5 + drop;
             // wt=1 while the title is framed (cup locked exactly beside it); eases
