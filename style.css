@@ -357,7 +357,8 @@ html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL f
    above) rides the middle of the screen into it; a whisky bottle tips
    in a finger of spirit; then the line lands. --hb (0..1, written by
    the glass element per frame) scrubs the copy in after the pour. */
-.highball{position:relative;height:170svh;}
+.highball{position:relative;height:280svh;} /* long stage → the whisky act plays out slowly */
+html.snap-hold{overflow:hidden;overscroll-behavior:none;} /* the ~1s magnetic hold at the snap line */
 .highball__copy{
   /* the cup rides down the pour line on the LEFT; the copy answers from
      the right, where the whisky bottle has just made its exit */

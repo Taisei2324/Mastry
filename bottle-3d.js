@@ -2141,7 +2141,7 @@
         // one smooth glide: low-pass the scroll-driven target into one eased motion
         var rideY = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
         if (this._rideY === undefined) this._rideY = rideY;
-        this._rideY += (rideY - this._rideY) * (1 - Math.pow(0.02, dt)); // heavier low-pass → glued, absorbs scroll jitter
+        this._rideY += (rideY - this._rideY) * (1 - Math.pow(0.008, dt)); // low-pass: smooth but still keeps up with the scroll
         this._glass.position.y = this._rideY;
         // ── snap (MAGNETIC): the stationary blue aura sits at the snap line, and
         // --snap blooms it as the cup ARRIVES, fading as the cup rides on past to
@@ -2151,14 +2151,39 @@
         var nearSnap = 1 - Math.min(1, Math.abs(baseScr - baseLock) / Math.max(1, cupPx * 1.1));
         var lockAmt = (baseLock >= base0) ? nearSnap * (1 - descend) : 0;
         document.documentElement.style.setProperty('--snap', lockAmt.toFixed(3));
+        // ── the snap HOLD: the first time the cup rides into the snap line beside
+        // the title, briefly freeze the page (~0.9s) so it visibly locks, then
+        // release. Guarded so it fires once per approach and ALWAYS auto-releases
+        // (900ms timeout + escape on any wheel/touch/key) — it can never trap the
+        // scroll. Rearms only after the user scrolls back up above the act.
+        var wRising = (this._wPrev === undefined) ? false : (w > this._wPrev + 0.0002);
+        this._wPrev = w;
+        if (w < 0.03) this._snapArmed = true;
+        if (this._snapArmed && !this._snapHeld && wRising && w > 0.10 && nearSnap > 0.82 && descend < 0.08) {
+          this._snapArmed = false; this._snapHeld = true;
+          var g3d = this;
+          var de = document.documentElement;
+          var sbw = window.innerWidth - de.clientWidth; // compensate the vanishing scrollbar (no layout shift)
+          de.classList.add('snap-hold');
+          if (sbw > 0) de.style.paddingRight = sbw + 'px';
+          var released = false, escs = [], evs = ['keydown', 'wheel', 'touchstart'];
+          var release = function () {
+            if (released) return; released = true;
+            de.classList.remove('snap-hold'); de.style.paddingRight = '';
+            evs.forEach(function (ev, i) { window.removeEventListener(ev, escs[i]); });
+            setTimeout(function () { g3d._snapHeld = false; }, 300);
+          };
+          setTimeout(release, 900);
+          evs.forEach(function (ev) { var fn = function () { setTimeout(release, 180); }; escs.push(fn); window.addEventListener(ev, fn, { passive: true }); });
+        }
         // whisky timeline, scrubbed by how deep the stage has been ridden —
         // asleep until the user's bottle file gives us _wb again (w computed above)
         if (this._wb) {
-          this._extra = 0.07 * smoothstep(0.50, 0.74, w);
-          var a2 = smoothstep(0.06, 0.24, w) * (1 - smoothstep(0.90, 0.995, w));
+          this._extra = 0.07 * smoothstep(0.60, 0.82, w);        // cup browns during/after the pour
+          var a2 = smoothstep(0.06, 0.22, w) * (1 - smoothstep(0.93, 0.99, w)); // drops in (lid on), holds, fades out
           if (a2 > 0.002) {
             this._whiskyArm();
-            var k2 = smoothstep(0.28, 0.52, w) * (1 - smoothstep(0.76, 0.92, w));
+            var k2 = smoothstep(0.48, 0.60, w) * (1 - smoothstep(0.72, 0.82, w)); // tilt: only after the lid is fully off
             var rz2 = k2 * 1.45;
             var wbx = this._glass.position.x + (this._narrow ? 0.95 : 1.30) - k2 * 0.45;
             var wby = this._glass.position.y + 0.55 + (1 - a2) * 1.4 + k2 * 0.62;
@@ -2169,16 +2194,16 @@
             if (this._wbLiquidPlane) this._wbLiquidPlane.constant = wby + this._wbFill;
             this._wb.rotation.z = rz2;
             this._wbMats.forEach(function (m) { m.opacity = m._op0 * a2; });
-            // the stopper pops off BEFORE the pour and seats back AFTER — a quiet
-            // vertical lift up the neck axis, scrubbed by the same w so it rewinds.
-            //   lift  0.20 -> 0.34 : fully off before the pour ramps in at ~0.50
-            //   hold  0.34 -> 0.82 : held above the mouth through the whole pour
-            //   seat  0.82 -> 0.90 : back on after the pour, before the fade-out
+            // the stopper: the decanter arrives with the lid ON and settles, THEN
+            // the lid lifts off to the side, waits through the pour, and seats back
+            // on after the decanter rights itself. Scrubbed by w so it rewinds.
+            //   on    0.06 -> 0.34 : decanter drops in and settles, lid seated
+            //   off   0.34 -> 0.48 : lid lifts off to the side (before the tilt)
+            //   wait  0.48 -> 0.80 : held at the side through tilt + pour
+            //   seat  0.80 -> 0.88 : back on after the decanter is upright again
             if (this._wbCork && this._wbHolder) {
               this._wbCork.visible = true;
-              // off: fully off the mouth BEFORE the tilt (~0.28) and held to the
-              // side until the decanter returns upright AFTER the pour (~0.92)
-              var off = smoothstep(0.14, 0.26, w) * (1 - smoothstep(0.905, 0.965, w));
+              var off = smoothstep(0.34, 0.48, w) * (1 - smoothstep(0.80, 0.88, w));
               this._wb.updateMatrixWorld(true);
               // seated pose: where the cork sits ON the vessel (follows its tilt)
               var seatM = new THREE.Matrix4().multiplyMatrices(
@@ -2198,7 +2223,7 @@
               this._wbCork.quaternion.copy(_sq).slerp(upQ, off);
               this._wbCork.scale.copy(_ss);
             }
-            wp = smoothstep(0.50, 0.56, w) * (1 - smoothstep(0.70, 0.78, w));
+            wp = smoothstep(0.60, 0.65, w) * (1 - smoothstep(0.70, 0.76, w)); // pour, only while tilted
             if (wp > 0.01) {
               wjet = { x0: wbx - 0.75 * Math.sin(rz2), y0: wby + 0.75 * Math.cos(rz2),
                        vx: -0.25 * k2, vy: -0.6, g: 12.5, r0: 0.022 + 0.02 * wp,
