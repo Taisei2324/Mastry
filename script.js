@@ -429,6 +429,8 @@
       '<br><input id="cdSlider" type="range" min="-150" max="600" value="265" style="width:240px;margin:6px 0">' +
       '<br>glide: <b id="cgVal">190</b> ms &nbsp;(slower = more gradual slide)' +
       '<br><input id="cgSlider" type="range" min="20" max="700" value="190" style="width:240px;margin:6px 0">' +
+      '<br>flight speed: <b id="gvVal">2.6</b> px/ms &nbsp;(lower = slower auto-glide)' +
+      '<br><input id="gvSlider" type="range" min="1.2" max="5" step="0.1" value="2.6" style="width:240px;margin:6px 0">' +
       '<br><span id="cdMouse" style="opacity:.75">move mouse — read Y</span>';
     document.body.appendChild(cbox);
     var line = document.createElement("div");
@@ -440,9 +442,89 @@
     var gl = cbox.querySelector("#cgSlider"), gval = cbox.querySelector("#cgVal");
     sl.addEventListener("input", function () { window.__cupDrop = +sl.value; val.textContent = sl.value; });
     gl.addEventListener("input", function () { window.__cupGlide = +gl.value; gval.textContent = gl.value; });
+    var gv = cbox.querySelector("#gvSlider"), gvv = cbox.querySelector("#gvVal");
+    gv.addEventListener("input", function () { window.__glideVel = +gv.value; gvv.textContent = gv.value; });
     document.addEventListener("mousemove", function (e) {
       line.style.top = e.clientY + "px";
       mo.textContent = "mouse Y = " + e.clientY + " px  (" + (e.clientY / window.innerHeight).toFixed(3) + " vh)";
     });
   }
+
+  /* ── station glide: ONE downward action → ONE ease-out flight to the next
+     station (A hero top → B framed "Two ancient islands" title → C whisky
+     full-screen). Below C is free scroll. Upward is NEVER trapped: every wheel/
+     touch listener is passive, the engine only ever moves scrollY DOWNWARD to a
+     LOWER station, and any counter-input cancels the flight so native scroll wins
+     the same frame. Off under reduced-motion / phones (calmScroll) and via the
+     ?noglide kill-switch. ────────────────────────────────────────────────── */
+  if (!calmScroll && !/[?&]noglide/.test(location.search)) (function () {
+    window.__mastrySnapEngine = true;            // bottle-3d stands its WALL down; the glide owns the pour
+    if (typeof window.__glideVel !== "number") window.__glideVel = 2.6; // avg px/ms, live-tunable (lower = slower)
+    var DUR_MIN = 780, DUR_MAX = 2200;           // ms clamps
+    var TRIGGER_PX = 60;                          // downward accum to arm one flight
+    var ACCUM_IDLE = 220, COOLDOWN_MS = 320, SKIP_EPS = 24, WATCHDOG_PAD = 500;
+    var pin = document.querySelector(".heropin");
+    var title = document.querySelector(".herowords .hero__title");
+    var hb = document.querySelector(".highball");
+    if (!pin || !title || !hb) { window.__mastrySnapEngine = false; return; }
+    var vh = function () { return window.innerHeight; };
+    var absTop = function (el) { return el.getBoundingClientRect().top + window.scrollY; };
+    function stA() { return pin.offsetTop; }                                   // ~0
+    function stB() { return Math.round(absTop(title) + title.offsetHeight * 0.5 - 0.50 * vh()); } // title mid at screen centre
+    function stC() { return Math.round(absTop(hb) - 0.80 * vh() + 0.88 * (hb.offsetHeight - 0.20 * vh())); } // whisky pour complete, full-screen
+    function stations() { return [stA(), stB(), stC()]; }
+    function zoneEnd() { return absTop(hb) + hb.offsetHeight - vh(); }
+    function inZone() { return window.scrollY <= zoneEnd() + 2; }
+    function nextTarget() { var y = window.scrollY + SKIP_EPS, s = stations(); for (var i = 0; i < s.length; i++) if (s[i] > y) return s[i]; return null; }
+    function easeOutCubic(t) { t = t < 0 ? 0 : t > 1 ? 1 : t; return 1 - Math.pow(1 - t, 3); }
+    var state = "IDLE", accum = 0, lastDownT = 0, cooldownUntil = 0;
+    var raf = 0, fromY = 0, toY = 0, startT = 0, dur = 0;
+    function flyTo(target) {
+      fromY = window.scrollY; toY = target;
+      if (toY <= fromY) return;                     // engine never moves up or nowhere
+      var vel = (typeof window.__glideVel === "number" && window.__glideVel > 0) ? window.__glideVel : 2.6;
+      dur = Math.max(DUR_MIN, Math.min(DUR_MAX, (toY - fromY) / vel));
+      startT = performance.now(); state = "ANIMATING";
+      cancelAnimationFrame(raf); raf = requestAnimationFrame(step);
+    }
+    function step(now) {
+      if (state !== "ANIMATING") return;
+      var e = now - startT;
+      if (e >= dur || e > dur + WATCHDOG_PAD) { settle(); return; }
+      window.scrollTo(0, Math.round(fromY + (toY - fromY) * easeOutCubic(e / dur)));
+      raf = requestAnimationFrame(step);
+    }
+    function settle() { cancelAnimationFrame(raf); raf = 0; window.scrollTo(0, Math.round(toY)); state = "IDLE"; accum = 0; cooldownUntil = performance.now() + COOLDOWN_MS; }
+    function abort() { if (state !== "ANIMATING") return; cancelAnimationFrame(raf); raf = 0; state = inZone() ? "IDLE" : "FREE"; accum = 0; }
+    window.addEventListener("wheel", function (e) {
+      if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+      var d = e.deltaY; if (e.deltaMode === 1) d *= 16; else if (e.deltaMode === 2) d *= vh();
+      if (state === "ANIMATING") { if (d < 0) abort(); return; }        // up aborts; down ignored (latch)
+      if (state === "FREE") { if (nextTarget() != null && inZone()) state = "IDLE"; else return; }
+      var t = performance.now();
+      if (t < cooldownUntil) { if (d > 0) cooldownUntil = t + 120; return; } // absorb inertial tail
+      if (d < 0) { accum = 0; return; }                                 // upward can never arm
+      if (t - lastDownT > ACCUM_IDLE) accum = 0;
+      lastDownT = t; accum += d;
+      if (accum >= TRIGGER_PX && inZone()) { var tgt = nextTarget(); accum = 0; if (tgt == null) { state = "FREE"; return; } flyTo(tgt); }
+    }, { passive: true });
+    window.addEventListener("keydown", function (e) {
+      var el = e.target, tag = el && el.tagName;
+      if ((el && (el.isContentEditable || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (el.getAttribute && el.getAttribute("role") === "tab"))) || e.metaKey || e.ctrlKey || e.altKey) return;
+      var k = e.key;
+      var downKey = (k === "ArrowDown" || k === "PageDown" || ((k === " " || k === "Spacebar") && !e.shiftKey));
+      var upKey = (k === "ArrowUp" || k === "PageUp" || k === "Home" || k === "End" || ((k === " " || k === "Spacebar") && e.shiftKey));
+      if (state === "ANIMATING") { if (upKey) { abort(); return; } if (downKey) { e.preventDefault(); } return; } // up never prevented
+      if (!downKey || e.repeat) return;
+      if (state === "FREE") { if (nextTarget() != null && inZone()) state = "IDLE"; else return; }
+      if (performance.now() < cooldownUntil || !inZone()) return;
+      var tgt = nextTarget(); if (tgt == null) { state = "FREE"; return; }
+      e.preventDefault(); flyTo(tgt);
+    }, { passive: false });
+    window.addEventListener("touchstart", function () { if (state === "ANIMATING") abort(); }, { passive: true }); // touch never triggers; only aborts
+    document.addEventListener("visibilitychange", function () { if (document.hidden && state === "ANIMATING") settle(); });
+    window.addEventListener("blur", function () { if (state === "ANIMATING") settle(); });
+    window.addEventListener("resize", function () { if (state === "ANIMATING") { var s = stations(); for (var i = 0; i < s.length; i++) if (s[i] > fromY) { toY = s[i]; break; } } });
+    window.__mastryGlide = { get state() { return state; }, stations: stations, zoneEnd: zoneEnd, nextTarget: nextTarget, flyTo: flyTo, abort: abort };
+  })();
 })();

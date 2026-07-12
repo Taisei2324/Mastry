@@ -766,12 +766,12 @@
         // THE WALL, scroll-event side: arms here too, so a violent flick that
         // outruns the ticker (or lands while the bottle is offscreen) still
         // hits it — same conditions as _tick, including the 12s release
-        if (self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
+        if (!window.__mastrySnapEngine && self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
             (!self._wallT || self._clock.elapsedTime - self._wallT < 12)) {
           var end = self._pin.offsetTop + 0.88 * Math.max(1, self._pin.offsetHeight - window.innerHeight);
           if (y > end) self._holdY = end;
         }
-        if (self._holdY != null && y > self._holdY) {
+        if (self._holdY != null && y > self._holdY && !window.__mastrySnapEngine) {
           window.scrollTo(0, self._holdY);
           y = self._holdY;
         }
@@ -878,7 +878,7 @@
       }
 
       if (p < 0.7) { this._sawHero = true; if (this._level > 0.9) this._wallT = 0; }
-      var wall = this._sawHero && !this._noWall && this._pin && this._level > 0.245;
+      var wall = !window.__mastrySnapEngine && this._sawHero && !this._noWall && this._pin && this._level > 0.245;
       if (wall) {
         var wallY = this._pin.offsetTop + 0.88 * Math.max(1, this._pin.offsetHeight - window.innerHeight);
         wall = window.scrollY >= wallY - 2;
@@ -888,7 +888,7 @@
         }
       }
       this._holdY = wall ? wallY : null;
-      if (this._holdY != null && window.scrollY > this._holdY + 1) window.scrollTo(0, this._holdY);
+      if (this._holdY != null && window.scrollY > this._holdY + 1 && !window.__mastrySnapEngine) window.scrollTo(0, this._holdY);
 
       // twist: scroll up → twist right, scroll down → twist left (reversed)
       this._rotY += -vel * 0.0018 * dt * 60 * 0.016;
