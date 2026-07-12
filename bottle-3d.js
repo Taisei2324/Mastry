@@ -766,12 +766,12 @@
         // THE WALL, scroll-event side: arms here too, so a violent flick that
         // outruns the ticker (or lands while the bottle is offscreen) still
         // hits it — same conditions as _tick, including the 12s release
-        if (!window.__mastrySnapEngine && self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
+        if (self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
             (!self._wallT || self._clock.elapsedTime - self._wallT < 12)) {
           var end = self._pin.offsetTop + 0.88 * Math.max(1, self._pin.offsetHeight - window.innerHeight);
           if (y > end) self._holdY = end;
         }
-        if (self._holdY != null && y > self._holdY && !window.__mastrySnapEngine) {
+        if (self._holdY != null && y > self._holdY) {
           window.scrollTo(0, self._holdY);
           y = self._holdY;
         }
@@ -878,7 +878,7 @@
       }
 
       if (p < 0.7) { this._sawHero = true; if (this._level > 0.9) this._wallT = 0; }
-      var wall = !window.__mastrySnapEngine && this._sawHero && !this._noWall && this._pin && this._level > 0.245;
+      var wall = this._sawHero && !this._noWall && this._pin && this._level > 0.245;
       if (wall) {
         var wallY = this._pin.offsetTop + 0.88 * Math.max(1, this._pin.offsetHeight - window.innerHeight);
         wall = window.scrollY >= wallY - 2;
@@ -888,7 +888,7 @@
         }
       }
       this._holdY = wall ? wallY : null;
-      if (this._holdY != null && window.scrollY > this._holdY + 1 && !window.__mastrySnapEngine) window.scrollTo(0, this._holdY);
+      if (this._holdY != null && window.scrollY > this._holdY + 1) window.scrollTo(0, this._holdY);
 
       // twist: scroll up → twist right, scroll down → twist left (reversed)
       this._rotY += -vel * 0.0018 * dt * 60 * 0.016;
@@ -1695,7 +1695,6 @@
       // copy cue — but the cup still rides the stage and keeps its fizz.
       this._wb = null;
       this._wbMats = [];
-      this._wbBuilt = false;  // lazy: the procedural decanter is built once, near the stage
       this._extra = 0;        // whisky in the cup, on top of the water's level
       this._whiskyOn = false;
       this._hb = document.querySelector('.highball');
@@ -1705,105 +1704,13 @@
       this._resize();
     }
 
-    /* the shared jet tube becomes the spirit: amber stream, warm splash.
-       REVERSIBLE — _stream/_core are the shared hero water pour, so we cache the
-       clear colours and restore them, or free upward scroll would replay an
-       amber water pour above the stage. */
+    /* the shared jet tube becomes the spirit: amber stream, warm splash */
     _whiskyArm() {
       if (this._whiskyOn) return;
       this._whiskyOn = true;
-      if (!this._jetC0) this._jetC0 = {
-        s: this._stream.material.color.getHex(),
-        c: this._core.material.color.getHex(),
-        p: this._splash.material.color.getHex()
-      };
-      this._stream.material.color.setHex(0xc8912f);
-      this._core.material.color.setHex(0xe6cf94);
+      this._stream.material.color.setHex(0xd9a441);
+      this._core.material.color.setHex(0xead9a0);
       this._splash.material.color.setHex(0xdcae5f);
-    }
-    _whiskyDisarm() {
-      if (!this._whiskyOn || !this._jetC0) return;
-      this._whiskyOn = false;
-      this._stream.material.color.setHex(this._jetC0.s);
-      this._core.material.color.setHex(this._jetC0.c);
-      this._splash.material.color.setHex(this._jetC0.p);
-    }
-
-    /* the whisky vessel, built with ZERO assets: a cut-crystal LatheGeometry
-       decanter over a clip-plane-levelled amber column, a world-horizontal
-       meniscus disc, and a faceted stopper. Pivot at origin, pour lip pinned at
-       local y=0.75 (the jet emission offset the timeline hard-codes). Setting
-       this._wb LAST wakes the dormant pour timeline. */
-    _buildWhisky() {
-      var self = this, wb = new THREE.Group(), mats = [];
-      // 11-pt decanter profile (base -0.70 → belly 0.46 → neck in → lip 0.215 @ y0.75)
-      var pts = [[0.00, -0.70], [0.36, -0.70], [0.40, -0.62], [0.44, -0.35], [0.46, -0.05],
-                 [0.44, 0.20], [0.34, 0.42], [0.20, 0.55], [0.165, 0.66], [0.16, 0.71], [0.215, 0.75]]
-                .map(function (p) { return new THREE.Vector2(p[0], p[1]); });
-      mats = mats.concat(self._whiskyShellify(wb, new THREE.LatheGeometry(pts, 12)));
-      // amber spirit: a solid cylinder clipped by a WORLD-horizontal plane, so it
-      // stays level and pools to the low side as the vessel tips
-      self._wbLiquidPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
-      self._wbFill = 0.02;
-      var lm = new THREE.MeshPhysicalMaterial({
-        color: 0xa85e14, roughness: 0.16, metalness: 0, ior: 1.36, clearcoat: 1,
-        clearcoatRoughness: 0.06, emissive: 0x6b3406, emissiveIntensity: 0.85,
-        transparent: true, opacity: 0.96, envMapIntensity: 0.8, side: THREE.DoubleSide,
-        depthWrite: false, clippingPlanes: [self._wbLiquidPlane]
-      });
-      var lmesh = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.40, 1.15, 40, 1), lm);
-      lmesh.position.y = -0.12; lmesh.renderOrder = 3; wb.add(lmesh); mats.push(lm);
-      // meniscus CAP — scene-child so it stays world-horizontal while the vessel
-      // tips; repositioned each frame like the cup's own _waterTop
-      var cap = new THREE.Mesh(new THREE.CircleGeometry(0.40, 48), new THREE.MeshPhysicalMaterial({
-        color: 0xb06a24, roughness: 0.12, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.05,
-        transparent: true, opacity: 0.9, envMapIntensity: 1.4, depthWrite: false, side: THREE.DoubleSide
-      }));
-      cap.rotation.x = -Math.PI / 2; cap.renderOrder = 4; cap.visible = false;
-      self._scene.add(cap); self._wbTop = cap; mats.push(cap.material);
-      // faceted stopper, seated to pop off (child of wb — tips with the vessel)
-      var cork = new THREE.Group();
-      mats = mats.concat(self._whiskyShellify(cork, new THREE.LatheGeometry(
-        [[0, 0], [0.12, 0.02], [0.15, 0.09], [0.10, 0.16], [0.055, 0.22], [0.05, 0.30]]
-          .map(function (p) { return new THREE.Vector2(p[0], p[1]); }), 8)));
-      cork.position.set(0, 0.78, 0); self._corkSeat = cork.position.clone();
-      wb.add(cork); self._wbCork = cork;
-      // fade contract: cache base opacity, start invisible (the timeline fades _wbMats in)
-      mats.forEach(function (m) { if (!m || !m.isMaterial) return; m.transparent = true; m._op0 = (m.opacity == null ? 1 : m.opacity); m.opacity = 0; });
-      self._wbTopOp0 = cap.material._op0;
-      wb.visible = false; self._scene.add(wb);
-      self._wbMats = mats.filter(function (m) { return m && m.isMaterial; });
-      self._wbBuilt = true; self._wb = wb;   // LAST assignment wakes the whole act
-    }
-
-    /* crystal shell for the decanter: deep-amber BackSide + warm clearcoat
-       FrontSide + a dark warm-edge fresnel whose alpha is driven by uOp, so the
-       drop-in fade reaches the rim (plain _shellify's fresnel alpha is inert). */
-    _whiskyShellify(parent, geo) {
-      var back = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
-        color: 0x5a2f12, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.20,
-        side: THREE.BackSide, envMapIntensity: 1.0, depthWrite: false, flatShading: true
-      }));
-      back.renderOrder = 1; parent.add(back);
-      var front = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
-        color: 0xf3e4c8, roughness: 0.02, metalness: 0, transparent: true, opacity: 0.12,
-        clearcoat: 1, clearcoatRoughness: 0.05, side: THREE.FrontSide,
-        envMapIntensity: 3.0, depthWrite: false, flatShading: true
-      }));
-      front.renderOrder = 5; parent.add(front);
-      var fmat = new THREE.ShaderMaterial({
-        transparent: true, depthWrite: false, blending: THREE.NormalBlending, side: THREE.FrontSide,
-        uniforms: { uOp: { value: 1 } },
-        vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
-        fragmentShader: 'uniform float uOp; varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.2); float hot = pow(d, 9.0); vec3 edge = vec3(0.26, 0.15, 0.04); gl_FragColor = vec4(mix(edge, vec3(0.98, 0.93, 0.75), hot), (f * 0.6 + hot * 0.4) * uOp); }'
-      });
-      // route material.opacity → uOp so the shared fade code reaches the rim
-      Object.defineProperty(fmat, 'opacity', {
-        get: function () { return fmat.uniforms.uOp.value; },
-        set: function (v) { fmat.uniforms.uOp.value = v; }, configurable: true
-      });
-      var fresnel = new THREE.Mesh(geo, fmat); fresnel.renderOrder = 6; parent.add(fresnel);
-      return [back.material, front.material, fmat];
     }
 
     /* the Higgsfield socket: pour-src names a GREEN-SCREEN video of a real
@@ -2105,15 +2012,9 @@
         // never drifting toward the centre (the user was firm on this)
         this._glass.position.x = (this._fxDefault - 0.5) * 2 * this._halfW;
         this._glass.position.y = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
-        // whisky timeline, scrubbed by how deep the stage has been ridden. The
-        // procedural decanter builds lazily as the stage nears (getBoundingClientRect
-        // works under reduced motion); the whole block is wrapped so a whisky error
-        // can NEVER break the cup, and ?nowhisky disables it.
-        if (this._noWhisky === undefined) this._noWhisky = /[?&]nowhisky/.test(location.search);
-        if (!this._wb && !this._wbBuilt && hb.top < vh * 1.4 && !this._noWhisky) {
-          try { this._buildWhisky(); } catch (e) { this._wbBuilt = true; }
-        }
-        if (this._wb) try {
+        // whisky timeline, scrubbed by how deep the stage has been ridden —
+        // asleep until the user's bottle file gives us _wb again
+        if (this._wb) {
           var w = Math.max(0, Math.min(1, (vh * 0.80 - hb.top) / Math.max(1, hb.height - vh * 0.20)));
           this._extra = 0.07 * smoothstep(0.50, 0.74, w);
           var a2 = smoothstep(0.06, 0.24, w) * (1 - smoothstep(0.90, 0.995, w));
@@ -2127,35 +2028,20 @@
             this._wb.position.set(wbx, wby, 0);
             this._wb.rotation.z = rz2;
             this._wbMats.forEach(function (m) { m.opacity = m._op0 * a2; });
-            // the spirit stays world-level as the vessel tips (clip plane); the
-            // meniscus disc rides that surface and fades before the deep tip would
-            // reveal the clipped ellipse; the faceted stopper pops off to the side
-            if (this._wbLiquidPlane) this._wbLiquidPlane.constant = wby + this._wbFill;
-            if (this._wbCork) {
-              var s2 = smoothstep(0.30, 0.50, w);
-              this._wbCork.position.set(this._corkSeat.x, this._corkSeat.y + s2 * 0.42, this._corkSeat.z);
-              this._wbCork.rotation.z = s2 * 0.6;
-            }
-            if (this._wbTop) {
-              var capA = a2 * (1 - smoothstep(0.34, 0.60, w));
-              this._wbTop.visible = capA > 0.01;
-              this._wbTop.position.set(wbx, wby + this._wbFill - 0.002, 0);
-              this._wbTop.material.opacity = this._wbTopOp0 * capA;
-            }
             wp = smoothstep(0.50, 0.56, w) * (1 - smoothstep(0.70, 0.78, w));
             if (wp > 0.01) {
               wjet = { x0: wbx - 0.75 * Math.sin(rz2), y0: wby + 0.75 * Math.cos(rz2),
-                       vx: -0.25 * k2, vy: -0.6, g: 12.5, r0: 0.026 + 0.022 * wp,
+                       vx: -0.25 * k2, vy: -0.6, g: 12.5, r0: 0.022 + 0.02 * wp,
                        cupX: this._glass.position.x };
             }
-          } else { this._wb.visible = false; if (this._wbTop) this._wbTop.visible = false; this._whiskyDisarm(); }
+          } else this._wb.visible = false;
           // hand the copy its cue (CSS reads --hb): the line lands after the pour
           if (Math.abs((this._hbLast || 0) - w) > 0.002) {
             this._hbLast = w;
             this._hb.style.setProperty('--hb', w.toFixed(3));
           }
-        } catch (e) { this._extra = 0; if (this._wb) this._wb.visible = false; if (this._wbTop) this._wbTop.visible = false; }
-      } else if (this._wb) { this._wb.visible = false; if (this._wbTop) this._wbTop.visible = false; this._whiskyDisarm(); }
+        }
+      } else if (this._wb) this._wb.visible = false;
 
       // waterline
       var waterY = this._glass.position.y + this._waterBase + Math.min(0.92, this._level + this._extra) * (0.97 - this._waterBase);
@@ -2168,11 +2054,11 @@
       // the whisky folds in: the water warms toward gold as the spirit lands
       if (this._waterC0 === undefined) {
         this._waterC0 = this._water.material.color.clone();
-        this._waterC1 = new THREE.Color(0xbf9a4e);
+        this._waterC1 = new THREE.Color(0xc9a45e);
         this._topC0 = this._waterTop.material.color.clone();
-        this._topC1 = new THREE.Color(0xecd8a6);
+        this._topC1 = new THREE.Color(0xe8d3a2);
       }
-      var wmix = Math.min(1, this._extra / 0.07) * 0.85;
+      var wmix = Math.min(1, this._extra / 0.07) * 0.7;
       this._water.material.color.lerpColors(this._waterC0, this._waterC1, wmix);
       this._waterTop.material.color.lerpColors(this._topC0, this._topC1, wmix);
 
