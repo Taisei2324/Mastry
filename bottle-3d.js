@@ -1970,14 +1970,34 @@
         // ── while the "Two ancient islands / One clear water" title is framed, sit
         // the cup's MIDLINE exactly on the title's midline (measured live, so it holds
         // at any viewport). Off-title (down on the stage), the normal ride resumes.
+        // ── keep the cup beside the framed "Two ancient islands / One clear
+        //    water" title, then hand it smoothly to the centre of the screen as
+        //    the title's centre rises past the top. This is a POSITION blend
+        //    (a function of where the title is), NOT a time filter — so while the
+        //    title is framed the cup sits EXACTLY on title-mid + drop; its
+        //    placement never lags or floats during a scroll, and the old ~140px
+        //    teleport at the title→stage handoff is smoothed out.
         var tEl = this._heroTitle || (this._heroTitle = document.querySelector(".herowords .hero__title"));
         if (tEl) {
           var trr = tEl.getBoundingClientRect();
           if (trr.height && trr.top < vh && trr.bottom > 0) {
             var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : 265; // ~7cm below the title midline; live-tunable via ?coords slider
-            baseScr = trr.top + trr.height * 0.5 + cupPx * 0.5 + drop;
+            var titleMid = trr.top + trr.height * 0.5;
+            var baseOn = titleMid + cupPx * 0.5 + drop;
+            // wt=1 while the title is framed (cup locked exactly beside it); eases
+            // to 0 over the last stretch before the title leaves the top (cup
+            // hands off to centre-follow). This narrow band IS the lock "range" —
+            // the cup only grabs the title when it's genuinely framed.
+            var wt = smoothstep(-0.05 * vh, 0.22 * vh, titleMid);
+            baseScr = baseScr + (baseOn - baseScr) * wt;
           }
         }
+        // 1px deadband: hold sub-pixel getBoundingClientRect flutter so the
+        // resting cup doesn't shiver, yet track any real motion (>1px) exactly —
+        // no lag, so the framed placement stays byte-exact. Nothing here touches
+        // scrollY, so scrolling back up to the bottle is always free.
+        if (this._baseHold === undefined || Math.abs(baseScr - this._baseHold) > 1) this._baseHold = baseScr;
+        baseScr = this._baseHold;
         // the cup keeps its longitude: it rides straight down the pour line,
         // never drifting toward the centre (the user was firm on this)
         this._glass.position.x = (this._fxDefault - 0.5) * 2 * this._halfW;

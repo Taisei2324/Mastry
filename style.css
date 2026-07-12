@@ -43,7 +43,7 @@
   --jp:'Noto Serif JP',serif;
 }
 
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;scroll-snap-type:y proximity;}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
 body{
   font-family:var(--sans);
   font-weight:300;
@@ -283,13 +283,12 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
 }
 .herowords{
   min-height:88svh;position:relative;display:flex;align-items:center;justify-content:flex-end;text-align:center;
-  scroll-snap-align:center; /* manual scroll gently snaps this "Two ancient islands" view into frame */
   padding:clamp(90px,14vh,160px) clamp(20px,6vw,90px) clamp(60px,8vh,110px);
 }
 .herowords .hero__copy{
   display:flex;flex-direction:column;align-items:center;
   max-width:min(640px,58vw);
-  margin-right:clamp(40px,10vw,220px); /* nearer the centre — the bigger glass still clears it */
+  margin-right:clamp(60px,13vw,300px); /* nudged further left — nearer centre; the glass still clears it */
 }
 .herowords .hero__sub{margin-left:auto;margin-right:auto;}
 .herowords .hero__actions{justify-content:center;}
