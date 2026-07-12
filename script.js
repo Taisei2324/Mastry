@@ -425,24 +425,70 @@
     var cbox = document.createElement("div");
     cbox.style.cssText = "position:fixed;top:14px;left:14px;z-index:99999;background:rgba(20,30,20,.92);color:#fff;font:13px/1.6 ui-monospace,Menlo,monospace;padding:12px 14px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3);";
     cbox.innerHTML =
-      'cup drop: <b id="cdVal">265</b> px' +
-      '<br><input id="cdSlider" type="range" min="-150" max="600" value="265" style="width:240px;margin:6px 0">' +
-      '<br>glide: <b id="cgVal">190</b> ms &nbsp;(slower = more gradual slide)' +
-      '<br><input id="cgSlider" type="range" min="20" max="700" value="190" style="width:240px;margin:6px 0">' +
+      'cup drop: <b id="cdVal">50</b> px &nbsp;(lower = higher on screen)' +
+      '<br><input id="cdSlider" type="range" min="-150" max="600" value="50" style="width:240px;margin:6px 0">' +
+      '<br>glide: <b id="cgVal">280</b> ms &nbsp;(higher = duller / less jittery)' +
+      '<br><input id="cgSlider" type="range" min="20" max="700" value="280" style="width:240px;margin:6px 0">' +
+      '<br>freeze at frame: <b id="fhVal">2000</b> ms &nbsp;(lock the framed shot)' +
+      '<br><input id="fhSlider" type="range" min="0" max="4000" step="100" value="2000" style="width:240px;margin:6px 0">' +
       '<br><span id="cdMouse" style="opacity:.75">move mouse — read Y</span>';
     document.body.appendChild(cbox);
     var line = document.createElement("div");
     line.style.cssText = "position:fixed;left:0;right:0;height:1px;background:rgba(255,80,80,.8);z-index:99998;pointer-events:none;top:0;";
     document.body.appendChild(line);
-    window.__cupDrop = 265;
-    window.__cupGlide = 190;
+    window.__cupDrop = 50;
+    window.__cupGlide = 280;
+    window.__frameHold = 2000;
     var sl = cbox.querySelector("#cdSlider"), val = cbox.querySelector("#cdVal"), mo = cbox.querySelector("#cdMouse");
     var gl = cbox.querySelector("#cgSlider"), gval = cbox.querySelector("#cgVal");
+    var fh = cbox.querySelector("#fhSlider"), fhv = cbox.querySelector("#fhVal");
     sl.addEventListener("input", function () { window.__cupDrop = +sl.value; val.textContent = sl.value; });
     gl.addEventListener("input", function () { window.__cupGlide = +gl.value; gval.textContent = gl.value; });
+    fh.addEventListener("input", function () { window.__frameHold = +fh.value; fhv.textContent = fh.value; });
     document.addEventListener("mousemove", function (e) {
       line.style.top = e.clientY + "px";
       mo.textContent = "mouse Y = " + e.clientY + " px  (" + (e.clientY / window.innerHeight).toFixed(3) + " vh)";
     });
   }
+
+  /* ── frame freeze: NOT an auto-scroll. The reader scrolls manually; the first
+     time they reach the "Two ancient islands / One clear water" frame (title at
+     screen centre) going DOWN, the scroll LOCKS on that composition for ~2s, then
+     releases. Bounded (a timer always ends it), scrolling UP is never affected,
+     re-arms only after leaving the frame. Off on phones/reduced-motion and via
+     ?nofreeze. Tunable: window.__frameHold (ms; 0 = off). ──────────────────── */
+  if (!calmScroll && !/[?&]nofreeze/.test(location.search)) (function () {
+    var title = document.querySelector(".herowords .hero__title");
+    if (!title) return;
+    var HOLD_MS = 2000, holdTimer = 0, armed = true, holding = false, lastY = window.scrollY;
+    function vh() { return window.innerHeight; }
+    function frameY() { var r = title.getBoundingClientRect(); return Math.round(r.top + window.scrollY + r.height / 2 - 0.44 * vh()); } // title centred, matching the reference frame
+    function freeze(e) { e.preventDefault(); }
+    function keyFreeze(e) { var k = e.key; if (k === "ArrowDown" || k === "ArrowUp" || k === "PageDown" || k === "PageUp" || k === "Home" || k === "End" || k === " " || k === "Spacebar") e.preventDefault(); }
+    function endHold() {
+      clearTimeout(holdTimer); holding = false;
+      window.removeEventListener("wheel", freeze, { passive: false });
+      window.removeEventListener("touchmove", freeze, { passive: false });
+      window.removeEventListener("keydown", keyFreeze, true);
+    }
+    function startHold() {
+      var ms = (typeof window.__frameHold === "number") ? window.__frameHold : HOLD_MS;
+      if (ms <= 0) { armed = false; return; }
+      holding = true; armed = false;
+      window.addEventListener("wheel", freeze, { passive: false });
+      window.addEventListener("touchmove", freeze, { passive: false });
+      window.addEventListener("keydown", keyFreeze, true);
+      clearTimeout(holdTimer); holdTimer = setTimeout(endHold, ms);
+    }
+    window.addEventListener("scroll", function () {
+      var y = window.scrollY, prevY = lastY, down = y > prevY; lastY = y;
+      if (holding) return;
+      var fy = frameY();
+      if (y < fy - 0.6 * vh()) armed = true;                                  // re-arm well above the frame
+      if (armed && down && prevY < fy && y >= fy && y <= fy + 0.25 * vh()) startHold(); // reached it going down → lock
+    }, { passive: true });
+    window.addEventListener("blur", function () { if (holding) endHold(); });
+    document.addEventListener("visibilitychange", function () { if (document.hidden && holding) endHold(); });
+    window.__mastryFreeze = { get holding() { return holding; }, frameY: frameY, endHold: endHold };
+  })();
 })();

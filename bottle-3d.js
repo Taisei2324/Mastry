@@ -1982,7 +1982,7 @@
         if (tEl) {
           var trr = tEl.getBoundingClientRect();
           if (trr.height && trr.top < vh && trr.bottom > 0) {
-            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : (this._narrow ? 0 : 265); // desktop: ~7cm below the title midline; phones: centred right behind the words. Live-tunable via ?coords
+            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : (this._narrow ? 0 : 50); // desktop: cup visual centre ≈ screen centre when the title is framed; phones: centred behind the words. Live-tunable via ?coords
             var titleMid = trr.top + trr.height * 0.5;
             var baseOn = titleMid + cupPx * 0.5 + drop;
             // wt=1 while the title is framed (cup locked exactly beside it); eases
@@ -2000,7 +2000,7 @@
         //    deliberate (ms time-constant, live-tunable via the ?coords panel).
         //    It settles exactly at rest, so the framed placement stays perfect,
         //    and nothing here touches scrollY — scrolling back up is always free.
-        var tauMs = (typeof window.__cupGlide === "number") ? window.__cupGlide : 190;
+        var tauMs = (typeof window.__cupGlide === "number") ? window.__cupGlide : 280;
         var tau = Math.max(20, tauMs) / 1000;
         if (this._rideY === undefined) this._rideY = baseScr;
         else {
