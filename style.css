@@ -43,7 +43,7 @@
   --jp:'Noto Serif JP',serif;
 }
 
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;scroll-snap-type:y proximity;}
 body{
   font-family:var(--sans);
   font-weight:300;
@@ -283,6 +283,7 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
 }
 .herowords{
   min-height:88svh;position:relative;display:flex;align-items:center;justify-content:flex-end;text-align:center;
+  scroll-snap-align:center; /* manual scroll gently snaps this "Two ancient islands" view into frame */
   padding:clamp(90px,14vh,160px) clamp(20px,6vw,90px) clamp(60px,8vh,110px);
 }
 .herowords .hero__copy{

@@ -760,7 +760,7 @@
     /* ---------- events ---------- */
     _bindEvents() {
       var self = this;
-      this._noWall = window.matchMedia('(prefers-reduced-motion: reduce)').matches || window.__mastrySnapEngine === true;
+      this._noWall = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       this._onScroll = function () {
         var y = window.scrollY;
         // THE WALL, scroll-event side: arms here too, so a violent flick that
