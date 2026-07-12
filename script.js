@@ -431,6 +431,8 @@
       '<br><input id="cgSlider" type="range" min="20" max="700" value="190" style="width:240px;margin:6px 0">' +
       '<br>flight speed: <b id="gvVal">2.6</b> px/ms &nbsp;(lower = slower auto-glide)' +
       '<br><input id="gvSlider" type="range" min="1.2" max="5" step="0.1" value="2.6" style="width:240px;margin:6px 0">' +
+      '<br>hold at station: <b id="ghVal">2000</b> ms &nbsp;(freeze the framed shot)' +
+      '<br><input id="ghSlider" type="range" min="0" max="4000" step="100" value="2000" style="width:240px;margin:6px 0">' +
       '<br><span id="cdMouse" style="opacity:.75">move mouse — read Y</span>';
     document.body.appendChild(cbox);
     var line = document.createElement("div");
@@ -444,6 +446,9 @@
     gl.addEventListener("input", function () { window.__cupGlide = +gl.value; gval.textContent = gl.value; });
     var gv = cbox.querySelector("#gvSlider"), gvv = cbox.querySelector("#gvVal");
     gv.addEventListener("input", function () { window.__glideVel = +gv.value; gvv.textContent = gv.value; });
+    window.__glideHold = 2000;
+    var gh = cbox.querySelector("#ghSlider"), ghv = cbox.querySelector("#ghVal");
+    gh.addEventListener("input", function () { window.__glideHold = +gh.value; ghv.textContent = gh.value; });
     document.addEventListener("mousemove", function (e) {
       line.style.top = e.clientY + "px";
       mo.textContent = "mouse Y = " + e.clientY + " px  (" + (e.clientY / window.innerHeight).toFixed(3) + " vh)";
@@ -494,11 +499,33 @@
       window.scrollTo(0, Math.round(fromY + (toY - fromY) * easeOutCubic(e / dur)));
       raf = requestAnimationFrame(step);
     }
-    function settle() { cancelAnimationFrame(raf); raf = 0; window.scrollTo(0, Math.round(toY)); state = "IDLE"; accum = 0; cooldownUntil = performance.now() + COOLDOWN_MS; }
+    // ── the HOLD: when a flight snaps into place, freeze the framed station for
+    //    ~2s so the reader takes it in, THEN release. It is a BOUNDED freeze (a
+    //    setTimeout always ends it) — never the old open-ended trap. Tunable via
+    //    window.__glideHold (ms; 0 = no hold).
+    var HOLD_MS = 2000, holdTimer = 0;
+    function freeze(e) { e.preventDefault(); }   // blocks the scroll for the hold's duration
+    function endHold() {
+      clearTimeout(holdTimer);
+      window.removeEventListener("wheel", freeze, { passive: false });
+      window.removeEventListener("touchmove", freeze, { passive: false });
+      state = "IDLE"; accum = 0; cooldownUntil = performance.now() + COOLDOWN_MS;
+    }
+    function startHold() {
+      var ms = (typeof window.__glideHold === "number") ? window.__glideHold : HOLD_MS;
+      if (ms <= 0) { state = "IDLE"; accum = 0; cooldownUntil = performance.now() + COOLDOWN_MS; return; }
+      state = "HOLD";
+      window.addEventListener("wheel", freeze, { passive: false });
+      window.addEventListener("touchmove", freeze, { passive: false });
+      clearTimeout(holdTimer); holdTimer = setTimeout(endHold, ms);
+    }
+    function settle() { cancelAnimationFrame(raf); raf = 0; window.scrollTo(0, Math.round(toY)); accum = 0; startHold(); }
+    function finishNoHold() { cancelAnimationFrame(raf); raf = 0; if (state === "ANIMATING") window.scrollTo(0, Math.round(toY)); endHold(); }
     function abort() { if (state !== "ANIMATING") return; cancelAnimationFrame(raf); raf = 0; state = inZone() ? "IDLE" : "FREE"; accum = 0; }
     window.addEventListener("wheel", function (e) {
       if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
       var d = e.deltaY; if (e.deltaMode === 1) d *= 16; else if (e.deltaMode === 2) d *= vh();
+      if (state === "HOLD") return;                                     // frozen; the freeze listener blocks the wheel
       if (state === "ANIMATING") { if (d < 0) abort(); return; }        // up aborts; down ignored (latch)
       if (state === "FREE") { if (nextTarget() != null && inZone()) state = "IDLE"; else return; }
       var t = performance.now();
@@ -514,6 +541,7 @@
       var k = e.key;
       var downKey = (k === "ArrowDown" || k === "PageDown" || ((k === " " || k === "Spacebar") && !e.shiftKey));
       var upKey = (k === "ArrowUp" || k === "PageUp" || k === "Home" || k === "End" || ((k === " " || k === "Spacebar") && e.shiftKey));
+      if (state === "HOLD") { if (downKey || upKey) e.preventDefault(); return; } // frozen for the hold
       if (state === "ANIMATING") { if (upKey) { abort(); return; } if (downKey) { e.preventDefault(); } return; } // up never prevented
       if (!downKey || e.repeat) return;
       if (state === "FREE") { if (nextTarget() != null && inZone()) state = "IDLE"; else return; }
@@ -522,8 +550,8 @@
       e.preventDefault(); flyTo(tgt);
     }, { passive: false });
     window.addEventListener("touchstart", function () { if (state === "ANIMATING") abort(); }, { passive: true }); // touch never triggers; only aborts
-    document.addEventListener("visibilitychange", function () { if (document.hidden && state === "ANIMATING") settle(); });
-    window.addEventListener("blur", function () { if (state === "ANIMATING") settle(); });
+    document.addEventListener("visibilitychange", function () { if (document.hidden && (state === "ANIMATING" || state === "HOLD")) finishNoHold(); }); // never leave a backgrounded tab frozen
+    window.addEventListener("blur", function () { if (state === "ANIMATING") finishNoHold(); });
     window.addEventListener("resize", function () { if (state === "ANIMATING") { var s = stations(); for (var i = 0; i < s.length; i++) if (s[i] > fromY) { toY = s[i]; break; } } });
     window.__mastryGlide = { get state() { return state; }, stations: stations, zoneEnd: zoneEnd, nextTarget: nextTarget, flyTo: flyTo, abort: abort };
   })();
