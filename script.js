@@ -415,4 +415,29 @@
       orderOk.hidden = false;
     });
   }
+
+  /* ── coordinate helper (only with ?coords in the URL) ──────────────────────
+     A live slider that moves the cup up/down in real time (sets window.__cupDrop,
+     which bottle-3d reads each frame) plus a mouse-Y readout, so the exact cup
+     position can be dialled in and read off as a plain pixel number. Invisible to
+     normal visitors — it only builds when the URL has ?coords. */
+  if (/[?&]coords/.test(location.search)) {
+    var cbox = document.createElement("div");
+    cbox.style.cssText = "position:fixed;top:14px;left:14px;z-index:99999;background:rgba(20,30,20,.92);color:#fff;font:13px/1.6 ui-monospace,Menlo,monospace;padding:12px 14px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3);";
+    cbox.innerHTML =
+      'cup drop: <b id="cdVal">265</b> px' +
+      '<br><input id="cdSlider" type="range" min="-150" max="600" value="265" style="width:240px;margin:6px 0">' +
+      '<br><span id="cdMouse" style="opacity:.75">move mouse — read Y</span>';
+    document.body.appendChild(cbox);
+    var line = document.createElement("div");
+    line.style.cssText = "position:fixed;left:0;right:0;height:1px;background:rgba(255,80,80,.8);z-index:99998;pointer-events:none;top:0;";
+    document.body.appendChild(line);
+    window.__cupDrop = 265;
+    var sl = cbox.querySelector("#cdSlider"), val = cbox.querySelector("#cdVal"), mo = cbox.querySelector("#cdMouse");
+    sl.addEventListener("input", function () { window.__cupDrop = +sl.value; val.textContent = sl.value; });
+    document.addEventListener("mousemove", function (e) {
+      line.style.top = e.clientY + "px";
+      mo.textContent = "mouse Y = " + e.clientY + " px  (" + (e.clientY / window.innerHeight).toFixed(3) + " vh)";
+    });
+  }
 })();

@@ -1973,7 +1973,10 @@
         var tEl = this._heroTitle || (this._heroTitle = document.querySelector(".herowords .hero__title"));
         if (tEl) {
           var trr = tEl.getBoundingClientRect();
-          if (trr.height && trr.top < vh && trr.bottom > 0) baseScr = trr.top + trr.height * 0.5 + cupPx * 0.5;
+          if (trr.height && trr.top < vh && trr.bottom > 0) {
+            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : 265; // ~7cm below the title midline; live-tunable via ?coords slider
+            baseScr = trr.top + trr.height * 0.5 + cupPx * 0.5 + drop;
+          }
         }
         // the cup keeps its longitude: it rides straight down the pour line,
         // never drifting toward the centre (the user was firm on this)
