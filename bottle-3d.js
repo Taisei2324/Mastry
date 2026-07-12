@@ -2162,43 +2162,38 @@
       // everything else on this page.
       var wp = 0, wjet = null;
       this._hbRide = false;
-      if (this._hb && _pourHandoff.hasBottle && this.parentElement) {
+      // ANIMATION 1 — the cup PINS to the middle of the screen. Runs whenever the
+      // words/pour region is around, independent of whether the decanter has loaded
+      // (that's animation 2, layered on below). The cup's centre sticks at mid-
+      // screen across the whole span — beside the title, then down the pour stage —
+      // and only slides toward a section edge at the very start/end. It NEVER rides
+      // up with the scroll into the decanter, and barely moves once centred.
+      if (this._hb && this.parentElement) {
         this._hbRide = true;
         var hb = this._hb.getBoundingClientRect();
         var vh = window.innerHeight;
         var cupPx = this._cupPx || 269;
-        var pr2 = this.parentElement.getBoundingClientRect();
-        var base0 = pr2.top + (this._narrow ? 0.40 : 0.62) * Math.max(1, pr2.height); // the herowords park
-        // highball progress — computed up here so the cup can react to it (it
-        // depends only on the section rect, not on the cup's own position)
+        var pr2 = this.parentElement.getBoundingClientRect();       // the herowords section
+        // pour progress — depends only on the section rect, not the cup position
         var w = Math.max(0, Math.min(1, (vh * 0.80 - hb.top) / Math.max(1, hb.height - vh * 0.20)));
-        // where the cup snaps: a low resting line (not screen-centre), which is
-        // exactly where the stationary blue aura sits. baseScr is the cup's
-        // BOTTOM screen-Y, so SNAP_FRAC*vh is the cup's centre when locked.
-        var SNAP_FRAC = this._narrow ? 0.55 : 0.60;          // the cup's snap line — glued beside the title
-        var baseLock = vh * SNAP_FRAC + cupPx * 0.5;         // baseScr is the cup BOTTOM, so this centres it at SNAP_FRAC
-        // the pour resting line: the cup's MIDDLE lined up with the MIDDLE of the
-        // "splits with a little whisky" copy (measured live), which is the cap on
-        // how low the cup can go once the decanter is pouring
-        var hbLine = this._hbLine || (this._hbLine = this._hb.querySelector('.highball__line'));
-        var pourMid = vh * 0.5;
-        if (hbLine) { var lr = hbLine.getBoundingClientRect(); if (lr.height) pourMid = lr.top + lr.height * 0.5; }
-        var pourScr = pourMid + cupPx * 0.5;                 // cup bottom when its middle sits on the line
-        var descend = (this._wb ? smoothstep(0.14, 0.52, w) : 0) * 0.18; // barely descends — cup stays glued to its snap line
-        var lock = baseLock + (pourScr - baseLock) * descend; // snap line → the pour line, never past it
-        var M2 = Math.max(8, (vh - cupPx) * 0.5 * (1 - descend)); // margin relaxes as it settles
-        var baseScr = Math.min(Math.max(lock, base0), hb.bottom - M2);
-        // the cup keeps its longitude: it rides straight down the pour line
+        // sticky-centre: cup CENTRE wants mid-screen, clamped inside the span so it
+        // enters from below and exits up top, but is pinned to centre in between.
+        var cupHalf = cupPx * 0.5;
+        var midC   = vh * 0.52;                              // target cup CENTRE = middle of screen
+        var topEdge = pr2.top + cupHalf + vh * 0.02;         // keep the cup fully inside the span…
+        var botEdge = hb.bottom - cupHalf - vh * 0.02;       // …enter from below, exit up top
+        var cupCenter = Math.min(Math.max(midC, topEdge), botEdge);
+        var baseScr = cupCenter + cupHalf;                   // origin is the cup BASE → add half to centre it
         this._glass.position.x = (this._fxDefault - 0.5) * 2 * this._halfW;
-        // one smooth glide: low-pass the scroll-driven target into one eased motion
+        // low-pass into one smooth, un-jittery motion (target barely moves anyway)
         var rideY = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
         if (this._rideY === undefined) this._rideY = rideY;
-        this._rideY += (rideY - this._rideY) * (1 - Math.pow(0.0025, dt)); // low-pass: smooth yet crisp (smaller base = less lag)
+        this._rideY += (rideY - this._rideY) * (1 - Math.pow(0.0025, dt));
         this._glass.position.y = this._rideY;
-        // (the snap + its aura bloom + the ~0.95s hold now live at the top of
-        // _tick, keyed to the title's real position — not the highball act here.)
-        // whisky timeline, scrubbed by how deep the stage has been ridden —
-        // asleep until the user's bottle file gives us _wb again (w computed above)
+        // (the snap + aura bloom + ~0.95s hold live at the top of _tick, keyed to
+        // the title's real position.)
+        // ANIMATION 2 — whisky timeline: the decanter drops in ABOVE the pinned cup,
+        // tips and pours in, lid off then back on. Only once the bottle file loads.
         if (this._wb) {
           this._extra = 0.07 * smoothstep(0.60, 0.82, w);        // cup browns during/after the pour
           var a2 = smoothstep(0.06, 0.22, w) * (1 - smoothstep(0.93, 0.99, w)); // drops in (lid on), holds, fades out
@@ -2207,7 +2202,9 @@
             var k2 = smoothstep(0.48, 0.60, w) * (1 - smoothstep(0.72, 0.82, w)); // tilt: only after the lid is fully off
             var rz2 = k2 * 1.45;
             var wbx = this._glass.position.x + (this._narrow ? 0.95 : 1.30) - k2 * 0.45;
-            var wby = this._glass.position.y + 0.55 + (1 - a2) * 1.4 + k2 * 0.62;
+            // sits ABOVE the pinned cup and stays fully in frame: modest drop-in
+            // and only a small rise as it tips (was +0.62, which shoved it off-top)
+            var wby = this._glass.position.y + 0.45 + (1 - a2) * 1.1 + k2 * 0.15;
             this._wb.visible = true;
             this._wb.position.set(wbx, wby, 0);
             // hold the whisky surface level at a fixed world height as the vessel
