@@ -1967,6 +1967,14 @@
         var baseLock = vh * 0.5 + cupPx * 0.5;               // cup centred on screen
         var M2 = Math.max(20, (vh - cupPx) * 0.5);           // sticky margin inside the stage
         var baseScr = Math.min(Math.max(baseLock, base0), hb.bottom - M2);
+        // ── while the "Two ancient islands / One clear water" title is framed, sit
+        // the cup's MIDLINE exactly on the title's midline (measured live, so it holds
+        // at any viewport). Off-title (down on the stage), the normal ride resumes.
+        var tEl = this._heroTitle || (this._heroTitle = document.querySelector(".herowords .hero__title"));
+        if (tEl) {
+          var trr = tEl.getBoundingClientRect();
+          if (trr.height && trr.top < vh && trr.bottom > 0) baseScr = trr.top + trr.height * 0.5 + cupPx * 0.5;
+        }
         // the cup keeps its longitude: it rides straight down the pour line,
         // never drifting toward the centre (the user was firm on this)
         this._glass.position.x = (this._fxDefault - 0.5) * 2 * this._halfW;
