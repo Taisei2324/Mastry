@@ -1872,9 +1872,9 @@
       this._cupSrc = bPx;
       var targetPx;
       if (this._narrow) {
-        // phones: a smaller cup that sits softly CENTRED behind the words —
-        // big enough to read as the crystal tumbler, small enough to fit the frame
-        targetPx = Math.max(96, Math.min(bPx ? bPx * 0.85 : 138, 0.34 * window.innerWidth, 150));
+        // phones: a bigger cup that rides down the LEFT column, beside the
+        // compact text box on the right (they must not overlap)
+        targetPx = Math.max(120, Math.min(bPx ? bPx * 0.85 : 170, 0.46 * window.innerWidth, 210));
       } else {
         targetPx = Math.max(240, Math.min(520, bPx ? bPx * 0.85 : 269));
       }
@@ -1887,7 +1887,7 @@
       this._camera.updateProjectionMatrix();
       var halfH = z * 0.2867, halfW = halfH * (w / h);
       this._halfW = halfW; this._halfH = halfH;
-      this._fxDefault = this._narrow ? 0.5 : 0.30; // phones: centre the cup behind the words; desktop: the pour line
+      this._fxDefault = this._narrow ? 0.17 : 0.30; // phones: cup on the LEFT pour line, beside the right-hand text box; desktop: the pour line
       if (this._fx === undefined) this._fx = this._fxDefault;
       // the canvas overlaps the hero above (CSS top:-100svh) so the jet never
       // meets a canvas border; the glass itself is still placed against the
