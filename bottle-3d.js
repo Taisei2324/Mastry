@@ -1992,12 +1992,21 @@
             baseScr = baseScr + (baseOn - baseScr) * wt;
           }
         }
-        // 1px deadband: hold sub-pixel getBoundingClientRect flutter so the
-        // resting cup doesn't shiver, yet track any real motion (>1px) exactly —
-        // no lag, so the framed placement stays byte-exact. Nothing here touches
-        // scrollY, so scrolling back up to the bottle is always free.
-        if (this._baseHold === undefined || Math.abs(baseScr - this._baseHold) > 1) this._baseHold = baseScr;
-        baseScr = this._baseHold;
+        // ── glide, don't teleport: ease the cup toward its target over TIME
+        //    instead of tracking scroll rigidly. Any jump in the target (branch
+        //    handoff, the pour catch, a fast scroll) becomes a slow, smooth slide
+        //    into place — never a snap-cut. Bigger __cupGlide = slower / more
+        //    deliberate (ms time-constant, live-tunable via the ?coords panel).
+        //    It settles exactly at rest, so the framed placement stays perfect,
+        //    and nothing here touches scrollY — scrolling back up is always free.
+        var tauMs = (typeof window.__cupGlide === "number") ? window.__cupGlide : 190;
+        var tau = Math.max(20, tauMs) / 1000;
+        if (this._rideY === undefined) this._rideY = baseScr;
+        else {
+          this._rideY += (baseScr - this._rideY) * (1 - Math.exp(-dt / tau));
+          if (Math.abs(baseScr - this._rideY) < 0.5) this._rideY = baseScr; // land exactly on the perfect spot
+        }
+        baseScr = this._rideY;
         // the cup keeps its longitude: it rides straight down the pour line,
         // never drifting toward the centre (the user was firm on this)
         this._glass.position.x = (this._fxDefault - 0.5) * 2 * this._halfW;

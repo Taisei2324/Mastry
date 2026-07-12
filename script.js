@@ -427,14 +427,19 @@
     cbox.innerHTML =
       'cup drop: <b id="cdVal">265</b> px' +
       '<br><input id="cdSlider" type="range" min="-150" max="600" value="265" style="width:240px;margin:6px 0">' +
+      '<br>glide: <b id="cgVal">190</b> ms &nbsp;(slower = more gradual slide)' +
+      '<br><input id="cgSlider" type="range" min="20" max="700" value="190" style="width:240px;margin:6px 0">' +
       '<br><span id="cdMouse" style="opacity:.75">move mouse — read Y</span>';
     document.body.appendChild(cbox);
     var line = document.createElement("div");
     line.style.cssText = "position:fixed;left:0;right:0;height:1px;background:rgba(255,80,80,.8);z-index:99998;pointer-events:none;top:0;";
     document.body.appendChild(line);
     window.__cupDrop = 265;
+    window.__cupGlide = 190;
     var sl = cbox.querySelector("#cdSlider"), val = cbox.querySelector("#cdVal"), mo = cbox.querySelector("#cdMouse");
+    var gl = cbox.querySelector("#cgSlider"), gval = cbox.querySelector("#cgVal");
     sl.addEventListener("input", function () { window.__cupDrop = +sl.value; val.textContent = sl.value; });
+    gl.addEventListener("input", function () { window.__cupGlide = +gl.value; gval.textContent = gl.value; });
     document.addEventListener("mousemove", function (e) {
       line.style.top = e.clientY + "px";
       mo.textContent = "mouse Y = " + e.clientY + " px  (" + (e.clientY / window.innerHeight).toFixed(3) + " vh)";
