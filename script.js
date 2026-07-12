@@ -425,8 +425,8 @@
     var cbox = document.createElement("div");
     cbox.style.cssText = "position:fixed;top:14px;left:14px;z-index:99999;background:rgba(20,30,20,.92);color:#fff;font:13px/1.6 ui-monospace,Menlo,monospace;padding:12px 14px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3);";
     cbox.innerHTML =
-      'cup drop: <b id="cdVal">50</b> px &nbsp;(lower = higher on screen)' +
-      '<br><input id="cdSlider" type="range" min="-150" max="600" value="50" style="width:240px;margin:6px 0">' +
+      'cup drop: <b id="cdVal">0</b> px &nbsp;(+ = below the text-box midline)' +
+      '<br><input id="cdSlider" type="range" min="-300" max="400" value="0" style="width:240px;margin:6px 0">' +
       '<br>glide: <b id="cgVal">280</b> ms &nbsp;(higher = duller / less jittery)' +
       '<br><input id="cgSlider" type="range" min="20" max="700" value="280" style="width:240px;margin:6px 0">' +
       '<br>freeze at frame: <b id="fhVal">2000</b> ms &nbsp;(lock the framed shot)' +
@@ -436,7 +436,7 @@
     var line = document.createElement("div");
     line.style.cssText = "position:fixed;left:0;right:0;height:1px;background:rgba(255,80,80,.8);z-index:99998;pointer-events:none;top:0;";
     document.body.appendChild(line);
-    window.__cupDrop = 50;
+    window.__cupDrop = 0;
     window.__cupGlide = 280;
     window.__frameHold = 2000;
     var sl = cbox.querySelector("#cdSlider"), val = cbox.querySelector("#cdVal"), mo = cbox.querySelector("#cdMouse");
@@ -458,11 +458,11 @@
      re-arms only after leaving the frame. Off on phones/reduced-motion and via
      ?nofreeze. Tunable: window.__frameHold (ms; 0 = off). ──────────────────── */
   if (!calmScroll && !/[?&]nofreeze/.test(location.search)) (function () {
-    var title = document.querySelector(".herowords .hero__title");
-    if (!title) return;
+    var box = document.querySelector(".herowords .hero__copy");
+    if (!box) return;
     var HOLD_MS = 2000, holdTimer = 0, armed = true, holding = false, lastY = window.scrollY;
     function vh() { return window.innerHeight; }
-    function frameY() { var r = title.getBoundingClientRect(); return Math.round(r.top + window.scrollY + r.height / 2 - 0.44 * vh()); } // title centred, matching the reference frame
+    function frameY() { var r = box.getBoundingClientRect(); return Math.round(r.top + window.scrollY + r.height / 2 - 0.5 * vh()); } // fires when the TEXT BOX is vertically centred (cup midline meets it there)
     function freeze(e) { e.preventDefault(); }
     function keyFreeze(e) { var k = e.key; if (k === "ArrowDown" || k === "ArrowUp" || k === "PageDown" || k === "PageUp" || k === "Home" || k === "End" || k === " " || k === "Spacebar") e.preventDefault(); }
     function endHold() {

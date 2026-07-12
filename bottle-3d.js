@@ -1978,18 +1978,16 @@
         //    title is framed the cup sits EXACTLY on title-mid + drop; its
         //    placement never lags or floats during a scroll, and the old ~140px
         //    teleport at the title→stage handoff is smoothed out.
-        var tEl = this._heroTitle || (this._heroTitle = document.querySelector(".herowords .hero__title"));
-        if (tEl) {
-          var trr = tEl.getBoundingClientRect();
-          if (trr.height && trr.top < vh && trr.bottom > 0) {
-            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : (this._narrow ? 0 : 50); // desktop: cup visual centre ≈ screen centre when the title is framed; phones: centred behind the words. Live-tunable via ?coords
-            var titleMid = trr.top + trr.height * 0.5;
-            var baseOn = titleMid + cupPx * 0.5 + drop;
-            // wt=1 while the title is framed (cup locked exactly beside it); eases
-            // to 0 over the last stretch before the title leaves the top (cup
-            // hands off to centre-follow). This narrow band IS the lock "range" —
-            // the cup only grabs the title when it's genuinely framed.
-            var wt = smoothstep(-0.05 * vh, 0.22 * vh, titleMid);
+        var box = this._heroBox || (this._heroBox = document.querySelector(".herowords .hero__copy"));
+        if (box) {
+          var brr = box.getBoundingClientRect();
+          if (brr.height && brr.top < vh && brr.bottom > 0) {
+            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : 0; // cup MIDLINE aligns to the text-box (copy) midline; live-tunable via ?coords
+            var boxMid = brr.top + brr.height * 0.5;                    // the whole copy block's vertical centre — NOT just the title
+            var baseOn = boxMid + cupPx * 0.5 + drop;                   // cup visual centre = boxMid + drop
+            // wt=1 while the text box is framed (cup locked beside it); eases to
+            // 0 (centre-follow) as the box's centre rises past the top.
+            var wt = smoothstep(-0.05 * vh, 0.30 * vh, boxMid);
             baseScr = baseScr + (baseOn - baseScr) * wt;
           }
         }
