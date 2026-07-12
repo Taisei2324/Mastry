@@ -5,36 +5,40 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <script>
   /* Every reload opens at the TOP. The pour is scroll-driven, so a restored
-     scroll position lands the reader mid-pour. scrollRestoration='manual' alone
-     is not enough on mobile (it restores late, after our reset) and the page's
-     scroll-behavior:smooth animates any scrollTo — so we force an INSTANT top
-     and keep re-asserting it every frame until the reader actually interacts.
-     That beats late restoration without ever trapping the user. */
+     scroll position lands the reader mid-pour with the decanter already tilted.
+     scrollRestoration='manual' is not enough on mobile (it restores LATE, after
+     our reset). Key insight: only a real SCROLL GESTURE (touchmove / wheel / key)
+     should release the pin — a mere touchstart fires just from the reload tap and
+     must NOT count. Until then, every scroll the browser makes on its own (its
+     late restore) is immediately undone. No time limit to outrun; the user is
+     never trapped because their own drag/wheel releases it instantly. */
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
   (function () {
     if (location.hash) return;
+    var interacted = false;
     function toTop() {
-      var de = document.documentElement;
-      var prev = de.style.scrollBehavior;
-      de.style.scrollBehavior = 'auto';           // bypass scroll-behavior:smooth
+      if (interacted) return;
+      var de = document.documentElement, prev = de.style.scrollBehavior;
+      de.style.scrollBehavior = 'auto';            // bypass scroll-behavior:smooth
       window.scrollTo(0, 0);
       de.scrollTop = 0;
       if (document.body) document.body.scrollTop = 0;
       de.style.scrollBehavior = prev;
     }
-    toTop();
-    var released = false, t0 = Date.now();
-    ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(function (ev) {
-      window.addEventListener(ev, function () { released = true; }, { passive: true, once: true });
+    // a genuine scroll intent releases the pin for good (touchmove, NOT touchstart)
+    ['wheel', 'touchmove', 'keydown'].forEach(function (ev) {
+      window.addEventListener(ev, function () { interacted = true; }, { passive: true, once: true });
     });
-    (function guard() {                             // hold the top through mobile's late restore
-      if (released) return;
-      toTop();
-      if (Date.now() - t0 < 1600) requestAnimationFrame(guard);
-    })();
+    // undo any scroll that happens before the user has actually scrolled — this
+    // catches the browser's late restore whenever it lands (touchmove/wheel fire
+    // BEFORE their scroll event, so a real user scroll is already released here)
+    window.addEventListener('scroll', function () { if (!interacted) toTop(); }, { passive: true });
+    toTop();
+    var t0 = Date.now();
+    (function guard() { if (interacted) return; toTop(); if (Date.now() - t0 < 3000) requestAnimationFrame(guard); })();
     window.addEventListener('DOMContentLoaded', toTop);
-    window.addEventListener('load', function () { if (!released) toTop(); });
-    window.addEventListener('pageshow', function (e) { if (e.persisted && !released) toTop(); });
+    window.addEventListener('load', toTop);
+    window.addEventListener('pageshow', function () { toTop(); });
   })();
 </script>
 <title>MASTRY — Sparkling Water with Mastic · Chios × Japan</title>
