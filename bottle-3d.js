@@ -788,37 +788,26 @@
       };
       window.addEventListener('scroll', this._onScroll, { passive: true });
       window.addEventListener('wheel', this._onWheel, { passive: true });
-      // drag to spin, with flick inertia. On TOUCH the gesture's intent is
-      // resolved first: a horizontal drag spins, a vertical one is handed back
-      // to the page so the reader scrolls past without the bottle grabbing it.
+      // drag to spin, with flick inertia
       this._spinVel = 0;
-      var dragging = false, lastX = 0, lastT = 0, startX = 0, startY = 0, axis = 1; // axis 1 = spinning, 0 = undecided (touch), -1 = scrolling
+      var dragging = false, lastX = 0, lastT = 0;
       this.addEventListener('pointerdown', function (e) {
         dragging = true; self._dragging = true; lastX = e.clientX; lastT = performance.now();
-        startX = e.clientX; startY = e.clientY;
-        axis = (e.pointerType === 'touch') ? 0 : 1;               // touch waits to see if it's a scroll
         self._spinVel = 0;
-        // capturing a touch pointer swallows the page scroll — only capture a mouse/pen
-        if (e.pointerType !== 'touch' && self.setPointerCapture && e.pointerId !== undefined) {
+        if (self.setPointerCapture && e.pointerId !== undefined) {
           try { self.setPointerCapture(e.pointerId); } catch (_) {}
         }
       });
       window.addEventListener('pointermove', function (e) {
         if (!dragging) return;
-        if (axis === 0) {                                          // touch, intent undecided
-          var adx = Math.abs(e.clientX - startX), ady = Math.abs(e.clientY - startY);
-          if (adx < 8 && ady < 8) { lastX = e.clientX; lastT = performance.now(); return; }
-          if (ady > adx) { axis = -1; dragging = false; self._dragging = false; return; } // vertical → scroll the page
-          axis = 1;                                                // horizontal → this is a spin
-        }
         var now = performance.now();
         var dx = e.clientX - lastX;
         self._rotY += dx * 0.012;                                  // direct spin under the cursor
         self._spinVel = (dx / Math.max(1, now - lastT)) * 12;      // flick momentum
         lastX = e.clientX; lastT = now;
       });
-      window.addEventListener('pointerup', function () { dragging = false; self._dragging = false; axis = 1; });
-      window.addEventListener('pointercancel', function () { dragging = false; self._dragging = false; axis = 1; });
+      window.addEventListener('pointerup', function () { dragging = false; self._dragging = false; });
+      window.addEventListener('pointercancel', function () { dragging = false; self._dragging = false; });
       this._ro = new ResizeObserver(function () { self._resize(); });
       this._ro.observe(this);
       // perf guards: don't render when the tab is hidden or the element is offscreen
@@ -1708,23 +1697,10 @@
       this._wbMats = [];
       this._extra = 0;        // whisky in the cup, on top of the water's level
       this._whiskyOn = false;
-      this._snapArmed = true; this._snapHeld = false; this._titlePrevAbove = false; // title-snap state
       this._hb = document.querySelector('.highball');
 
       this._dummy = new THREE.Object3D();
       this._initVideoJet();
-      // Lazy-load the heavy decanter GLB (~13MB): only fetch it as the pour stage
-      // nears the viewport, so it never competes with the hero's first paint (it
-      // used to load eagerly here, starving the hero bottle → it rendered clear
-      // for a long time). The whisky act sleeps safely until _wb exists.
-      (function (self) {
-        var fired = false, go = function () { if (fired) return; fired = true; self._loadWhisky(); };
-        // Never at first paint. Load on the first scroll (the user has seen the
-        // hero and is exploring — plenty of lead time before the pour stage two
-        // sections down), with a guaranteed timer backstop so it always arrives.
-        window.addEventListener('scroll', go, { once: true, passive: true });
-        setTimeout(go, 3500);
-      })(this);
       this._resize();
     }
 
@@ -1865,147 +1841,6 @@
       });
     }
 
-    /* ── the whisky vessel: the user's decanter GLB, dropped into _wb so the
-       sleeping whisky act (drop-in → tip → amber pour → gold mix) wakes.
-       Mirrors _loadGlassSrc: normalise, then render the crystal with the same
-       alpha-canvas shell trick (its KHR transmission renders black here), and
-       keep the amber liquid. Seated so the pour-mouth — the top of glass_body,
-       below the stopper — lands at local y=0.75, the height the act emits its
-       jet from; the act tilts _wb about its origin, so the stream always
-       leaves the real mouth. Until it loads, _wb stays null and the act sleeps. */
-    _loadWhisky() {
-      var src = this.getAttribute('whisky-src') || this.getAttribute('whiskysrc');
-      if (!src || !THREE.GLTFLoader) return;
-      var self = this;
-      new THREE.GLTFLoader().load(src, function (m) {
-        m.scene.updateMatrixWorld(true);
-        var prims = [];
-        m.scene.traverse(function (o) { if (o.isMesh) prims.push(o); });
-        var whole = new THREE.Box3().setFromObject(m.scene);
-        if (!prims.length || whole.isEmpty()) return;
-
-        var VH = 1.5;           // vessel height in world units (~1.5× the cup)
-        var MOUTH_Y = 0.75;     // local height the act pours from
-        var s = VH / (whole.max.y - whole.min.y);
-        var cx = (whole.min.x + whole.max.x) / 2, cz = (whole.min.z + whole.max.z) / 2;
-        // the mouth = the lip of the body glass (the stopper sits above it)
-        var mouthY = whole.max.y;
-        prims.forEach(function (o) {
-          var nm = ((o.name || '') + ' ' + ((o.material && o.material.name) || '')).toLowerCase();
-          if (nm.indexOf('body') !== -1) mouthY = new THREE.Box3().setFromObject(o).max.y;
-        });
-        var norm = new THREE.Matrix4().makeTranslation(0, MOUTH_Y - s * (mouthY - whole.min.y), 0)
-          .multiply(new THREE.Matrix4().makeScale(s, s, s))
-          .multiply(new THREE.Matrix4().makeTranslation(-cx, -whole.min.y, -cz));
-
-        var holder = new THREE.Group();
-        var cork = new THREE.Group();       // the stopper, lifted off to pour
-        var mats = [];
-        var stopperGeos = [];
-        prims.forEach(function (o) {
-          var nm = ((o.name || '') + ' ' + ((o.material && o.material.name) || '')).toLowerCase();
-          var geo = o.geometry.clone();
-          geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(norm, o.matrixWorld));
-          if (nm.indexOf('whisk') !== -1 || nm.indexOf('liquid') !== -1) {
-            // realistic liquid: instead of the GLB's static puddle (which tilts
-            // with the glass), fill the body with an amber column and clip it
-            // with a WORLD-horizontal plane. As the decanter tips the column
-            // tilts with it, but the plane stays level — so the whiskey surface
-            // stays horizontal and the liquid pools to the low side. Same clip
-            // trick the cup's water uses. The plane's height is fed per frame.
-            geo.computeBoundingBox();
-            var gb = geo.boundingBox;
-            var rIn = Math.max(Math.abs(gb.max.x), Math.abs(gb.min.x), Math.abs(gb.max.z), Math.abs(gb.min.z)) * 0.8;
-            var lBase = gb.min.y - 0.04;
-            var lRest = gb.max.y;              // upright fill line = the level plane's rest height
-            var lTop = 0.66;                   // fill up the body toward the mouth (mouth ≈ 0.75)
-            if (lTop < lRest + 0.1) lTop = lRest + 0.4;
-            self._wbFill = lRest;
-            self._wbLiquidPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), lRest);
-            var lgeo = new THREE.CylinderGeometry(rIn, rIn, lTop - lBase, 40, 1, false);
-            var lm = new THREE.MeshPhysicalMaterial({
-              color: 0x9a4d16, roughness: 0.22, metalness: 0,
-              emissive: 0x35190a, emissiveIntensity: 0.5,
-              transparent: true, opacity: 0.92, envMapIntensity: 1.35, depthWrite: false,
-              side: THREE.DoubleSide, clippingPlanes: [self._wbLiquidPlane]
-            });
-            var lmesh = new THREE.Mesh(lgeo, lm);
-            lmesh.position.y = (lBase + lTop) / 2;
-            lmesh.renderOrder = 3;
-            holder.add(lmesh);
-            mats.push(lm);
-          } else if (nm.indexOf('stopper') !== -1 || nm.indexOf('cap') !== -1 || nm.indexOf('lid') !== -1) {
-            stopperGeos.push(geo);          // seated separately so it can pop off
-          } else {
-            mats = mats.concat(self._whiskyShellify(holder, geo)); // body crystal
-          }
-        });
-        // seat the cork at the stopper's own centre so it lifts (and turns) in
-        // place rather than swinging around the vessel's pivot
-        if (stopperGeos.length) {
-          var cbox = new THREE.Box3();
-          stopperGeos.forEach(function (gg) { gg.computeBoundingBox(); cbox.union(gg.boundingBox); });
-          var cc = new THREE.Vector3(); cbox.getCenter(cc);
-          cork.position.copy(cc);
-          self._corkSeat = cc.clone();
-          stopperGeos.forEach(function (gg) {
-            gg.translate(-cc.x, -cc.y, -cc.z);
-            mats = mats.concat(self._whiskyShellify(cork, gg));
-          });
-          // cork lives in WORLD space (not under the tilting vessel) so it can
-          // pop off, wait at the side while the decanter tips and pours, then
-          // seat back on when the decanter returns upright.
-          cork.visible = false;
-          self._scene.add(cork);
-          self._wbCork = cork;
-          self._wbHolder = holder;   // to compute where the cork WOULD sit seated
-        }
-        // the fade contract the act drives: transparent, remember op0, start hidden
-        mats.forEach(function (mm) { mm.transparent = true; mm._op0 = (mm.opacity == null ? 1 : mm.opacity); mm.opacity = 0; });
-
-        var wb = new THREE.Group();
-        holder.rotation.y = -0.4;   // a cut corner turned toward the camera
-        wb.add(holder);
-        wb.visible = false;
-        self._scene.add(wb);
-        self._wbMats = mats;
-        self._wb = wb;              // ← wakes the whisky act
-      });
-    }
-
-    /* crystal on our alpha canvas — the tumbler's own facet-shell look:
-       BackSide tint + FrontSide clearcoat + a dark-edge fresnel so the wall
-       reads against light paper (without it the vessel washes out to nothing).
-       The edge pass is a ShaderMaterial, so its .opacity is wired to a uOp
-       uniform — that lets the act's `m.opacity = m._op0 * a2` fade reach it
-       too, and the whole vessel comes in and out as one. */
-    _whiskyShellify(parent, geo) {
-      var back = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
-        color: 0x87a094, roughness: 0.02, metalness: 0, transparent: true, opacity: 0.26,
-        side: THREE.BackSide, envMapIntensity: 0.9, depthWrite: false, flatShading: true
-      }));
-      back.renderOrder = 1; parent.add(back);
-      var front = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
-        color: 0xf2f7f3, roughness: 0.01, metalness: 0, transparent: true, opacity: 0.22,
-        clearcoat: 1, clearcoatRoughness: 0.04, side: THREE.FrontSide,
-        envMapIntensity: 3.0, depthWrite: false, flatShading: true
-      }));
-      front.renderOrder = 5; parent.add(front);
-      var fres = new THREE.Mesh(geo, new THREE.ShaderMaterial({
-        transparent: true, depthWrite: false, blending: THREE.NormalBlending, side: THREE.FrontSide,
-        uniforms: { uOp: { value: 1 } },
-        vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
-        fragmentShader: 'uniform float uOp; varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.2); float hot = pow(d, 9.0); vec3 edge = vec3(0.33, 0.42, 0.37); gl_FragColor = vec4(mix(edge, vec3(1.0), hot), (f * 0.6 + hot * 0.4) * uOp); }'
-      }));
-      fres.renderOrder = 6; parent.add(fres);
-      Object.defineProperty(fres.material, 'opacity', {
-        configurable: true,
-        get: function () { return this.uniforms.uOp.value; },
-        set: function (v) { this.uniforms.uOp.value = v; }
-      });
-      return [back.material, front.material, fres.material];
-    }
-
     /* water column lathe from the current cavity profile */
     _waterGeo() {
       var wpts = [new THREE.Vector2(0, this._waterBase)];
@@ -2083,46 +1918,6 @@
       if (_pourHandoff.bPx && Math.abs((this._cupSrc || 0) - _pourHandoff.bPx) > 1) this._resize();
       var t = this._clock.elapsedTime;
 
-      // ── SNAP beside the title: as the "Two ancient islands / One clear water"
-      // heading rides up through the middle of the screen the cup is level beside
-      // it. Bloom the aura there (--snap), and the first time it centres while
-      // scrolling DOWN, briefly freeze the page (~0.95s) so the cup visibly SNAPS
-      // into place, then auto-release. Keyed to the title's real position (NOT the
-      // highball act below), fires once per approach, and can NEVER trap scroll
-      // (hard 950ms release + a deliberate-input escape).
-      if (this._titleEl === undefined) this._titleEl = document.querySelector('.herowords .hero__title');
-      if (this._titleEl) {
-        var tvh = window.innerHeight;
-        var trect = this._titleEl.getBoundingClientRect();
-        var tmid = trect.top + trect.height * 0.5;
-        var tLine = tvh * 0.52;                 // the beside-the-cup line
-        var tSnap = 1 - Math.min(1, Math.abs(tmid - tLine) / (tvh * 0.34));
-        document.documentElement.style.setProperty('--snap', tSnap.toFixed(3));
-        var tAbove = tmid < tLine;
-        if (tmid > tvh * 0.9) this._snapArmed = true;   // re-arm as the title rises from below
-        if (this._snapArmed && !this._snapHeld && tAbove && this._titlePrevAbove === false) {
-          this._snapArmed = false; this._snapHeld = true;
-          var g3d = this, de = document.documentElement;
-          de.classList.add('snap-hold');
-          var released = false, escs = [], evs = ['keydown', 'wheel', 'touchstart'], engaged = performance.now();
-          var release = function () {
-            if (released) return; released = true;
-            de.classList.remove('snap-hold');
-            evs.forEach(function (ev, i) { window.removeEventListener(ev, escs[i]); });
-            setTimeout(function () { g3d._snapHeld = false; }, 300);
-          };
-          setTimeout(release, 950);   // hard auto-release — the freeze can never persist
-          evs.forEach(function (ev) {
-            // ignore the in-flight scroll gesture that TRIGGERED the hold (else
-            // momentum collapses the 0.95s freeze instantly); honour a key always,
-            // or a fresh wheel/touch after ~350ms, as a deliberate escape.
-            var fn = function () { if (ev !== 'keydown' && performance.now() - engaged < 350) return; setTimeout(release, 120); };
-            escs.push(fn); window.addEventListener(ev, fn, { passive: true });
-          });
-        }
-        this._titlePrevAbove = tAbove;
-      }
-
       // fill target follows the scroll progress the page writes into --p
       var p = parseFloat(this.style.getPropertyValue('--p'));
       if (isNaN(p)) p = 0;
@@ -2162,99 +1957,50 @@
       // everything else on this page.
       var wp = 0, wjet = null;
       this._hbRide = false;
-      // ANIMATION 1 — the cup PINS to the middle of the screen. Runs whenever the
-      // words/pour region is around, independent of whether the decanter has loaded
-      // (that's animation 2, layered on below). The cup's centre sticks at mid-
-      // screen across the whole span — beside the title, then down the pour stage —
-      // and only slides toward a section edge at the very start/end. It NEVER rides
-      // up with the scroll into the decanter, and barely moves once centred.
-      if (this._hb && this.parentElement) {
+      if (this._hb && _pourHandoff.hasBottle && this.parentElement) {
         this._hbRide = true;
         var hb = this._hb.getBoundingClientRect();
         var vh = window.innerHeight;
         var cupPx = this._cupPx || 269;
-        var pr2 = this.parentElement.getBoundingClientRect();       // the herowords section
-        // pour progress — depends only on the section rect, not the cup position
-        var w = Math.max(0, Math.min(1, (vh * 0.80 - hb.top) / Math.max(1, hb.height - vh * 0.20)));
-        // sticky-centre: cup CENTRE wants mid-screen, clamped inside the span so it
-        // enters from below and exits up top, but is pinned to centre in between.
-        var cupHalf = cupPx * 0.5;
-        var midC   = vh * 0.52;                              // target cup CENTRE = middle of screen
-        var topEdge = pr2.top + cupHalf + vh * 0.02;         // keep the cup fully inside the span…
-        var botEdge = hb.bottom - cupHalf - vh * 0.02;       // …enter from below, exit up top
-        var cupCenter = Math.min(Math.max(midC, topEdge), botEdge);
-        var baseScr = cupCenter + cupHalf;                   // origin is the cup BASE → add half to centre it
+        var pr2 = this.parentElement.getBoundingClientRect();
+        var base0 = pr2.top + (this._narrow ? 0.40 : 0.62) * Math.max(1, pr2.height); // the herowords park
+        var baseLock = vh * 0.5 + cupPx * 0.5;               // cup centred on screen
+        var M2 = Math.max(20, (vh - cupPx) * 0.5);           // sticky margin inside the stage
+        var baseScr = Math.min(Math.max(baseLock, base0), hb.bottom - M2);
+        // the cup keeps its longitude: it rides straight down the pour line,
+        // never drifting toward the centre (the user was firm on this)
         this._glass.position.x = (this._fxDefault - 0.5) * 2 * this._halfW;
-        // low-pass into one smooth, un-jittery motion (target barely moves anyway)
-        var rideY = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
-        if (this._rideY === undefined) this._rideY = rideY;
-        this._rideY += (rideY - this._rideY) * (1 - Math.pow(0.0025, dt));
-        this._glass.position.y = this._rideY;
-        // (the snap + aura bloom + ~0.95s hold live at the top of _tick, keyed to
-        // the title's real position.)
-        // ANIMATION 2 — whisky timeline: the decanter drops in ABOVE the pinned cup,
-        // tips and pours in, lid off then back on. Only once the bottle file loads.
+        this._glass.position.y = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
+        // whisky timeline, scrubbed by how deep the stage has been ridden —
+        // asleep until the user's bottle file gives us _wb again
         if (this._wb) {
-          this._extra = 0.07 * smoothstep(0.60, 0.82, w);        // cup browns during/after the pour
-          var a2 = smoothstep(0.06, 0.22, w) * (1 - smoothstep(0.93, 0.99, w)); // drops in (lid on), holds, fades out
+          var w = Math.max(0, Math.min(1, (vh * 0.80 - hb.top) / Math.max(1, hb.height - vh * 0.20)));
+          this._extra = 0.07 * smoothstep(0.50, 0.74, w);
+          var a2 = smoothstep(0.06, 0.24, w) * (1 - smoothstep(0.90, 0.995, w));
           if (a2 > 0.002) {
             this._whiskyArm();
-            var k2 = smoothstep(0.48, 0.60, w) * (1 - smoothstep(0.72, 0.82, w)); // tilt: only after the lid is fully off
+            var k2 = smoothstep(0.28, 0.52, w) * (1 - smoothstep(0.76, 0.92, w));
             var rz2 = k2 * 1.45;
             var wbx = this._glass.position.x + (this._narrow ? 0.95 : 1.30) - k2 * 0.45;
-            // sits ABOVE the pinned cup and stays fully in frame: modest drop-in
-            // and only a small rise as it tips (was +0.62, which shoved it off-top)
-            var wby = this._glass.position.y + 0.45 + (1 - a2) * 1.1 + k2 * 0.15;
+            var wby = this._glass.position.y + 0.55 + (1 - a2) * 1.4 + k2 * 0.62;
             this._wb.visible = true;
             this._wb.position.set(wbx, wby, 0);
-            // hold the whisky surface level at a fixed world height as the vessel
-            // moves and tilts (world-horizontal clip plane, so it never tilts)
-            if (this._wbLiquidPlane) this._wbLiquidPlane.constant = wby + this._wbFill;
             this._wb.rotation.z = rz2;
             this._wbMats.forEach(function (m) { m.opacity = m._op0 * a2; });
-            // the stopper: the decanter arrives with the lid ON and settles, THEN
-            // the lid lifts off to the side, waits through the pour, and seats back
-            // on after the decanter rights itself. Scrubbed by w so it rewinds.
-            //   on    0.06 -> 0.34 : decanter drops in and settles, lid seated
-            //   off   0.34 -> 0.48 : lid lifts off to the side (before the tilt)
-            //   wait  0.48 -> 0.80 : held at the side through tilt + pour
-            //   seat  0.80 -> 0.88 : back on after the decanter is upright again
-            if (this._wbCork && this._wbHolder) {
-              this._wbCork.visible = true;
-              var off = smoothstep(0.34, 0.48, w) * (1 - smoothstep(0.80, 0.88, w));
-              this._wb.updateMatrixWorld(true);
-              // seated pose: where the cork sits ON the vessel (follows its tilt)
-              var seatM = new THREE.Matrix4().multiplyMatrices(
-                this._wbHolder.matrixWorld,
-                new THREE.Matrix4().makeTranslation(this._corkSeat.x, this._corkSeat.y, this._corkSeat.z));
-              var _sp = this._corkSP || (this._corkSP = new THREE.Vector3());
-              var _sq = this._corkSQ || (this._corkSQ = new THREE.Quaternion());
-              var _ss = this._corkSS || (this._corkSS = new THREE.Vector3());
-              seatM.decompose(_sp, _sq, _ss);
-              // waiting pose: upright, off to the outer side, held level in the world
-              var upX = this._glass.position.x + (this._narrow ? 0.95 : 1.30);
-              var upY = this._glass.position.y + 0.55;
-              var restW = this._corkRest || (this._corkRest = new THREE.Vector3());
-              restW.set(upX + 0.58, upY + 1.00, 0.34);
-              var upQ = this._corkUpQ || (this._corkUpQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -0.4, 0)));
-              this._wbCork.position.copy(_sp).lerp(restW, off);
-              this._wbCork.quaternion.copy(_sq).slerp(upQ, off);
-              this._wbCork.scale.copy(_ss);
-            }
-            wp = smoothstep(0.60, 0.65, w) * (1 - smoothstep(0.70, 0.76, w)); // pour, only while tilted
+            wp = smoothstep(0.50, 0.56, w) * (1 - smoothstep(0.70, 0.78, w));
             if (wp > 0.01) {
               wjet = { x0: wbx - 0.75 * Math.sin(rz2), y0: wby + 0.75 * Math.cos(rz2),
                        vx: -0.25 * k2, vy: -0.6, g: 12.5, r0: 0.022 + 0.02 * wp,
                        cupX: this._glass.position.x };
             }
-          } else { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; }
+          } else this._wb.visible = false;
           // hand the copy its cue (CSS reads --hb): the line lands after the pour
           if (Math.abs((this._hbLast || 0) - w) > 0.002) {
             this._hbLast = w;
             this._hb.style.setProperty('--hb', w.toFixed(3));
           }
         }
-      } else if (this._wb) { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; }
+      } else if (this._wb) this._wb.visible = false;
 
       // waterline
       var waterY = this._glass.position.y + this._waterBase + Math.min(0.92, this._level + this._extra) * (0.97 - this._waterBase);
@@ -2267,11 +2013,11 @@
       // the whisky folds in: the water warms toward gold as the spirit lands
       if (this._waterC0 === undefined) {
         this._waterC0 = this._water.material.color.clone();
-        this._waterC1 = new THREE.Color(0x9a6a34);   // whisky-in-water: warm amber-brown
+        this._waterC1 = new THREE.Color(0xc9a45e);
         this._topC0 = this._waterTop.material.color.clone();
-        this._topC1 = new THREE.Color(0xc79a5c);     // a lighter amber on the surface
+        this._topC1 = new THREE.Color(0xe8d3a2);
       }
-      var wmix = Math.min(1, this._extra / 0.07) * 0.78;
+      var wmix = Math.min(1, this._extra / 0.07) * 0.7;
       this._water.material.color.lerpColors(this._waterC0, this._waterC1, wmix);
       this._waterTop.material.color.lerpColors(this._topC0, this._topC1, wmix);
 

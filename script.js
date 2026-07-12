@@ -151,9 +151,6 @@
   }, { threshold: 0.15, rootMargin: "0px 0px -40px 0px" });
   document.querySelectorAll(".reveal, .reveal--fade").forEach(function (el) { revealObserver.observe(el); });
 
-  /* (Scroll dampening between the cup's exit and the story was removed — the
-     wheel hijack made the page feel stuck. The stretch scrolls natively now.) */
-
   /* ── stat counters ── */
   var statObserver = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {

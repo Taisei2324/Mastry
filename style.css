@@ -43,7 +43,7 @@
   --jp:'Noto Serif JP',serif;
 }
 
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;scrollbar-gutter:stable;}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
 body{
   font-family:var(--sans);
   font-weight:300;
@@ -287,24 +287,9 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
 }
 .herowords .hero__copy{
   display:flex;flex-direction:column;align-items:center;
-  max-width:min(520px,48vw);
-  margin-right:clamp(40px,17vw,400px); /* pulled in toward centre, still clear of the cup */
+  max-width:min(640px,58vw);
+  margin-right:clamp(40px,10vw,220px); /* nearer the centre — the bigger glass still clears it */
 }
-/* the blue aura the cup snaps into — a mineral-blue glow parked on the pour
-   line at screen centre, brought up by --snap (0..1, written per frame while
-   the cup settles into its lock) so it blooms exactly as the glass arrives */
-.herowords__aura{
-  position:fixed;z-index:0;pointer-events:none;
-  left:30vw;top:60vh;width:min(520px,68vw);aspect-ratio:1; /* on the pour line, centred on the snap height */
-  transform:translate(-50%,-50%);border-radius:50%;
-  background:radial-gradient(circle at 50% 50%,
-    rgba(109,157,170,.45), rgba(101,159,144,.22) 46%, rgba(109,157,170,0) 72%);
-  filter:blur(38px);
-  opacity:calc(var(--snap,0) * .92);
-  transition:opacity .35s var(--ease);
-}
-@media (max-width:760px){ .herowords__aura{ left:13vw;top:55vh; } } /* the mobile pour line + snap */
-@media (prefers-reduced-motion:reduce){ .herowords__aura{ display:none; } }
 .herowords .hero__sub{margin-left:auto;margin-right:auto;}
 .herowords .hero__actions{justify-content:center;}
 /* the real pour: a second three.js scene — same water, same jet, same glass
@@ -313,13 +298,10 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   /* extends a full viewport up over the hero (and over the copy — fine): the
      jet is drawn end-to-end by this one canvas, so it can never be cut off
      at a section border */
-  position:absolute;left:0;right:0;top:-100svh;bottom:-290svh;display:block;
+  position:absolute;left:0;right:0;top:-100svh;bottom:-170svh;display:block;
   pointer-events:none;z-index:1;
   /* bottom extends over the .highball stage below, so the cup can ride
-     down into it (same one-canvas trick as the hero overlap above).
-     COUPLING: this bottom offset MUST cover the full .highball height
-     (currently 280svh, ~line 360) or the cup + decanter vanish once the
-     canvas edge leaves the viewport. Keep the two in lockstep. */
+     down into it (same one-canvas trick as the hero overlap above) */
 }
 html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL fallback */
 /* the pour from the hero above: a stream falls in from beyond the top of the
@@ -360,8 +342,7 @@ html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL f
    above) rides the middle of the screen into it; a whisky bottle tips
    in a finger of spirit; then the line lands. --hb (0..1, written by
    the glass element per frame) scrubs the copy in after the pour. */
-.highball{position:relative;height:280svh;} /* long stage → the whisky act plays out slowly */
-html.snap-hold{overflow:hidden;overscroll-behavior:none;} /* the ~1s magnetic hold at the snap line */
+.highball{position:relative;height:170svh;}
 .highball__copy{
   /* the cup rides down the pour line on the LEFT; the copy answers from
      the right, where the whisky bottle has just made its exit */
