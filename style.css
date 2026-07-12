@@ -43,7 +43,7 @@
   --jp:'Noto Serif JP',serif;
 }
 
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;scrollbar-gutter:stable;}
 body{
   font-family:var(--sans);
   font-weight:300;
@@ -313,10 +313,13 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   /* extends a full viewport up over the hero (and over the copy — fine): the
      jet is drawn end-to-end by this one canvas, so it can never be cut off
      at a section border */
-  position:absolute;left:0;right:0;top:-100svh;bottom:-170svh;display:block;
+  position:absolute;left:0;right:0;top:-100svh;bottom:-290svh;display:block;
   pointer-events:none;z-index:1;
   /* bottom extends over the .highball stage below, so the cup can ride
-     down into it (same one-canvas trick as the hero overlap above) */
+     down into it (same one-canvas trick as the hero overlap above).
+     COUPLING: this bottom offset MUST cover the full .highball height
+     (currently 280svh, ~line 360) or the cup + decanter vanish once the
+     canvas edge leaves the viewport. Keep the two in lockstep. */
 }
 html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL fallback */
 /* the pour from the hero above: a stream falls in from beyond the top of the

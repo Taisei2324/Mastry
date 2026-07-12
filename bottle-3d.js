@@ -1708,11 +1708,23 @@
       this._wbMats = [];
       this._extra = 0;        // whisky in the cup, on top of the water's level
       this._whiskyOn = false;
+      this._snapArmed = true; this._snapHeld = false; this._titlePrevAbove = false; // title-snap state
       this._hb = document.querySelector('.highball');
 
       this._dummy = new THREE.Object3D();
       this._initVideoJet();
-      this._loadWhisky();
+      // Lazy-load the heavy decanter GLB (~13MB): only fetch it as the pour stage
+      // nears the viewport, so it never competes with the hero's first paint (it
+      // used to load eagerly here, starving the hero bottle → it rendered clear
+      // for a long time). The whisky act sleeps safely until _wb exists.
+      (function (self) {
+        var fired = false, go = function () { if (fired) return; fired = true; self._loadWhisky(); };
+        // Never at first paint. Load on the first scroll (the user has seen the
+        // hero and is exploring — plenty of lead time before the pour stage two
+        // sections down), with a guaranteed timer backstop so it always arrives.
+        window.addEventListener('scroll', go, { once: true, passive: true });
+        setTimeout(go, 3500);
+      })(this);
       this._resize();
     }
 
@@ -2071,6 +2083,46 @@
       if (_pourHandoff.bPx && Math.abs((this._cupSrc || 0) - _pourHandoff.bPx) > 1) this._resize();
       var t = this._clock.elapsedTime;
 
+      // ── SNAP beside the title: as the "Two ancient islands / One clear water"
+      // heading rides up through the middle of the screen the cup is level beside
+      // it. Bloom the aura there (--snap), and the first time it centres while
+      // scrolling DOWN, briefly freeze the page (~0.95s) so the cup visibly SNAPS
+      // into place, then auto-release. Keyed to the title's real position (NOT the
+      // highball act below), fires once per approach, and can NEVER trap scroll
+      // (hard 950ms release + a deliberate-input escape).
+      if (this._titleEl === undefined) this._titleEl = document.querySelector('.herowords .hero__title');
+      if (this._titleEl) {
+        var tvh = window.innerHeight;
+        var trect = this._titleEl.getBoundingClientRect();
+        var tmid = trect.top + trect.height * 0.5;
+        var tLine = tvh * 0.52;                 // the beside-the-cup line
+        var tSnap = 1 - Math.min(1, Math.abs(tmid - tLine) / (tvh * 0.34));
+        document.documentElement.style.setProperty('--snap', tSnap.toFixed(3));
+        var tAbove = tmid < tLine;
+        if (tmid > tvh * 0.9) this._snapArmed = true;   // re-arm as the title rises from below
+        if (this._snapArmed && !this._snapHeld && tAbove && this._titlePrevAbove === false) {
+          this._snapArmed = false; this._snapHeld = true;
+          var g3d = this, de = document.documentElement;
+          de.classList.add('snap-hold');
+          var released = false, escs = [], evs = ['keydown', 'wheel', 'touchstart'], engaged = performance.now();
+          var release = function () {
+            if (released) return; released = true;
+            de.classList.remove('snap-hold');
+            evs.forEach(function (ev, i) { window.removeEventListener(ev, escs[i]); });
+            setTimeout(function () { g3d._snapHeld = false; }, 300);
+          };
+          setTimeout(release, 950);   // hard auto-release — the freeze can never persist
+          evs.forEach(function (ev) {
+            // ignore the in-flight scroll gesture that TRIGGERED the hold (else
+            // momentum collapses the 0.95s freeze instantly); honour a key always,
+            // or a fresh wheel/touch after ~350ms, as a deliberate escape.
+            var fn = function () { if (ev !== 'keydown' && performance.now() - engaged < 350) return; setTimeout(release, 120); };
+            escs.push(fn); window.addEventListener(ev, fn, { passive: true });
+          });
+        }
+        this._titlePrevAbove = tAbove;
+      }
+
       // fill target follows the scroll progress the page writes into --p
       var p = parseFloat(this.style.getPropertyValue('--p'));
       if (isNaN(p)) p = 0;
@@ -2141,41 +2193,10 @@
         // one smooth glide: low-pass the scroll-driven target into one eased motion
         var rideY = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
         if (this._rideY === undefined) this._rideY = rideY;
-        this._rideY += (rideY - this._rideY) * (1 - Math.pow(0.008, dt)); // low-pass: smooth but still keeps up with the scroll
+        this._rideY += (rideY - this._rideY) * (1 - Math.pow(0.0025, dt)); // low-pass: smooth yet crisp (smaller base = less lag)
         this._glass.position.y = this._rideY;
-        // ── snap (MAGNETIC): the stationary blue aura sits at the snap line, and
-        // --snap blooms it as the cup ARRIVES, fading as the cup rides on past to
-        // the bottom (so the aura never follows the cup). The cup itself eases
-        // onto the snap line through the low-pass glide above — no scroll is ever
-        // held or clamped, so nothing bounces or fights the wheel.
-        var nearSnap = 1 - Math.min(1, Math.abs(baseScr - baseLock) / Math.max(1, cupPx * 1.1));
-        var lockAmt = (baseLock >= base0) ? nearSnap * (1 - descend) : 0;
-        document.documentElement.style.setProperty('--snap', lockAmt.toFixed(3));
-        // ── the snap HOLD: the first time the cup rides into the snap line beside
-        // the title, briefly freeze the page (~0.9s) so it visibly locks, then
-        // release. Guarded so it fires once per approach and ALWAYS auto-releases
-        // (900ms timeout + escape on any wheel/touch/key) — it can never trap the
-        // scroll. Rearms only after the user scrolls back up above the act.
-        var wRising = (this._wPrev === undefined) ? false : (w > this._wPrev + 0.0002);
-        this._wPrev = w;
-        if (w < 0.03) this._snapArmed = true;
-        if (this._snapArmed && !this._snapHeld && wRising && w > 0.10 && nearSnap > 0.82 && descend < 0.08) {
-          this._snapArmed = false; this._snapHeld = true;
-          var g3d = this;
-          var de = document.documentElement;
-          var sbw = window.innerWidth - de.clientWidth; // compensate the vanishing scrollbar (no layout shift)
-          de.classList.add('snap-hold');
-          if (sbw > 0) de.style.paddingRight = sbw + 'px';
-          var released = false, escs = [], evs = ['keydown', 'wheel', 'touchstart'];
-          var release = function () {
-            if (released) return; released = true;
-            de.classList.remove('snap-hold'); de.style.paddingRight = '';
-            evs.forEach(function (ev, i) { window.removeEventListener(ev, escs[i]); });
-            setTimeout(function () { g3d._snapHeld = false; }, 300);
-          };
-          setTimeout(release, 900);
-          evs.forEach(function (ev) { var fn = function () { setTimeout(release, 180); }; escs.push(fn); window.addEventListener(ev, fn, { passive: true }); });
-        }
+        // (the snap + its aura bloom + the ~0.95s hold now live at the top of
+        // _tick, keyed to the title's real position — not the highball act here.)
         // whisky timeline, scrubbed by how deep the stage has been ridden —
         // asleep until the user's bottle file gives us _wb again (w computed above)
         if (this._wb) {
