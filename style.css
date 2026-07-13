@@ -811,11 +811,13 @@ html:not(.bottle3d-on) .highball__copy{
     max-width:63vw;margin-left:auto;margin-right:0;
     align-items:flex-start;text-align:left;position:relative;z-index:3;
   }
-  .herowords .kicker{font-size:.58rem;letter-spacing:.08em;line-height:1.5;}
-  .herowords .hero__title{transform:none;font-size:clamp(1.02rem,4.3vw,1.35rem);line-height:1.18;}
-  .herowords .hero__sub{font-size:.8rem;margin-left:0;margin-right:0;max-width:none;}
-  .herowords .hero__actions{justify-content:flex-start;flex-wrap:wrap;gap:8px;}
-  .herowords .hero__actions .btn{font-size:.76rem;padding-left:22px;padding-right:22px;} /* single line even at 320px */
+  .herowords .kicker{font-size:.58rem;letter-spacing:.08em;line-height:1.5;margin-bottom:10px;}
+  /* phone: the title IS the message — bigger type, and the mastic sentence
+     is desktop-only (it dragged the box tall and crowded the cup) */
+  .herowords .hero__title{transform:none;font-size:clamp(1.45rem,6.2vw,1.95rem);line-height:1.16;margin-bottom:14px;}
+  .herowords .hero__sub{display:none;}
+  .herowords .hero__actions{justify-content:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .herowords .hero__actions .btn{font-size:.57rem;padding:11px 16px;} /* 75% of the former size, still one line at 320px */
   .herowords .hero__foot{text-align:left;margin-left:0;margin-right:0;}
   /* the panorama shrinks to a sliver at phone width — run it at 175% and
      crop the sides so Fuji, the boat and the acropolis stay legible */

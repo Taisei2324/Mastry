@@ -59,6 +59,13 @@
       if (s.prog) s.el.style.setProperty("--p", Math.min(1, near * 1.6).toFixed(3));
     });
   }
+  /* phones: the herowords copy box rode a data-speed parallax, but iOS
+     delivers momentum-scroll events in bursts, so the transform landed in
+     jumps and the box visibly TELEPORTED just as the cup framed it (user:
+     "glitchy, laggy, teleporting"). Strip the attribute before the stage
+     registers it AND before cupFrameY compensates for it — on a phone the
+     box simply rides the page natively. */
+  if (calmScroll) document.querySelectorAll(".herowords .hero__copy[data-speed]").forEach(function (el) { el.removeAttribute("data-speed"); });
   /* phones get the full scroll choreography except data-rotate (the spinning
      seal read as too busy mid-screen on mobile) */
   var stageSelector = calmScroll
@@ -477,9 +484,12 @@
      time they reach the "Two ancient islands / One clear water" frame (title at
      screen centre) going DOWN, the scroll LOCKS on that composition for ~2s, then
      releases. Bounded (a timer always ends it), scrolling UP is never affected,
-     re-arms only after leaving the frame. Off on phones/reduced-motion and via
-     ?nofreeze. Tunable: window.__frameHold (ms; 0 = off). ──────────────────── */
-  if (!calmScroll && !/[?&]nofreeze/.test(location.search)) (function () {
+     re-arms only after leaving the frame. ON for phones too (user: "the
+     disabling-scroll thing on mobile doesn't work — work on that"): touchmove
+     is preventDefault'd during the hold and the clamp catches any iOS momentum
+     that ignores it. Off only for reduced-motion and via ?nofreeze.
+     Tunable: window.__frameHold (ms; 0 = off). ──────────────────── */
+  if (!reduceMotion && !/[?&]nofreeze/.test(location.search)) (function () {
     var box = document.querySelector(".herowords .hero__copy");
     var hbSec = document.querySelector(".highball");
     if (!box) return;
