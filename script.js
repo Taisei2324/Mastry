@@ -528,6 +528,7 @@
     function keyFreeze(e) { var k = e.key; if (k === "ArrowDown" || k === "ArrowUp" || k === "PageDown" || k === "PageUp" || k === "Home" || k === "End" || k === " " || k === "Spacebar") e.preventDefault(); }
     function endHold() {
       clearTimeout(holdTimer); holding = false; activeFrame = null;
+      document.documentElement.style.overflow = ""; // phones: unfreeze the scroller
       window.removeEventListener("wheel", freeze, { passive: false });
       window.removeEventListener("touchmove", freeze, { passive: false });
       window.removeEventListener("keydown", keyFreeze, true);
@@ -539,14 +540,28 @@
       window.addEventListener("wheel", freeze, { passive: false });
       window.addEventListener("touchmove", freeze, { passive: false });
       window.addEventListener("keydown", keyFreeze, true);
-      // present the EXACT frame: with input already locked, glide the last few
-      // px so the composition lands precisely as designed, then hold it there
-      window.scrollTo({ top: f.fy(), behavior: "smooth" });
+      if (calmScroll) {
+        // phones: in-flight momentum ignores preventDefault, and clamping it
+        // back every scroll event read as a jittery tug-of-war (the reported
+        // glitch). Kill it dead instead: snap straight onto the composition,
+        // then freeze the scroller itself — overflow:hidden halts momentum
+        // instantly and blocks new gestures for the whole hold.
+        var de = document.documentElement, pb = de.style.scrollBehavior;
+        de.style.scrollBehavior = "auto";
+        window.scrollTo(0, f.fy());
+        de.style.scrollBehavior = pb;
+        de.style.overflow = "hidden";
+      } else {
+        // desktop: present the EXACT frame — with input already locked, glide
+        // the last few px so the composition lands precisely as designed
+        window.scrollTo({ top: f.fy(), behavior: "smooth" });
+      }
       clearTimeout(holdTimer); holdTimer = setTimeout(endHold, ms);
     }
     window.addEventListener("scroll", function () {
       var y = window.scrollY, prevY = lastY, down = y > prevY; lastY = y;
       if (holding) {
+        if (calmScroll) return; // phones: the scroller itself is frozen (overflow:hidden) — nothing to clamp
         // belt & braces: some browsers (Safari trackpad momentum) ignore the
         // wheel preventDefault, so ENFORCE the still frame — any drift is
         // snapped straight back (instant, overriding the CSS smooth scroll)

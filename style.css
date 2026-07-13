@@ -807,18 +807,26 @@ html:not(.bottle3d-on) .highball__copy{
     padding:0 20px 12svh;
   }
   .herowords__glass{width:64px;}
+  /* phone: the title box owns the CENTRE of the screen (user-directed); the
+     crystal cup peeks from the left BEHIND it, then the box fades out after
+     its framed 2s and hands the whole stage to the cup */
   .herowords .hero__copy{
-    max-width:63vw;margin-left:auto;margin-right:0;
-    align-items:flex-start;text-align:left;position:relative;z-index:3;
+    max-width:88vw;margin:0 auto;
+    align-items:center;text-align:center;position:relative;z-index:3;
   }
   .herowords .kicker{font-size:.58rem;letter-spacing:.08em;line-height:1.5;margin-bottom:10px;}
   /* phone: the title IS the message — bigger type, and the mastic sentence
      is desktop-only (it dragged the box tall and crowded the cup) */
   .herowords .hero__title{transform:none;font-size:clamp(1.45rem,6.2vw,1.95rem);line-height:1.16;margin-bottom:14px;}
   .herowords .hero__sub{display:none;}
-  .herowords .hero__actions{justify-content:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .herowords .hero__actions{justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
   .herowords .hero__actions .btn{font-size:.57rem;padding:11px 16px;} /* 75% of the former size, still one line at 320px */
-  .herowords .hero__foot{text-align:left;margin-left:0;margin-right:0;}
+  .herowords .hero__foot{text-align:center;margin-left:0;margin-right:0;}
+  /* phone: longer act runway — each swipe advances the whisky act LESS (the
+     scrub felt hair-trigger under touch: "turn down the sensitivity"). The
+     glass canvas must extend just as far or the cup clips at its bottom edge. */
+  html.bottle3d-on .highball{height:230svh;}
+  .herowords__glass3d{bottom:-230svh;}
   /* the panorama shrinks to a sliver at phone width — run it at 175% and
      crop the sides so Fuji, the boat and the acropolis stay legible */
   .footer{overflow:hidden;}

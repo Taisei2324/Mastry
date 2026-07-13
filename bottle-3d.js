@@ -2232,6 +2232,10 @@
             // 0 (centre-follow) as the box's centre rises past the top.
             var wt = smoothstep(-0.05 * vh, 0.30 * vh, boxMid);
             baseScr = baseScr + (baseOn - baseScr) * wt;
+            // phones: the title box bows out after its framed 2s — it fades
+            // as its midline rises off the frame and the cup takes the stage
+            // alone. Position-driven, so scrolling back up brings it back.
+            if (this._narrow) box.style.opacity = wt.toFixed(3);
           }
         }
         // ── glide, don't teleport: ease the cup toward its target over TIME
@@ -2241,7 +2245,7 @@
         //    deliberate (ms time-constant, live-tunable via the ?coords panel).
         //    It settles exactly at rest, so the framed placement stays perfect,
         //    and nothing here touches scrollY — scrolling back up is always free.
-        var tauMs = (typeof window.__cupGlide === "number") ? window.__cupGlide : 280;
+        var tauMs = (typeof window.__cupGlide === "number") ? window.__cupGlide : (this._narrow ? 380 : 280); // phones glide duller: bursty touch scroll needs the heavier low-pass
         var tau = Math.max(20, tauMs) / 1000;
         if (this._rideY === undefined) this._rideY = baseScr;
         else {
@@ -2249,9 +2253,6 @@
           if (Math.abs(baseScr - this._rideY) < 0.5) this._rideY = baseScr; // land exactly on the perfect spot
         }
         baseScr = this._rideY;
-        // the cup keeps its longitude: it rides straight down the pour line,
-        // never drifting toward the centre (the user was firm on this)
-        this._glass.position.x = (this._fxDefault - 0.5) * 2 * this._halfW;
         this._glass.position.y = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
         // hand the copy its cue whether or not a whisky vessel exists — CSS
         // reads --hb to fade in "Splits beautifully with a little whisky";
@@ -2261,6 +2262,17 @@
           this._hbLast = w0;
           this._hb.style.setProperty('--hb', w0.toFixed(3));
         }
+        // DESKTOP: the cup keeps its longitude — it rides straight down the
+        // pour line, never drifting toward the centre (the user was firm).
+        // PHONES: the cup presents CENTRE-STAGE for the finale — it slides
+        // from the pour line to the middle as the decanter makes its exit
+        // (w 0.88→0.985), so "Splits beautifully" frames a centred cup a
+        // little above the bottom text. It cannot centre any earlier: the
+        // tipped decanter needs ~0.75 units of side stage that a phone
+        // simply doesn't have at centre. Scrubbed by w, so it rewinds.
+        var fxRide = this._fxDefault;
+        if (this._narrow) fxRide += (0.5 - this._fxDefault) * smoothstep(0.88, 0.985, w0);
+        this._glass.position.x = (fxRide - 0.5) * 2 * this._halfW;
         // whisky timeline, scrubbed by how deep the stage has been ridden —
         // asleep until the user's decanter file gives us _wb. The decanter
         // drops in ABOVE the pinned cup with the lid ON, the lid lifts off to
