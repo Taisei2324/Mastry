@@ -438,7 +438,7 @@
     document.body.appendChild(line);
     /* start the drop slider at THIS device's real default (phones 70 / desktop 150),
        so opening ?coords on a phone doesn't shove the cup to the desktop offset */
-    var dropDefault = window.matchMedia("(max-width: 760px)").matches ? 70 : 190;
+    var dropDefault = window.matchMedia("(max-width: 760px)").matches ? 70 : 170;
     window.__cupDrop = dropDefault;
     window.__cupGlide = 280;
     window.__frameHold = 2000;
