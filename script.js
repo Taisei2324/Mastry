@@ -489,7 +489,7 @@
      is preventDefault'd during the hold and the clamp catches any iOS momentum
      that ignores it. Off only for reduced-motion and via ?nofreeze.
      Tunable: window.__frameHold (ms; 0 = off). ──────────────────── */
-  if (!reduceMotion && !/[?&]nofreeze/.test(location.search)) (function () {
+  if ((!reduceMotion || /[?&]guide/.test(location.search)) && !/[?&]nofreeze/.test(location.search)) (function () { // ?guide keeps the frame formulas alive under forced reduced-motion (preview pane testing)
     var box = document.querySelector(".herowords .hero__copy");
     var hbSec = document.querySelector(".highball");
     if (!box) return;
@@ -566,46 +566,209 @@
       }
       clearTimeout(holdTimer); holdTimer = setTimeout(endHold, ms);
     }
-    window.addEventListener("scroll", function () {
-      var y = window.scrollY, prevY = lastY, down = y > prevY; lastY = y;
-      if (holding) {
-        if (calmScroll) return; // phones: the scroller itself is frozen (overflow:hidden) — nothing to clamp
-        // belt & braces: some browsers (Safari trackpad momentum) ignore the
-        // wheel preventDefault, so ENFORCE the still frame — any drift is
-        // snapped straight back (instant, overriding the CSS smooth scroll)
-        var fy2 = activeFrame ? activeFrame.fy() : y;
-        if (Math.abs(y - fy2) > 1 && Math.abs(y - fy2) > Math.abs(prevY - fy2) + 0.5) { // clamp only motion AWAY from the frame; the settle glide converges and lands softly
-          var de = document.documentElement, prevB = de.style.scrollBehavior;
-          de.style.scrollBehavior = "auto";
-          window.scrollTo(0, fy2);
-          de.style.scrollBehavior = prevB;
-          lastY = fy2;
+    // DESKTOP ONLY: the catch-the-frame listeners. On phones the CONDUCTOR
+    // below supersedes them — it drives the scroll itself and pauses on these
+    // exact frames; only the frame formulas (exported underneath) are shared.
+    if (!calmScroll) {
+      window.addEventListener("scroll", function () {
+        var y = window.scrollY, prevY = lastY, down = y > prevY; lastY = y;
+        if (holding) {
+          // belt & braces: some browsers (Safari trackpad momentum) ignore the
+          // wheel preventDefault, so ENFORCE the still frame — any drift is
+          // snapped straight back (instant, overriding the CSS smooth scroll)
+          var fy2 = activeFrame ? activeFrame.fy() : y;
+          if (Math.abs(y - fy2) > 1 && Math.abs(y - fy2) > Math.abs(prevY - fy2) + 0.5) { // clamp only motion AWAY from the frame; the settle glide converges and lands softly
+            var de = document.documentElement, prevB = de.style.scrollBehavior;
+            de.style.scrollBehavior = "auto";
+            window.scrollTo(0, fy2);
+            de.style.scrollBehavior = prevB;
+            lastY = fy2;
+          }
+          return;
         }
-        return;
-      }
-      // the WALL only blocks a freeze when the reader is actually AT it — on
-      // iOS its _holdY can stay armed (12s failsafe) long after momentum blew
-      // through, and that stale hold was silently vetoing the title freeze
-      // for the whole ride ("skips past the whole animation")
-      var wallNear = bottle && bottle._holdY != null && Math.abs(y - bottle._holdY) < 1.5 * vh();
-      var clear = !wallNear && Date.now() - (window.__anchorGlide || 0) > 1500;
-      // phones: a momentum flick leaps far between two scroll EVENTS, so the
-      // catch zone is deep enough that no flick can clear it (the snap under
-      // overflow:hidden is instant — no tug-of-war on the way back)
-      var catchVh = calmScroll ? 2.0 : 0.90;
-      for (var i = 0; i < frames.length; i++) {
-        var f = frames[i], fy = f.fy();
-        if (y < fy - 0.20 * vh()) f.armed = true;                              // re-arm just above each frame — every fresh down-pass locks again
-        // ZONE ENTRY, not strict crossing: iOS delivers momentum scroll in
-        // bursts, so two consecutive events can BOTH land past the frame —
-        // requiring prevY < fy skipped the lock entirely (the reported
-        // "snap is not guaranteed" on mobile). `armed` already guarantees
-        // one lock per down-pass; `down` keeps upward scrolling free.
-        if (userGestured && f.armed && down && clear && y >= fy && y <= fy + catchVh * vh()) { startHold(f); break; }
-      }
-    }, { passive: true });
-    window.addEventListener("blur", function () { if (holding) endHold(); });
-    document.addEventListener("visibilitychange", function () { if (document.hidden && holding) endHold(); });
+        // the WALL only blocks a freeze when the reader is actually AT it — on
+        // iOS its _holdY can stay armed (12s failsafe) long after momentum blew
+        // through, and that stale hold was silently vetoing the title freeze
+        // for the whole ride ("skips past the whole animation")
+        var wallNear = bottle && bottle._holdY != null && Math.abs(y - bottle._holdY) < 1.5 * vh();
+        var clear = !wallNear && Date.now() - (window.__anchorGlide || 0) > 1500;
+        var catchVh = 0.90;
+        for (var i = 0; i < frames.length; i++) {
+          var f = frames[i], fy = f.fy();
+          if (y < fy - 0.20 * vh()) f.armed = true;                              // re-arm just above each frame — every fresh down-pass locks again
+          // ZONE ENTRY, not strict crossing: momentum wheels deliver scroll in
+          // bursts, so two consecutive events can BOTH land past the frame.
+          // `armed` already guarantees one lock per down-pass; `down` keeps
+          // upward scrolling free.
+          if (userGestured && f.armed && down && clear && y >= fy && y <= fy + catchVh * vh()) { startHold(f); break; }
+        }
+      }, { passive: true });
+      window.addEventListener("blur", function () { if (holding) endHold(); });
+      document.addEventListener("visibilitychange", function () { if (document.hidden && holding) endHold(); });
+    }
     window.__mastryFreeze = { get holding() { return holding; }, frames: frames, cupFrameY: cupFrameY, whiskyFrameY: whiskyFrameY, endHold: endHold };
+  })();
+
+  /* ── THE CONDUCTOR (phones): the story drives itself. A downward swipe is
+     an ACTIVATION, not a scroll: it plays the next chapter with a
+     negative-exponential glide (fast out of the gate, decaying, settling
+     gently onto its checkpoint). Checkpoints: the bottle's pour (waits for
+     the drain), the title still and the whisky still (2s holds). UP is
+     always free — the lock is ONE-WAY (user: "going down is a one-way to
+     watch the automation take place"); an up-gesture aborts any glide/hold
+     into native scrolling, and the next down-swipe re-engages toward the
+     next checkpoint below. One-shot: after the final still everything is
+     released until reload. Force with ?guide, kill with ?noguide. ─────── */
+  if (((calmScroll && !reduceMotion) || /[?&]guide/.test(location.search)) &&
+      !/[?&]noguide/.test(location.search)) (function () {
+    var pin = document.querySelector(".heropin");
+    var bottle = document.querySelector(".heropin bottle-3d");
+    var F = window.__mastryFreeze;
+    if (!pin || !F) return;
+    // negative-exponential time constants per segment (ms): ~95% of the
+    // travel lands within 3τ — tune the feel here
+    var TAU_POUR = 900, TAU_TITLE = 600, TAU_WHISKY = 800;
+    var HOLD_MS = 2000, DRAIN_MAX_MS = 6000;
+    var state = "wait";          // wait | tween | hold | done
+    var released = false;
+    var timer = 0, lastT = 0, tweenTo = 0, tweenTau = 900, tweenKind = "";
+    var lockY = window.scrollY;  // the one-way gate: never below this without an activation
+    function vh() { return window.innerHeight; }
+    function snapTo(y) {
+      var de = document.documentElement, pb = de.style.scrollBehavior;
+      de.style.scrollBehavior = "auto";
+      window.scrollTo(0, y);
+      de.style.scrollBehavior = pb;
+    }
+    function checkpoints() { // recomputed fresh — layout may have shifted
+      return [
+        { y: Math.round(pin.offsetTop + 0.88 * Math.max(1, pin.offsetHeight - vh())), tau: TAU_POUR, kind: "pour" },
+        { y: F.cupFrameY(), tau: TAU_TITLE, kind: "still" },
+        { y: F.whiskyFrameY(), tau: TAU_WHISKY, kind: "final" }
+      ];
+    }
+    function release() {
+      if (released) return;
+      released = true; state = "done";
+      clearTimeout(timer);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("scroll", onScrollGate);
+      window.__conducted = true;
+    }
+    function activate() {
+      if (state !== "wait") return;
+      var y = window.scrollY, list = checkpoints(), next = null;
+      for (var i = 0; i < list.length; i++) { if (list[i].y > y + 4) { next = list[i]; break; } }
+      if (!next) { release(); return; } // already past the last checkpoint
+      state = "tween"; tweenTo = next.y; tweenTau = next.tau; tweenKind = next.kind;
+      lastT = performance.now();
+      clearTimeout(timer); timer = setTimeout(step, 16);
+    }
+    function step() {
+      var now = performance.now(), dt = Math.min(120, now - lastT); lastT = now;
+      var y = window.scrollY;
+      var gap = tweenTo - y;
+      var stepPx = gap * (1 - Math.exp(-dt / tweenTau));
+      // floor speed (60px/s): a pure exponential never quite lands, and
+      // scrollY read-back quantization can stall the sub-pixel tail — the
+      // floor carries the last few px in gently but SURELY
+      var minStep = Math.min(Math.abs(gap), 60 * dt / 1000 + 0.5);
+      if (Math.abs(stepPx) < minStep) stepPx = (gap > 0 ? 1 : -1) * minStep;
+      var ny = y + stepPx;
+      window.__anchorGlide = Date.now(); // THE WALL stands down while the conductor drives
+      if (Math.abs(tweenTo - ny) < 1.5) { snapTo(tweenTo); lockY = tweenTo; arrive(); return; }
+      snapTo(ny); lockY = ny;
+      timer = setTimeout(step, 16);
+    }
+    function arrive() {
+      state = "hold";
+      if (tweenKind === "pour") {
+        // the scrub holds the bottle tilted here; the drain is time-based —
+        // wait for the pour to finish (hard ceiling so nobody is trapped)
+        var t0 = Date.now();
+        (function drained() {
+          if (state !== "hold") return; // an up-gesture already freed the reader
+          if ((bottle && bottle._level <= 0.25) || !bottle || Date.now() - t0 > DRAIN_MAX_MS) { state = "wait"; return; }
+          timer = setTimeout(drained, 150);
+        })();
+      } else if (tweenKind === "final") {
+        timer = setTimeout(release, HOLD_MS); // the last still: hold, then hand the page over
+      } else {
+        timer = setTimeout(function () { state = "wait"; }, HOLD_MS);
+      }
+    }
+    function abortToFree() { // an up-gesture: hand control straight back
+      clearTimeout(timer);
+      state = "wait";
+    }
+    // ── input: DOWN is an activation, UP is native and free ──
+    var tY0 = 0, tX0 = 0, tFired = false, tCommit = "";
+    function onTouchStart(e) {
+      var t = e.touches[0]; if (!t) return;
+      tY0 = t.clientY; tX0 = t.clientX; tFired = false; tCommit = "";
+    }
+    function onTouchMove(e) {
+      var t = e.touches[0]; if (!t) return;
+      var dy = tY0 - t.clientY;             // >0 = finger moved up = scroll-DOWN intent
+      var dx = Math.abs(tX0 - t.clientX);
+      if (!tCommit) {
+        // direction still ambiguous: keep the page pinned — iOS grants the
+        // gesture native control at the first UNprevented move, and we must
+        // not give that away before knowing the direction
+        if (Math.abs(dy) < 9 && dx < 9) { e.preventDefault(); return; }
+        tCommit = (dy > 0 && dy >= dx * 0.7) ? "down" : (dy < 0 ? "up" : "spin");
+        if (tCommit === "up" && state !== "wait" && state !== "done") abortToFree();
+      }
+      if (tCommit === "down") {
+        e.preventDefault();                  // the one-way gate: no native downward motion, ever
+        if (!tFired && dy > 24 && dy > 1.5 * dx) { tFired = true; activate(); }
+      } else if (tCommit === "spin") {
+        e.preventDefault();                  // horizontal drag (bottle spin) — never scrolls the page
+      }
+      // "up": unprevented — native free scrolling toward the top
+    }
+    function onTouchEnd() { tCommit = ""; tFired = false; }
+    var wheelT = 0;
+    function onWheel(e) {
+      if (e.deltaY > 0) {
+        e.preventDefault();
+        var now = Date.now();
+        if (now - wheelT > 400) { wheelT = now; activate(); }
+      } else if (state !== "wait" && state !== "done") abortToFree();
+    }
+    function onKey(e) {
+      var k = e.key;
+      if (k === "ArrowDown" || k === "PageDown" || k === "End" || k === " " || k === "Spacebar") { e.preventDefault(); activate(); }
+      else if ((k === "ArrowUp" || k === "PageUp" || k === "Home") && state !== "wait" && state !== "done") abortToFree();
+    }
+    // the one-way gate's backstop: native motion may only ever DECREASE
+    // scrollY. If a gesture that committed upward hooks back down (iOS keeps
+    // a gesture native once granted), clamp it straight back.
+    function onScrollGate() {
+      if (state === "tween" || state === "hold") return; // the conductor is driving/holding
+      var y = window.scrollY;
+      if (y < lockY) lockY = y;              // riding up freely: the gate follows
+      else if (y > lockY + 2) snapTo(lockY); // native downward leak: clamp
+    }
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("scroll", onScrollGate, { passive: true });
+    // reader taps a nav/anchor link: they chose to skip the story — stand down
+    document.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
+      if (a && !released) release();
+    }, true);
+    // tab hidden mid-glide: land the tween instantly, keep the machine sane
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden && state === "tween") { clearTimeout(timer); snapTo(tweenTo); lockY = tweenTo; arrive(); }
+    });
+    window.__conductor = { get state() { return state; }, get lockY() { return lockY; }, checkpoints: checkpoints, activate: activate, release: release };
   })();
 })();
