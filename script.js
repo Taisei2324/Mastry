@@ -507,14 +507,13 @@
     // DESKTOP: the copy box framed at screen centre — exact parallax fixed
     // point (the box carries data-speed, so the naive measure drifts with
     // where you measure from).
-    // PHONES: the herowords section's natural END — the title box waits at
-    // the bottom of the frame with the centred cup above it (the same
-    // composition the user approved at "Splits beautifully").
+    // PHONES: the moment the title box has just fully entered at the BOTTOM
+    // of the screen (user: "as soon as the text box spawns into the screen,
+    // freeze it") — box flush with the viewport bottom, centred cup above.
     function cupFrameY() {
       if (calmScroll) {
-        var hw = document.querySelector(".herowords");
-        if (!hw) return -1e9;
-        return Math.round(hw.getBoundingClientRect().top + window.scrollY + hw.offsetHeight - vh());
+        var br = box.getBoundingClientRect();
+        return Math.round(br.top + window.scrollY + br.height - vh());
       }
       var r = box.getBoundingClientRect(), y = window.scrollY;
       var raw = r.top + y + r.height / 2 - 0.5 * vh();
@@ -584,10 +583,16 @@
         }
         return;
       }
-      var clear = !(bottle && bottle._holdY != null) && Date.now() - (window.__anchorGlide || 0) > 1500;
+      // the WALL only blocks a freeze when the reader is actually AT it — on
+      // iOS its _holdY can stay armed (12s failsafe) long after momentum blew
+      // through, and that stale hold was silently vetoing the title freeze
+      // for the whole ride ("skips past the whole animation")
+      var wallNear = bottle && bottle._holdY != null && Math.abs(y - bottle._holdY) < 1.5 * vh();
+      var clear = !wallNear && Date.now() - (window.__anchorGlide || 0) > 1500;
       // phones: a momentum flick leaps far between two scroll EVENTS, so the
-      // catch zone is deeper (the settle glide brings the frame back)
-      var catchVh = calmScroll ? 1.35 : 0.90;
+      // catch zone is deep enough that no flick can clear it (the snap under
+      // overflow:hidden is instant — no tug-of-war on the way back)
+      var catchVh = calmScroll ? 2.0 : 0.90;
       for (var i = 0; i < frames.length; i++) {
         var f = frames[i], fy = f.fy();
         if (y < fy - 0.20 * vh()) f.armed = true;                              // re-arm just above each frame — every fresh down-pass locks again

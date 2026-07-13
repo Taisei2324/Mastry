@@ -2204,21 +2204,33 @@
       // splits the drink. All scrubbed by scroll, so it rewinds like
       // everything else on this page.
       var wp = 0, wjet = null;
+      this._storyLive = true; // default VISIBLE — only a fresh in-block measure may hide (a stale latch once froze the canvas hidden)
       this._hbRide = false;
       if (this._hb && _pourHandoff.hasBottle && this.parentElement) {
         this._hbRide = true;
         var hb = this._hb.getBoundingClientRect();
-        var vh = window.innerHeight;
+        // phones: use the CANVAS height (100lvh, stable) as the viewport
+        // height — window.innerHeight breathes ±60-100px with the iOS URL
+        // bar, which made every vh-derived target (lock point, gates, fades)
+        // drift mid-scroll
+        var vh = this._narrow ? (grA.height || window.innerHeight) : window.innerHeight;
         var cupPx = this._cupPx || 269;
         var pr2 = this.parentElement.getBoundingClientRect();
         // phones: the canvas is viewport-FIXED (style.css) — it must vanish
-        // outside the cup's chapters or it would sit over every later section
-        this._storyLive = pr2.top < vh * 1.5 && hb.bottom > -0.5 * vh;
+        // outside the cup's chapters or it would sit over every later
+        // section. Generous range + hysteresis (below): show instantly,
+        // hide only after a stable run of off-story ticks, never strobe.
+        this._storyLive = pr2.top < vh * 2.5 && hb.bottom > -1.5 * vh;
         // the herowords park. Phones CAP the park depth in absolute screens:
         // the section is ~3 screens taller there (the walk-to-centre runway),
         // and a pure fraction would sink the park far below the hero pour —
         // the cup must still wait ~half a screen into the section to catch it.
         var base0 = pr2.top + (this._narrow ? Math.min(0.40 * Math.max(1, pr2.height), 0.45 * vh) : 0.62 * Math.max(1, pr2.height));
+        // phones: the cup WAITS at the bottom of the screen — whenever its
+        // page park would sit below the fold, it holds at the bottom edge
+        // instead (it catches the hero pour there), then rides up with the
+        // page and locks at the midline (user-directed entry)
+        if (this._narrow) base0 = Math.min(base0, vh * 0.97);
         var baseLock = vh * 0.5 + cupPx * 0.5;               // cup centred on screen
         var M2 = Math.max(20, (vh - cupPx) * 0.5);           // sticky margin inside the stage
         var baseScr = Math.min(Math.max(baseLock, base0), hb.bottom - M2);
@@ -2260,14 +2272,24 @@
         //    deliberate (ms time-constant, live-tunable via the ?coords panel).
         //    It settles exactly at rest, so the framed placement stays perfect,
         //    and nothing here touches scrollY — scrolling back up is always free.
-        var tauMs = (typeof window.__cupGlide === "number") ? window.__cupGlide : (this._narrow ? 380 : 280); // phones glide duller: bursty touch scroll needs the heavier low-pass
-        var tau = Math.max(20, tauMs) / 1000;
-        if (this._rideY === undefined) this._rideY = baseScr;
-        else {
-          this._rideY += (baseScr - this._rideY) * (1 - Math.exp(-dt / tau));
-          if (Math.abs(baseScr - this._rideY) < 0.5) this._rideY = baseScr; // land exactly on the perfect spot
+        // PHONES: NO glide. On the viewport-fixed canvas every narrow target
+        // is continuous (bottom-wait -> page ride -> midline lock -> stage
+        // clamp all meet without jumps), and the low-pass was the "cup keeps
+        // sinking" bug: chasing a page-anchored target during momentum lags
+        // it by scrollspeed x tau — hundreds of px below its spot. Direct
+        // placement tracks the page 1:1 and sits pixel-still when locked.
+        if (this._narrow) {
+          this._rideY = baseScr; // keep fresh in case the viewport crosses 760px
+        } else {
+          var tauMs = (typeof window.__cupGlide === "number") ? window.__cupGlide : 280;
+          var tau = Math.max(20, tauMs) / 1000;
+          if (this._rideY === undefined) this._rideY = baseScr;
+          else {
+            this._rideY += (baseScr - this._rideY) * (1 - Math.exp(-dt / tau));
+            if (Math.abs(baseScr - this._rideY) < 0.5) this._rideY = baseScr; // land exactly on the perfect spot
+          }
+          baseScr = this._rideY;
         }
-        baseScr = this._rideY;
         this._glass.position.y = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
         // hand the copy its cue whether or not a whisky vessel exists — CSS
         // reads --hb to fade in "Splits beautifully with a little whisky";
@@ -2289,7 +2311,7 @@
         // position/scrub-driven, so every move rewinds.
         var fxRide = this._fxDefault;
         if (this._narrow) {
-          var walk = Math.min(1, Math.max(0, (-pr2.top - 0.3 * vh) / (1.7 * vh))); // progress through the herowords run-up
+          var walk = Math.min(1, Math.max(0, (-pr2.top - 0.15 * vh) / (1.1 * vh))); // progress through the (shortened) herowords run-up — completes ~1.25 screens in
           var centred = Math.max(walk * (1 - smoothstep(0.02, 0.20, w0)), smoothstep(0.88, 0.985, w0));
           fxRide += (0.5 - this._fxDefault) * smoothstep(0, 1, centred);
         }
@@ -2455,11 +2477,16 @@
       this._updateBubbles(dt, Math.max(pour, wp), jx, waterY, rIn);
 
       // phones: hide the viewport-fixed canvas (and skip the GPU) outside
-      // the cup's chapters — desktop's canvas is section-bound and self-clips
+      // the cup's chapters — desktop's canvas is section-bound and self-clips.
+      // HYSTERESIS: show instantly, hide only after 12 consecutive off-story
+      // ticks — a boundary jitter (URL bar, bursty rects) must never strobe it
       if (this._narrow && this._storyLive === false) {
-        if (!this._cvsHidden) { this._cvsHidden = true; this._renderer.domElement.style.visibility = 'hidden'; }
-        return;
-      }
+        this._storyOff = (this._storyOff || 0) + 1;
+        if (this._storyOff >= 12) {
+          if (!this._cvsHidden) { this._cvsHidden = true; this._renderer.domElement.style.visibility = 'hidden'; }
+          return;
+        }
+      } else this._storyOff = 0;
       if (this._cvsHidden) { this._cvsHidden = false; this._renderer.domElement.style.visibility = ''; }
       this._renderer.render(this._scene, this._camera);
     }
