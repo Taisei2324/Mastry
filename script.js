@@ -502,13 +502,16 @@
       var sp = parseFloat(box.dataset.speed) || 0;
       return Math.round((raw + sp * y) / (1 + sp));
     }
-    // frame 2 — "Splits beautifully with a little whisky": the moment the pour
-    // has just finished (highball scrub w = 0.78, the same formula bottle-3d
-    // drives the act with; the line is fully faded in past --hb 0.72)
+    // frame 2 — "Splits beautifully with a little whisky": the CLOSING shot,
+    // after the act has fully wound down (highball scrub w = 1.0, the same
+    // formula bottle-3d drives the act with). The decanter and cork have
+    // faded out entirely (gone past w 0.99), the tumbler stands alone at
+    // screen centre with the finished drink, and the stage's bottom edge
+    // sits exactly on the viewport bottom — the still-life composition.
     function whiskyFrameY() {
       if (!hbSec) return -1e9;
       var top = hbSec.getBoundingClientRect().top + window.scrollY;
-      return Math.round(top - 0.8 * vh() + 0.78 * (hbSec.offsetHeight - 0.2 * vh()));
+      return Math.round(top - 0.8 * vh() + 1.0 * (hbSec.offsetHeight - 0.2 * vh()));
     }
     var frames = [{ fy: cupFrameY, armed: true }, { fy: whiskyFrameY, armed: true }];
     function freeze(e) { e.preventDefault(); }
