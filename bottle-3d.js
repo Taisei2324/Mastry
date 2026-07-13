@@ -14,12 +14,37 @@
   // taken over and the page always opens fresh. Deep links with a #hash
   // keep their destination.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  if (!location.hash) window.scrollTo(0, 0);
-  window.addEventListener('pageshow', function (e) {
-    if (!e.persisted || location.hash) return; // bfcache restore: same rule
+  if (!location.hash) {
     window.scrollTo(0, 0);
+    // MOBILE: browsers (iOS Safari especially) restore the old position
+    // ASYNCHRONOUSLY after this line runs — even with manual restoration —
+    // which respawned readers mid-pour on reload. So the top is ENFORCED for
+    // the first moments: any scroll that appears before the reader's first
+    // real gesture is snapped back to 0. The reader's own first touch/wheel/
+    // key disarms it instantly, so nobody is ever fought.
+    var freshPin = true;
+    var disarmFresh = function () { freshPin = false; };
+    ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(function (t) {
+      window.addEventListener(t, disarmFresh, { passive: true, once: true });
+    });
+    var freshT0 = (window.performance && performance.now) ? performance.now() : Date.now();
+    (function enforceTop() {
+      if (!freshPin) return;
+      if (window.scrollY > 0) {
+        var de = document.documentElement, pb = de.style.scrollBehavior;
+        de.style.scrollBehavior = 'auto'; // instant, overriding the CSS smooth
+        window.scrollTo(0, 0);
+        de.style.scrollBehavior = pb;
+      }
+      var nowT = (window.performance && performance.now) ? performance.now() : Date.now();
+      if (nowT - freshT0 < 1500) requestAnimationFrame(enforceTop);
+    })();
+  }
+  window.addEventListener('pageshow', function (e) {
+    if (location.hash) return;
+    window.scrollTo(0, 0); // EVERY show (reload fires this too, after any late restore)
     var b = document.querySelector('bottle-3d');
-    if (b) { b._level = 1; b._wallT = 0; } // full bottle, wall re-armed
+    if (e.persisted && b) { b._level = 1; b._wallT = 0; } // bfcache: full bottle, wall re-armed
   });
 
   // Bottle silhouette: [radius, y] pairs, base y=0, top y≈3.26.
