@@ -2225,12 +2225,11 @@
         // the section is ~3 screens taller there (the walk-to-centre runway),
         // and a pure fraction would sink the park far below the hero pour —
         // the cup must still wait ~half a screen into the section to catch it.
+        // phones: the cup waits OFF-SCREEN below (user: "it's supposed to be
+        // off screen") at its page park, rides INTO view with the scroll,
+        // and locks at the midline. No bottom-edge clamp — an always-visible
+        // waiting cup read wrong.
         var base0 = pr2.top + (this._narrow ? Math.min(0.40 * Math.max(1, pr2.height), 0.45 * vh) : 0.62 * Math.max(1, pr2.height));
-        // phones: the cup WAITS at the bottom of the screen — whenever its
-        // page park would sit below the fold, it holds at the bottom edge
-        // instead (it catches the hero pour there), then rides up with the
-        // page and locks at the midline (user-directed entry)
-        if (this._narrow) base0 = Math.min(base0, vh * 0.97);
         var baseLock = vh * 0.5 + cupPx * 0.5;               // cup centred on screen
         var M2 = Math.max(20, (vh - cupPx) * 0.5);           // sticky margin inside the stage
         var baseScr = Math.min(Math.max(baseLock, base0), hb.bottom - M2);
