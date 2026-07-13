@@ -11,8 +11,14 @@
   // every visit begins at the top: the hero pour is the front door. Browsers
   // restore the old scroll position on reload, which respawns the reader
   // halfway down with the story (and THE WALL) skipped — so restoration is
-  // taken over and the page always opens fresh. Deep links with a #hash
-  // keep their destination.
+  // taken over and the page ALWAYS opens fresh. NO exceptions — not even a
+  // #hash: a hash left in the URL by a nav tap (/#story) made every RELOAD
+  // reopen mid-story, which kept reading as "starts in the middle of the
+  // animation" on phones (user: "every reload starts at the beginning —
+  // no saved position, no anything"). The hash is stripped before the
+  // browser can anchor to it — browsers re-anchor repeatedly while content
+  // loads, so fighting the scroll without removing the hash is not enough.
+  // In-page nav links still glide normally once the page is up.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   // INSTANT jump to the top — overriding the site's scroll-behavior:smooth.
   // (A plain scrollTo(0,0) ANIMATES up through the whole choreography, which
@@ -24,30 +30,50 @@
     window.scrollTo(0, 0);
     de.style.scrollBehavior = pb;
   }
-  if (!location.hash) {
-    snapTop();
-    // MOBILE: browsers (iOS Safari especially) restore the old position
-    // ASYNCHRONOUSLY — even SECONDS later on a slow connection, after any
-    // short guard has expired. So the top is enforced until the reader's own
-    // first gesture (touch/wheel/key/press), with a generous 8s ceiling. Any
-    // scroll that appears before that first gesture can only be the browser's
-    // restore — snap it straight back. The reader is never fought: their
-    // first input disarms the guard before their scroll even lands.
-    var freshPin = true;
-    var disarmFresh = function () { freshPin = false; };
-    ['wheel', 'touchstart', 'keydown', 'pointerdown', 'mousedown'].forEach(function (t) {
-      window.addEventListener(t, disarmFresh, { passive: true, once: true });
-    });
-    var freshT0 = Date.now();
-    (function enforceTop() {
-      if (!freshPin) return;
+  // drop any #hash BEFORE the browser anchors to it (see above) — the URL
+  // stays clean so later reloads can't reopen mid-story either
+  if (location.hash) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
+  snapTop();
+  // MOBILE: browsers (iOS Safari especially) restore the old position
+  // ASYNCHRONOUSLY — even SECONDS later on a slow connection, after any
+  // short guard has expired. So the top is enforced until the reader's own
+  // first REAL SCROLL GESTURE, with a generous 8s ceiling.
+  //
+  // "Real scroll gesture" means wheel, a MOVING finger, or a key — NOT a
+  // bare touchstart/pointerdown. Readers idly tap or rest a finger while a
+  // slow page loads; that tap used to disarm the guard, and the browser's
+  // seconds-late restore then landed the page mid-choreography (the
+  // recurring "opens mid-animation" mobile bug — 507820d's root cause,
+  // regressed when 38d05e7 put touchstart back in the disarm list).
+  var freshPin = true;
+  var disarmFresh = function () { freshPin = false; };
+  ['wheel', 'touchmove', 'keydown'].forEach(function (t) {
+    window.addEventListener(t, disarmFresh, { passive: true, once: true });
+  });
+  // a real mouse press is a deliberate desktop gesture and may disarm; taps
+  // arrive with pointerType 'touch' and must NOT (see above)
+  window.addEventListener('pointerdown', function (e) { if (e.pointerType === 'mouse') freshPin = false; }, { passive: true });
+  // the restore can land while rAF is throttled (backgrounded tab, low-power
+  // mode) — catch it on the scroll event itself, not only in the rAF loop
+  var undoRestore = function () { if (freshPin && window.scrollY > 1) snapTop(); };
+  window.addEventListener('scroll', undoRestore, { passive: true });
+  var freshT0 = Date.now();
+  (function enforceTop() {
+    if (!freshPin) { window.removeEventListener('scroll', undoRestore); return; }
+    if (window.scrollY > 1) snapTop();
+    if (Date.now() - freshT0 < 8000) requestAnimationFrame(enforceTop);
+    else {
+      // ceiling reached with NO reader gesture yet: any scroll standing here
+      // is the browser's late restore (it can land while the tab is hidden
+      // and this loop is paused) — one final snap, then stand down
       if (window.scrollY > 1) snapTop();
-      if (Date.now() - freshT0 < 8000) requestAnimationFrame(enforceTop);
-      else freshPin = false;
-    })();
-  }
+      freshPin = false;
+      window.removeEventListener('scroll', undoRestore);
+    }
+  })();
   window.addEventListener('pageshow', function (e) {
-    if (location.hash) return;
+    // EVERY show opens at the top — reloads, bfcache returns, hash or no hash
+    if (location.hash) { try { history.replaceState(null, '', location.pathname + location.search); } catch (err) {} }
     if (e.persisted || freshPin) snapTop(); // bfcache return, or still pre-gesture — never yank a reader who already scrolled
     var b = document.querySelector('bottle-3d');
     if (e.persisted && b) { b._level = 1; b._wallT = 0; } // bfcache: full bottle, wall re-armed
@@ -1006,11 +1032,18 @@
       var dyPer = (_v3.y - _v2.y) / 3.26;
       var rEff = 0.52 * (1 - Math.min(1, Math.abs(dyPer))); // tilted → span includes the barrel radius
       var minY = Math.min(_v2.y, _v3.y) - rEff, maxY = Math.max(_v2.y, _v3.y) + rEff;
-      var h = lerp(minY, maxY, 0.712 * lvl) + (this._surfBob || 0); // pooled water height, heaving with the glug
+      // Hero resting fill: a full, sealed bottle should read filled up into
+      // the neck (a little headspace under the cap), not stopped at the
+      // shoulder — that shoulder gap made the hero bottle look half-empty.
+      // The lift only applies while nearly full (lvl≈1, the capped hero); the
+      // moment the pour begins draining (lvl<0.9) it decays back to the
+      // original 0.712 mapping, so the tuned pour/drain choreography is untouched.
+      var surfFrac = 0.712 * lvl + 0.141 * smoothstep(0.90, 1.0, lvl);
+      var h = lerp(minY, maxY, surfFrac) + (this._surfBob || 0); // pooled water height, heaving with the glug
       this._waterPlane.constant = h;
       // surface disc rides the waterline along the bottle axis, always world-level
       if (dyPer > 0.25) { // upright-ish ONLY: inverted, the disc escaped the silhouette as a floating bar
-        var yLoc = Math.min(2.31, Math.max(0.12, (h - _v2.y) / dyPer));
+        var yLoc = Math.min(2.80, Math.max(0.12, (h - _v2.y) / dyPer)); // 2.80: let the disc follow the raised full-fill up into the neck
         this._waterLocalY = yLoc;
         this._waterTop.visible = true;
         this._waterTop.position.y = yLoc;
