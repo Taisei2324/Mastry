@@ -2234,11 +2234,13 @@
             this._whiskyArm();
             var k2 = smoothstep(0.48, 0.60, w) * (1 - smoothstep(0.72, 0.82, w)); // tilt: only after the lid is fully off
             var rz2 = k2 * 1.45;
-            var wbx = this._glass.position.x + (this._narrow ? 1.05 : 1.45) - k2 * 0.20;
-            // sits ABOVE the pinned cup and stays fully in frame; rises as it
-            // tips so the tilted body NEVER overlaps the cup — the jet arcs the
-            // distance (the user was firm: the vessels must not collide)
-            var wby = this._glass.position.y + 0.45 + (1 - a2) * 1.1 + k2 * 0.42;
+            // BOTTLE PHYSICS: as it tips, the decanter swings UP and OVER so its
+            // mouth ends just above the cup — the whisky then simply FALLS in,
+            // near-vertical like the hero pour (no sideways squirt, no bent
+            // stream). Clearance comes from HEIGHT: the tipped body rides well
+            // above the cup's rim, so the vessels still never touch.
+            var wbx = this._glass.position.x + (this._narrow ? 1.05 : 1.45) - k2 * (this._narrow ? 0.26 : 0.66);
+            var wby = this._glass.position.y + 0.45 + (1 - a2) * 1.1 + k2 * 0.95;
             this._wb.visible = true;
             this._wb.position.set(wbx, wby, 0);
             // hold the whisky surface level at a fixed world height as the vessel
@@ -2272,8 +2274,10 @@
             }
             wp = smoothstep(0.60, 0.65, w) * (1 - smoothstep(0.70, 0.76, w)); // pour, only while tilted
             if (wp > 0.01) {
+              // the stream leaves the lip with barely any sideways speed and
+              // FALLS — the mouth is over the cup, so gravity does the pouring
               wjet = { x0: wbx - 0.75 * Math.sin(rz2), y0: wby + 0.75 * Math.cos(rz2),
-                       vx: -0.25 * k2, vy: -0.6, g: 12.5, r0: 0.022 + 0.02 * wp,
+                       vx: -0.10 * k2, vy: -0.6, g: 12.5, r0: 0.022 + 0.02 * wp,
                        cupX: this._glass.position.x };
             }
           } else { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; this._whiskyDisarm(); }

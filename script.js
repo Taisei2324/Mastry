@@ -481,36 +481,54 @@
      ?nofreeze. Tunable: window.__frameHold (ms; 0 = off). ──────────────────── */
   if (!calmScroll && !/[?&]nofreeze/.test(location.search)) (function () {
     var box = document.querySelector(".herowords .hero__copy");
+    var hbSec = document.querySelector(".highball");
     if (!box) return;
     var bottle = document.querySelector(".heropin bottle-3d"); // the WALL publishes engagement as _holdY — never freeze while it holds
-    var HOLD_MS = 2000, holdTimer = 0, armed = true, holding = false, lastY = window.scrollY;
+    var HOLD_MS = 2000, holdTimer = 0, holding = false, lastY = window.scrollY, activeFrame = null;
     // only a real reader can trip the freeze — a browser's async scroll-restore
-    // crossing the frame on reload must never lock the page (or fight the
+    // crossing a frame on reload must never lock the page (or fight the
     // start-at-top guard in bottle-3d.js)
     var userGestured = false;
     ["wheel", "touchstart", "keydown", "pointerdown", "mousedown"].forEach(function (t) {
       window.addEventListener(t, function () { userGestured = true; }, { passive: true, once: true });
     });
     function vh() { return window.innerHeight; }
-    function frameY() { var r = box.getBoundingClientRect(), y = window.scrollY; var raw = r.top + y + r.height / 2 - 0.5 * vh(); var sp = parseFloat(box.dataset.speed) || 0; return Math.round((raw + sp * y) / (1 + sp)); } // exact parallax fixed point — the box carries data-speed, so the naive measure drifts with where you measure from
+    // frame 1 — the cup beside "Two ancient islands / One clear water":
+    // exact parallax fixed point (the copy box carries data-speed, so the
+    // naive measure drifts with where you measure from)
+    function cupFrameY() {
+      var r = box.getBoundingClientRect(), y = window.scrollY;
+      var raw = r.top + y + r.height / 2 - 0.5 * vh();
+      var sp = parseFloat(box.dataset.speed) || 0;
+      return Math.round((raw + sp * y) / (1 + sp));
+    }
+    // frame 2 — "Splits beautifully with a little whisky": the moment the pour
+    // has just finished (highball scrub w = 0.78, the same formula bottle-3d
+    // drives the act with; the line is fully faded in past --hb 0.72)
+    function whiskyFrameY() {
+      if (!hbSec) return -1e9;
+      var top = hbSec.getBoundingClientRect().top + window.scrollY;
+      return Math.round(top - 0.8 * vh() + 0.78 * (hbSec.offsetHeight - 0.2 * vh()));
+    }
+    var frames = [{ fy: cupFrameY, armed: true }, { fy: whiskyFrameY, armed: true }];
     function freeze(e) { e.preventDefault(); }
     function keyFreeze(e) { var k = e.key; if (k === "ArrowDown" || k === "ArrowUp" || k === "PageDown" || k === "PageUp" || k === "Home" || k === "End" || k === " " || k === "Spacebar") e.preventDefault(); }
     function endHold() {
-      clearTimeout(holdTimer); holding = false;
+      clearTimeout(holdTimer); holding = false; activeFrame = null;
       window.removeEventListener("wheel", freeze, { passive: false });
       window.removeEventListener("touchmove", freeze, { passive: false });
       window.removeEventListener("keydown", keyFreeze, true);
     }
-    function startHold() {
+    function startHold(f) {
       var ms = (typeof window.__frameHold === "number") ? window.__frameHold : HOLD_MS;
-      if (ms <= 0) { armed = false; return; }
-      holding = true; armed = false;
+      if (ms <= 0) { f.armed = false; return; }
+      holding = true; f.armed = false; activeFrame = f;
       window.addEventListener("wheel", freeze, { passive: false });
       window.addEventListener("touchmove", freeze, { passive: false });
       window.addEventListener("keydown", keyFreeze, true);
       // present the EXACT frame: with input already locked, glide the last few
       // px so the composition lands precisely as designed, then hold it there
-      window.scrollTo({ top: frameY(), behavior: "smooth" });
+      window.scrollTo({ top: f.fy(), behavior: "smooth" });
       clearTimeout(holdTimer); holdTimer = setTimeout(endHold, ms);
     }
     window.addEventListener("scroll", function () {
@@ -519,7 +537,7 @@
         // belt & braces: some browsers (Safari trackpad momentum) ignore the
         // wheel preventDefault, so ENFORCE the still frame — any drift is
         // snapped straight back (instant, overriding the CSS smooth scroll)
-        var fy2 = frameY();
+        var fy2 = activeFrame ? activeFrame.fy() : y;
         if (Math.abs(y - fy2) > 1 && Math.abs(y - fy2) > Math.abs(prevY - fy2) + 0.5) { // clamp only motion AWAY from the frame; the settle glide converges and lands softly
           var de = document.documentElement, prevB = de.style.scrollBehavior;
           de.style.scrollBehavior = "auto";
@@ -529,12 +547,15 @@
         }
         return;
       }
-      var fy = frameY();
-      if (y < fy - 0.20 * vh()) armed = true;                                 // re-arm as soon as the reader is just above the text box — no need to replay the pour; every fresh down-pass snaps again
-      if (userGestured && armed && down && !(bottle && bottle._holdY != null) && Date.now() - (window.__anchorGlide || 0) > 1500 && prevY < fy && y >= fy && y <= fy + 0.90 * vh()) startHold(); // reached it going down → settle + lock. Wide catch (Windows wheels leap in big steps); never fires while THE WALL holds or an anchor link is gliding
+      var clear = !(bottle && bottle._holdY != null) && Date.now() - (window.__anchorGlide || 0) > 1500;
+      for (var i = 0; i < frames.length; i++) {
+        var f = frames[i], fy = f.fy();
+        if (y < fy - 0.20 * vh()) f.armed = true;                              // re-arm just above each frame — every fresh down-pass locks again
+        if (userGestured && f.armed && down && clear && prevY < fy && y >= fy && y <= fy + 0.90 * vh()) { startHold(f); break; } // settle + lock. Wide catch (Windows wheels leap in big steps)
+      }
     }, { passive: true });
     window.addEventListener("blur", function () { if (holding) endHold(); });
     document.addEventListener("visibilitychange", function () { if (document.hidden && holding) endHold(); });
-    window.__mastryFreeze = { get holding() { return holding; }, frameY: frameY, endHold: endHold };
+    window.__mastryFreeze = { get holding() { return holding; }, frames: frames, cupFrameY: cupFrameY, whiskyFrameY: whiskyFrameY, endHold: endHold };
   })();
 })();
