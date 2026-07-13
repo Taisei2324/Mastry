@@ -2226,10 +2226,12 @@
         // and a pure fraction would sink the park far below the hero pour —
         // the cup must still wait ~half a screen into the section to catch it.
         // phones: the cup waits OFF-SCREEN below (user: "it's supposed to be
-        // off screen") at its page park, rides INTO view with the scroll,
-        // and locks at the midline. No bottom-edge clamp — an always-visible
-        // waiting cup read wrong.
-        var base0 = pr2.top + (this._narrow ? Math.min(0.40 * Math.max(1, pr2.height), 0.45 * vh) : 0.62 * Math.max(1, pr2.height));
+        // off screen"), DEEP enough that it cannot poke in while the bottle
+        // act is still on stage — park 1.35 screens into the section, so the
+        // cup's top edge only enters once herowords fully owns the viewport
+        // (user: "it's still in the bottle animation — I did not want it in
+        // there"). It rides INTO view with the scroll and locks at the midline.
+        var base0 = pr2.top + (this._narrow ? 1.35 * vh : 0.62 * Math.max(1, pr2.height));
         var baseLock = vh * 0.5 + cupPx * 0.5;               // cup centred on screen
         var M2 = Math.max(20, (vh - cupPx) * 0.5);           // sticky margin inside the stage
         var baseScr = Math.min(Math.max(baseLock, base0), hb.bottom - M2);
