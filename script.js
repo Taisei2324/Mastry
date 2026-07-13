@@ -482,6 +482,9 @@
       window.addEventListener("wheel", freeze, { passive: false });
       window.addEventListener("touchmove", freeze, { passive: false });
       window.addEventListener("keydown", keyFreeze, true);
+      // present the EXACT frame: with input already locked, glide the last few
+      // px so the composition lands precisely as designed, then hold it there
+      window.scrollTo({ top: frameY(), behavior: "smooth" });
       clearTimeout(holdTimer); holdTimer = setTimeout(endHold, ms);
     }
     window.addEventListener("scroll", function () {
@@ -489,7 +492,7 @@
       if (holding) return;
       var fy = frameY();
       if (y < fy - 0.6 * vh()) armed = true;                                  // re-arm well above the frame
-      if (armed && down && prevY < fy && y >= fy && y <= fy + 0.25 * vh()) startHold(); // reached it going down → lock
+      if (armed && down && prevY < fy && y >= fy && y <= fy + 0.30 * vh()) startHold(); // reached it going down → settle + lock (window catches fast flicks too)
     }, { passive: true });
     window.addEventListener("blur", function () { if (holding) endHold(); });
     document.addEventListener("visibilitychange", function () { if (document.hidden && holding) endHold(); });
