@@ -503,10 +503,19 @@
       window.addEventListener(t, function () { userGestured = true; }, { passive: true, once: true });
     });
     function vh() { return window.innerHeight; }
-    // frame 1 — the cup beside "Two ancient islands / One clear water":
-    // exact parallax fixed point (the copy box carries data-speed, so the
-    // naive measure drifts with where you measure from)
+    // frame 1 — "Two ancient islands / One clear water":
+    // DESKTOP: the copy box framed at screen centre — exact parallax fixed
+    // point (the box carries data-speed, so the naive measure drifts with
+    // where you measure from).
+    // PHONES: the herowords section's natural END — the title box waits at
+    // the bottom of the frame with the centred cup above it (the same
+    // composition the user approved at "Splits beautifully").
     function cupFrameY() {
+      if (calmScroll) {
+        var hw = document.querySelector(".herowords");
+        if (!hw) return -1e9;
+        return Math.round(hw.getBoundingClientRect().top + window.scrollY + hw.offsetHeight - vh());
+      }
       var r = box.getBoundingClientRect(), y = window.scrollY;
       var raw = r.top + y + r.height / 2 - 0.5 * vh();
       var sp = parseFloat(box.dataset.speed) || 0;

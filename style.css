@@ -807,9 +807,12 @@ html:not(.bottle3d-on) .highball__copy{
     padding:0 20px 12svh;
   }
   .herowords__glass{width:64px;}
-  /* phone: the title box owns the CENTRE of the screen (user-directed); the
-     crystal cup peeks from the left BEHIND it, then the box fades out after
-     its framed 2s and hands the whole stage to the cup */
+  /* phone: three quiet screens between the bottle's pour and the title —
+     the cup catches the water at the top of this run and WALKS from the
+     pour line to centre across it. The title box waits at the BOTTOM of
+     the frame and the centred cup presents above it, mirroring the
+     approved "Splits beautifully" still. */
+  .herowords{min-height:390svh;align-items:flex-end;justify-content:center;padding-bottom:12svh;}
   .herowords .hero__copy{
     max-width:88vw;margin:0 auto;
     align-items:center;text-align:center;position:relative;z-index:3;

@@ -1895,10 +1895,12 @@
           var cc = new THREE.Vector3(); cbox.getCenter(cc);
           cork.position.copy(cc);
           self._corkSeat = cc.clone();
+          var corkMat0 = mats.length; // the cork's own mats — it fades on its own schedule (never re-seats)
           stopperGeos.forEach(function (gg) {
             gg.translate(-cc.x, -cc.y, -cc.z);
             mats = mats.concat(self._whiskyShellify(cork, gg));
           });
+          self._wbCorkMats = mats.slice(corkMat0);
           // cork lives in WORLD space (not under the tilting vessel) so it can
           // pop off, wait at the side while the decanter tips and pours, then
           // seat back on when the decanter returns upright.
@@ -2207,7 +2209,11 @@
         var vh = window.innerHeight;
         var cupPx = this._cupPx || 269;
         var pr2 = this.parentElement.getBoundingClientRect();
-        var base0 = pr2.top + (this._narrow ? 0.40 : 0.62) * Math.max(1, pr2.height); // the herowords park
+        // the herowords park. Phones CAP the park depth in absolute screens:
+        // the section is ~3 screens taller there (the walk-to-centre runway),
+        // and a pure fraction would sink the park far below the hero pour —
+        // the cup must still wait ~half a screen into the section to catch it.
+        var base0 = pr2.top + (this._narrow ? Math.min(0.40 * Math.max(1, pr2.height), 0.45 * vh) : 0.62 * Math.max(1, pr2.height));
         var baseLock = vh * 0.5 + cupPx * 0.5;               // cup centred on screen
         var M2 = Math.max(20, (vh - cupPx) * 0.5);           // sticky margin inside the stage
         var baseScr = Math.min(Math.max(baseLock, base0), hb.bottom - M2);
@@ -2225,17 +2231,21 @@
         if (box) {
           var brr = box.getBoundingClientRect();
           if (brr.height && brr.top < vh && brr.bottom > 0) {
-            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : (this._narrow ? Math.round(vh * 0.045) : Math.min(170, Math.round(vh * 0.2125))); // BELOW the text-box midline: desktop is the user-approved 170px, scaling DOWN only on short (Windows) windows — a pure fraction sat too low on tall Mac viewports. Phones ride higher (0.045vh, was 0.086 — "the glass has to sit a little higher"). Live-tunable in px via ?coords
             var boxMid = brr.top + brr.height * 0.5;                    // the whole copy block's vertical centre — NOT just the title
-            var baseOn = boxMid + cupPx * 0.5 + drop;                   // cup visual centre = boxMid + drop
-            // wt=1 while the text box is framed (cup locked beside it); eases to
-            // 0 (centre-follow) as the box's centre rises past the top.
-            var wt = smoothstep(-0.05 * vh, 0.30 * vh, boxMid);
-            baseScr = baseScr + (baseOn - baseScr) * wt;
-            // phones: the title box bows out after its framed 2s — it fades
-            // as its midline rises off the frame and the cup takes the stage
-            // alone. Position-driven, so scrolling back up brings it back.
-            if (this._narrow) box.style.opacity = wt.toFixed(3);
+            if (this._narrow) {
+              // phones: NO box-lock — the title box waits at the BOTTOM of
+              // the frame and the cup rides SCREEN CENTRE above it, the same
+              // still the user approved at "Splits beautifully". The box bows
+              // out as it lifts off the frame; position-driven, so it rewinds.
+              box.style.opacity = smoothstep(0.10 * vh, 0.45 * vh, boxMid).toFixed(3);
+            } else {
+              var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : Math.min(170, Math.round(vh * 0.2125)); // BELOW the text-box midline: the user-approved 170px, scaling DOWN only on short (Windows) windows — a pure fraction sat too low on tall Mac viewports. Live-tunable in px via ?coords
+              var baseOn = boxMid + cupPx * 0.5 + drop;                 // cup visual centre = boxMid + drop
+              // wt=1 while the text box is framed (cup locked beside it); eases to
+              // 0 (centre-follow) as the box's centre rises past the top.
+              var wt = smoothstep(-0.05 * vh, 0.30 * vh, boxMid);
+              baseScr = baseScr + (baseOn - baseScr) * wt;
+            }
           }
         }
         // ── glide, don't teleport: ease the cup toward its target over TIME
@@ -2264,14 +2274,20 @@
         }
         // DESKTOP: the cup keeps its longitude — it rides straight down the
         // pour line, never drifting toward the centre (the user was firm).
-        // PHONES: the cup presents CENTRE-STAGE for the finale — it slides
-        // from the pour line to the middle as the decanter makes its exit
-        // (w 0.88→0.985), so "Splits beautifully" frames a centred cup a
-        // little above the bottom text. It cannot centre any earlier: the
-        // tipped decanter needs ~0.75 units of side stage that a phone
-        // simply doesn't have at centre. Scrubbed by w, so it rewinds.
+        // PHONES: the cup's longitude tells the story arc — it catches the
+        // pour on the LEFT line, WALKS to centre across the ~3 quiet screens
+        // before the title (user-directed), presents centred above the
+        // bottom title box, steps BACK to the pour line as the whisky act
+        // begins (the tipped decanter needs ~0.75 units of side stage a
+        // phone doesn't have at centre), and returns to centre as the
+        // decanter exits — both framed stills show a centred cup. All
+        // position/scrub-driven, so every move rewinds.
         var fxRide = this._fxDefault;
-        if (this._narrow) fxRide += (0.5 - this._fxDefault) * smoothstep(0.88, 0.985, w0);
+        if (this._narrow) {
+          var walk = Math.min(1, Math.max(0, (-pr2.top - 0.3 * vh) / (1.7 * vh))); // progress through the herowords run-up
+          var centred = Math.max(walk * (1 - smoothstep(0.02, 0.20, w0)), smoothstep(0.88, 0.985, w0));
+          fxRide += (0.5 - this._fxDefault) * smoothstep(0, 1, centred);
+        }
         this._glass.position.x = (fxRide - 0.5) * 2 * this._halfW;
         // whisky timeline, scrubbed by how deep the stage has been ridden —
         // asleep until the user's decanter file gives us _wb. The decanter
@@ -2301,10 +2317,14 @@
             this._wb.rotation.z = rz2;
             this._wbMats.forEach(function (m) { m.opacity = m._op0 * a2; });
             // the stopper: on 0.06→0.34 seated · off 0.34→0.48 lifts aside ·
-            // wait 0.48→0.80 through tilt + pour · seat 0.80→0.88 back on
+            // then it DISAPPEARS during the pour (0.55→0.70) and never comes
+            // back — no re-seat (user: "let the cap come off and let it
+            // disappear forever"). Scrub-driven, so rewinding restores it.
             if (this._wbCork && this._wbHolder) {
-              this._wbCork.visible = true;
-              var off = smoothstep(0.34, 0.48, w) * (1 - smoothstep(0.80, 0.88, w));
+              var corkK = 1 - smoothstep(0.55, 0.70, w);
+              if (this._wbCorkMats) for (var ci = 0; ci < this._wbCorkMats.length; ci++) this._wbCorkMats[ci].opacity *= corkK;
+              this._wbCork.visible = corkK > 0.002;
+              var off = smoothstep(0.34, 0.48, w);
               this._wb.updateMatrixWorld(true);
               // seated pose: where the cork sits ON the vessel (follows its tilt)
               var seatM = new THREE.Matrix4().multiplyMatrices(
