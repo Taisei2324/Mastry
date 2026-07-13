@@ -511,7 +511,7 @@
         return;
       }
       var fy = frameY();
-      if (y < fy - 0.6 * vh()) armed = true;                                  // re-arm well above the frame
+      if (y < fy - 0.20 * vh()) armed = true;                                 // re-arm as soon as the reader is just above the text box — no need to replay the pour; every fresh down-pass snaps again
       if (userGestured && armed && down && prevY < fy && y >= fy && y <= fy + 0.30 * vh()) startHold(); // reached it going down → settle + lock (real gestures only, never a browser restore)
     }, { passive: true });
     window.addEventListener("blur", function () { if (holding) endHold(); });
