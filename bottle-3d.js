@@ -1740,16 +1740,180 @@
 
       this._dummy = new THREE.Object3D();
       this._initVideoJet();
+      // Lazy-load the USER'S decanter GLB: never at first paint (it must not
+      // compete with the hero bottle). Fetch on the first scroll — plenty of
+      // lead time before the pour stage two sections down — with a timer
+      // backstop so it always arrives. ?nowhisky disables the whole act.
+      if (!/[?&]nowhisky/.test(location.search)) (function (self) {
+        var fired = false, go = function () { if (fired) return; fired = true; self._loadWhisky(); };
+        window.addEventListener('scroll', go, { once: true, passive: true });
+        setTimeout(go, 3500);
+      })(this);
       this._resize();
     }
 
-    /* the shared jet tube becomes the spirit: amber stream, warm splash */
+    /* the shared jet tube becomes the spirit: amber stream, warm splash.
+       REVERSIBLE — _stream/_core are the hero water pour's own tube, so the
+       clear colours are cached and restored when the act sleeps, or free
+       upward scroll would replay an amber water pour. */
     _whiskyArm() {
       if (this._whiskyOn) return;
       this._whiskyOn = true;
+      if (!this._jetC0) this._jetC0 = {
+        s: this._stream.material.color.getHex(),
+        c: this._core.material.color.getHex(),
+        p: this._splash.material.color.getHex()
+      };
       this._stream.material.color.setHex(0xd9a441);
       this._core.material.color.setHex(0xead9a0);
       this._splash.material.color.setHex(0xdcae5f);
+    }
+    _whiskyDisarm() {
+      if (!this._whiskyOn || !this._jetC0) return;
+      this._whiskyOn = false;
+      this._stream.material.color.setHex(this._jetC0.s);
+      this._core.material.color.setHex(this._jetC0.c);
+      this._splash.material.color.setHex(this._jetC0.p);
+    }
+
+    /* ── the whisky vessel: the USER'S decanter GLB, dropped into _wb so the
+       sleeping whisky act (drop-in → lid off → tip → amber pour → gold mix)
+       wakes. Normalised so the body's mouth sits at local y=0.75 — the exact
+       height the act pours from. The GLB's transmission materials would render
+       BLACK on this alpha canvas, so only the geometry is kept: the body gets
+       the crystal shell treatment, the liquid becomes a clip-plane-levelled
+       amber column, and the stopper is seated in world space to pop off. */
+    _loadWhisky() {
+      var src = this.getAttribute('whisky-src') || this.getAttribute('whiskysrc');
+      if (!src || !THREE.GLTFLoader) return;
+      var self = this;
+      new THREE.GLTFLoader().load(src, function (m) {
+        m.scene.updateMatrixWorld(true);
+        var prims = [];
+        m.scene.traverse(function (o) { if (o.isMesh) prims.push(o); });
+        var whole = new THREE.Box3().setFromObject(m.scene);
+        if (!prims.length || whole.isEmpty()) return;
+
+        var VH = 1.5;           // vessel height in world units (~1.5× the cup)
+        var MOUTH_Y = 0.75;     // local height the act pours from
+        var s = VH / (whole.max.y - whole.min.y);
+        var cx = (whole.min.x + whole.max.x) / 2, cz = (whole.min.z + whole.max.z) / 2;
+        // the mouth = the lip of the body glass (the stopper sits above it)
+        var mouthY = whole.max.y;
+        prims.forEach(function (o) {
+          var nm = ((o.name || '') + ' ' + ((o.material && o.material.name) || '')).toLowerCase();
+          if (nm.indexOf('body') !== -1) mouthY = new THREE.Box3().setFromObject(o).max.y;
+        });
+        var norm = new THREE.Matrix4().makeTranslation(0, MOUTH_Y - s * (mouthY - whole.min.y), 0)
+          .multiply(new THREE.Matrix4().makeScale(s, s, s))
+          .multiply(new THREE.Matrix4().makeTranslation(-cx, -whole.min.y, -cz));
+
+        var holder = new THREE.Group();
+        var cork = new THREE.Group();       // the stopper, lifted off to pour
+        var mats = [];
+        var stopperGeos = [];
+        prims.forEach(function (o) {
+          var nm = ((o.name || '') + ' ' + ((o.material && o.material.name) || '')).toLowerCase();
+          var geo = o.geometry.clone();
+          geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(norm, o.matrixWorld));
+          if (nm.indexOf('whisk') !== -1 || nm.indexOf('liquid') !== -1) {
+            // realistic liquid: instead of the GLB's static puddle (which tilts
+            // with the glass), fill the body with an amber column and clip it
+            // with a WORLD-horizontal plane. As the decanter tips the column
+            // tilts with it, but the plane stays level — the whiskey surface
+            // stays horizontal and pools to the low side. Same clip trick the
+            // cup's water uses. The plane's height is fed per frame.
+            geo.computeBoundingBox();
+            var gb = geo.boundingBox;
+            var rIn = Math.max(Math.abs(gb.max.x), Math.abs(gb.min.x), Math.abs(gb.max.z), Math.abs(gb.min.z)) * 0.8;
+            var lBase = gb.min.y - 0.04;
+            var lRest = gb.max.y;              // upright fill line = the level plane's rest height
+            var lTop = 0.66;                   // fill up the body toward the mouth (mouth ≈ 0.75)
+            if (lTop < lRest + 0.1) lTop = lRest + 0.4;
+            self._wbFill = lRest;
+            self._wbLiquidPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), lRest);
+            var lgeo = new THREE.CylinderGeometry(rIn, rIn, lTop - lBase, 40, 1, false);
+            var lm = new THREE.MeshPhysicalMaterial({
+              color: 0x9a4d16, roughness: 0.22, metalness: 0,
+              emissive: 0x35190a, emissiveIntensity: 0.5,
+              transparent: true, opacity: 0.92, envMapIntensity: 1.35, depthWrite: false,
+              side: THREE.DoubleSide, clippingPlanes: [self._wbLiquidPlane]
+            });
+            var lmesh = new THREE.Mesh(lgeo, lm);
+            lmesh.position.y = (lBase + lTop) / 2;
+            lmesh.renderOrder = 3;
+            holder.add(lmesh);
+            mats.push(lm);
+          } else if (nm.indexOf('stopper') !== -1 || nm.indexOf('cap') !== -1 || nm.indexOf('lid') !== -1) {
+            stopperGeos.push(geo);          // seated separately so it can pop off
+          } else {
+            mats = mats.concat(self._whiskyShellify(holder, geo)); // body crystal
+          }
+        });
+        // seat the cork at the stopper's own centre so it lifts (and turns) in
+        // place rather than swinging around the vessel's pivot
+        if (stopperGeos.length) {
+          var cbox = new THREE.Box3();
+          stopperGeos.forEach(function (gg) { gg.computeBoundingBox(); cbox.union(gg.boundingBox); });
+          var cc = new THREE.Vector3(); cbox.getCenter(cc);
+          cork.position.copy(cc);
+          self._corkSeat = cc.clone();
+          stopperGeos.forEach(function (gg) {
+            gg.translate(-cc.x, -cc.y, -cc.z);
+            mats = mats.concat(self._whiskyShellify(cork, gg));
+          });
+          // cork lives in WORLD space (not under the tilting vessel) so it can
+          // pop off, wait at the side while the decanter tips and pours, then
+          // seat back on when the decanter returns upright.
+          cork.visible = false;
+          self._scene.add(cork);
+          self._wbCork = cork;
+          self._wbHolder = holder;   // to compute where the cork WOULD sit seated
+        }
+        // the fade contract the act drives: transparent, remember op0, start hidden
+        mats.forEach(function (mm) { mm.transparent = true; mm._op0 = (mm.opacity == null ? 1 : mm.opacity); mm.opacity = 0; });
+
+        var wb = new THREE.Group();
+        holder.rotation.y = -0.4;   // a cut corner turned toward the camera
+        wb.add(holder);
+        wb.visible = false;
+        self._scene.add(wb);
+        self._wbMats = mats;
+        self._wb = wb;              // ← wakes the whisky act
+      });
+    }
+
+    /* crystal on our alpha canvas — the tumbler's own facet-shell look:
+       BackSide tint + FrontSide clearcoat + a dark-edge fresnel so the wall
+       reads against light paper (without it the vessel washes out to nothing).
+       The edge pass is a ShaderMaterial, so its .opacity is wired to a uOp
+       uniform — that lets the act's `m.opacity = m._op0 * a2` fade reach it
+       too, and the whole vessel comes in and out as one. */
+    _whiskyShellify(parent, geo) {
+      var back = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
+        color: 0x87a094, roughness: 0.02, metalness: 0, transparent: true, opacity: 0.26,
+        side: THREE.BackSide, envMapIntensity: 0.9, depthWrite: false, flatShading: true
+      }));
+      back.renderOrder = 1; parent.add(back);
+      var front = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
+        color: 0xf2f7f3, roughness: 0.01, metalness: 0, transparent: true, opacity: 0.22,
+        clearcoat: 1, clearcoatRoughness: 0.04, side: THREE.FrontSide,
+        envMapIntensity: 3.0, depthWrite: false, flatShading: true
+      }));
+      front.renderOrder = 5; parent.add(front);
+      var fres = new THREE.Mesh(geo, new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false, blending: THREE.NormalBlending, side: THREE.FrontSide,
+        uniforms: { uOp: { value: 1 } },
+        vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+        fragmentShader: 'uniform float uOp; varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.2); float hot = pow(d, 9.0); vec3 edge = vec3(0.33, 0.42, 0.37); gl_FragColor = vec4(mix(edge, vec3(1.0), hot), (f * 0.6 + hot * 0.4) * uOp); }'
+      }));
+      fres.renderOrder = 6; parent.add(fres);
+      Object.defineProperty(fres.material, 'opacity', {
+        configurable: true,
+        get: function () { return this.uniforms.uOp.value; },
+        set: function (v) { this.uniforms.uOp.value = v; }
+      });
+      return [back.material, front.material, fres.material];
     }
 
     /* the Higgsfield socket: pour-src names a GREEN-SCREEN video of a real
@@ -2058,30 +2222,63 @@
           this._hb.style.setProperty('--hb', w0.toFixed(3));
         }
         // whisky timeline, scrubbed by how deep the stage has been ridden —
-        // asleep until the user's bottle file gives us _wb again
+        // asleep until the user's decanter file gives us _wb. The decanter
+        // drops in ABOVE the pinned cup with the lid ON, the lid lifts off to
+        // the side, THEN it tips and pours, rights itself, and the lid seats
+        // back on. All scrubbed by w, so scrolling up rewinds the whole act.
         if (this._wb) {
           var w = w0;
-          this._extra = 0.07 * smoothstep(0.50, 0.74, w);
-          var a2 = smoothstep(0.06, 0.24, w) * (1 - smoothstep(0.90, 0.995, w));
+          this._extra = 0.07 * smoothstep(0.60, 0.82, w);        // cup browns during/after the pour
+          var a2 = smoothstep(0.06, 0.22, w) * (1 - smoothstep(0.93, 0.99, w)); // drops in (lid on), holds, fades out
           if (a2 > 0.002) {
             this._whiskyArm();
-            var k2 = smoothstep(0.28, 0.52, w) * (1 - smoothstep(0.76, 0.92, w));
+            var k2 = smoothstep(0.48, 0.60, w) * (1 - smoothstep(0.72, 0.82, w)); // tilt: only after the lid is fully off
             var rz2 = k2 * 1.45;
-            var wbx = this._glass.position.x + (this._narrow ? 0.95 : 1.30) - k2 * 0.45;
-            var wby = this._glass.position.y + 0.55 + (1 - a2) * 1.4 + k2 * 0.62;
+            var wbx = this._glass.position.x + (this._narrow ? 1.05 : 1.45) - k2 * 0.20;
+            // sits ABOVE the pinned cup and stays fully in frame; rises as it
+            // tips so the tilted body NEVER overlaps the cup — the jet arcs the
+            // distance (the user was firm: the vessels must not collide)
+            var wby = this._glass.position.y + 0.45 + (1 - a2) * 1.1 + k2 * 0.42;
             this._wb.visible = true;
             this._wb.position.set(wbx, wby, 0);
+            // hold the whisky surface level at a fixed world height as the vessel
+            // moves and tilts (world-horizontal clip plane, so it never tilts)
+            if (this._wbLiquidPlane) this._wbLiquidPlane.constant = wby + this._wbFill;
             this._wb.rotation.z = rz2;
             this._wbMats.forEach(function (m) { m.opacity = m._op0 * a2; });
-            wp = smoothstep(0.50, 0.56, w) * (1 - smoothstep(0.70, 0.78, w));
+            // the stopper: on 0.06→0.34 seated · off 0.34→0.48 lifts aside ·
+            // wait 0.48→0.80 through tilt + pour · seat 0.80→0.88 back on
+            if (this._wbCork && this._wbHolder) {
+              this._wbCork.visible = true;
+              var off = smoothstep(0.34, 0.48, w) * (1 - smoothstep(0.80, 0.88, w));
+              this._wb.updateMatrixWorld(true);
+              // seated pose: where the cork sits ON the vessel (follows its tilt)
+              var seatM = new THREE.Matrix4().multiplyMatrices(
+                this._wbHolder.matrixWorld,
+                new THREE.Matrix4().makeTranslation(this._corkSeat.x, this._corkSeat.y, this._corkSeat.z));
+              var _sp = this._corkSP || (this._corkSP = new THREE.Vector3());
+              var _sq = this._corkSQ || (this._corkSQ = new THREE.Quaternion());
+              var _ss = this._corkSS || (this._corkSS = new THREE.Vector3());
+              seatM.decompose(_sp, _sq, _ss);
+              // waiting pose: upright, off to the outer side, held level in the world
+              var upX = this._glass.position.x + (this._narrow ? 1.05 : 1.45);
+              var upY = this._glass.position.y + 0.55;
+              var restW = this._corkRest || (this._corkRest = new THREE.Vector3());
+              restW.set(upX + 0.48, upY + 0.55, 0.34); // waits low at the side, fully in frame
+              var upQ = this._corkUpQ || (this._corkUpQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -0.4, 0)));
+              this._wbCork.position.copy(_sp).lerp(restW, off);
+              this._wbCork.quaternion.copy(_sq).slerp(upQ, off);
+              this._wbCork.scale.copy(_ss);
+            }
+            wp = smoothstep(0.60, 0.65, w) * (1 - smoothstep(0.70, 0.76, w)); // pour, only while tilted
             if (wp > 0.01) {
               wjet = { x0: wbx - 0.75 * Math.sin(rz2), y0: wby + 0.75 * Math.cos(rz2),
                        vx: -0.25 * k2, vy: -0.6, g: 12.5, r0: 0.022 + 0.02 * wp,
                        cupX: this._glass.position.x };
             }
-          } else this._wb.visible = false;
+          } else { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; this._whiskyDisarm(); }
         }
-      } else if (this._wb) this._wb.visible = false;
+      } else if (this._wb) { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; this._whiskyDisarm(); }
 
       // waterline
       var waterY = this._glass.position.y + this._waterBase + Math.min(0.92, this._level + this._extra) * (0.97 - this._waterBase);
