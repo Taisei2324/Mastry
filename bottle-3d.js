@@ -500,7 +500,10 @@
     }
 
     _loadCapOBJ() {
-      // max-LOD OBJ cap (assets/cap.obj); procedural fallback below
+      // max-LOD OBJ cap (assets/cap.obj); procedural fallback below.
+      // Phones skip the 6.7MB download outright — at hand-held size the
+      // procedural cap reads identically, and cellular gets its bandwidth back.
+      if (window.innerWidth <= 760) return this._buildProceduralCap();
       var self = this;
       var src = this.getAttribute('cap-src') || this.getAttribute('capsrc') || 'assets/cap.obj';
       fetch(src)
