@@ -14,35 +14,41 @@
   // taken over and the page always opens fresh. Deep links with a #hash
   // keep their destination.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  if (!location.hash) {
+  // INSTANT jump to the top — overriding the site's scroll-behavior:smooth.
+  // (A plain scrollTo(0,0) ANIMATES up through the whole choreography, which
+  // read as "the screen slowly goes up by itself" on phones. Never animate
+  // a reset.)
+  function snapTop() {
+    var de = document.documentElement, pb = de.style.scrollBehavior;
+    de.style.scrollBehavior = 'auto';
     window.scrollTo(0, 0);
+    de.style.scrollBehavior = pb;
+  }
+  if (!location.hash) {
+    snapTop();
     // MOBILE: browsers (iOS Safari especially) restore the old position
-    // ASYNCHRONOUSLY after this line runs — even with manual restoration —
-    // which respawned readers mid-pour on reload. So the top is ENFORCED for
-    // the first moments: any scroll that appears before the reader's first
-    // real gesture is snapped back to 0. The reader's own first touch/wheel/
-    // key disarms it instantly, so nobody is ever fought.
+    // ASYNCHRONOUSLY — even SECONDS later on a slow connection, after any
+    // short guard has expired. So the top is enforced until the reader's own
+    // first gesture (touch/wheel/key/press), with a generous 8s ceiling. Any
+    // scroll that appears before that first gesture can only be the browser's
+    // restore — snap it straight back. The reader is never fought: their
+    // first input disarms the guard before their scroll even lands.
     var freshPin = true;
     var disarmFresh = function () { freshPin = false; };
-    ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(function (t) {
+    ['wheel', 'touchstart', 'keydown', 'pointerdown', 'mousedown'].forEach(function (t) {
       window.addEventListener(t, disarmFresh, { passive: true, once: true });
     });
-    var freshT0 = (window.performance && performance.now) ? performance.now() : Date.now();
+    var freshT0 = Date.now();
     (function enforceTop() {
       if (!freshPin) return;
-      if (window.scrollY > 0) {
-        var de = document.documentElement, pb = de.style.scrollBehavior;
-        de.style.scrollBehavior = 'auto'; // instant, overriding the CSS smooth
-        window.scrollTo(0, 0);
-        de.style.scrollBehavior = pb;
-      }
-      var nowT = (window.performance && performance.now) ? performance.now() : Date.now();
-      if (nowT - freshT0 < 1500) requestAnimationFrame(enforceTop);
+      if (window.scrollY > 1) snapTop();
+      if (Date.now() - freshT0 < 8000) requestAnimationFrame(enforceTop);
+      else freshPin = false;
     })();
   }
   window.addEventListener('pageshow', function (e) {
     if (location.hash) return;
-    window.scrollTo(0, 0); // EVERY show (reload fires this too, after any late restore)
+    snapTop(); // EVERY show, INSTANT (reload fires this too, after any late restore)
     var b = document.querySelector('bottle-3d');
     if (e.persisted && b) { b._level = 1; b._wallT = 0; } // bfcache: full bottle, wall re-armed
   });

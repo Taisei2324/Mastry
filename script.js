@@ -465,6 +465,13 @@
     var box = document.querySelector(".herowords .hero__copy");
     if (!box) return;
     var HOLD_MS = 2000, holdTimer = 0, armed = true, holding = false, lastY = window.scrollY;
+    // only a real reader can trip the freeze — a browser's async scroll-restore
+    // crossing the frame on reload must never lock the page (or fight the
+    // start-at-top guard in bottle-3d.js)
+    var userGestured = false;
+    ["wheel", "touchstart", "keydown", "pointerdown", "mousedown"].forEach(function (t) {
+      window.addEventListener(t, function () { userGestured = true; }, { passive: true, once: true });
+    });
     function vh() { return window.innerHeight; }
     function frameY() { var r = box.getBoundingClientRect(); return Math.round(r.top + window.scrollY + r.height / 2 - 0.5 * vh()); } // fires when the TEXT BOX is vertically centred (cup midline meets it there)
     function freeze(e) { e.preventDefault(); }
@@ -505,7 +512,7 @@
       }
       var fy = frameY();
       if (y < fy - 0.6 * vh()) armed = true;                                  // re-arm well above the frame
-      if (armed && down && prevY < fy && y >= fy && y <= fy + 0.30 * vh()) startHold(); // reached it going down → settle + lock (window catches fast flicks too)
+      if (userGestured && armed && down && prevY < fy && y >= fy && y <= fy + 0.30 * vh()) startHold(); // reached it going down → settle + lock (real gestures only, never a browser restore)
     }, { passive: true });
     window.addEventListener("blur", function () { if (holding) endHold(); });
     document.addEventListener("visibilitychange", function () { if (document.hidden && holding) endHold(); });
