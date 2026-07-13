@@ -1982,7 +1982,7 @@
         if (box) {
           var brr = box.getBoundingClientRect();
           if (brr.height && brr.top < vh && brr.bottom > 0) {
-            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : (this._narrow ? 0 : 150); // px BELOW the text-box midline (desktop dropped ~4cm; phones aligned). Live-tunable via ?coords
+            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : (this._narrow ? 70 : 150); // px BELOW the text-box midline (desktop ~4cm, phones a touch lower per the user). Live-tunable via ?coords
             var boxMid = brr.top + brr.height * 0.5;                    // the whole copy block's vertical centre — NOT just the title
             var baseOn = boxMid + cupPx * 0.5 + drop;                   // cup visual centre = boxMid + drop
             // wt=1 while the text box is framed (cup locked beside it); eases to
