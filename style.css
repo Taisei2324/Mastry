@@ -826,10 +826,15 @@ html:not(.bottle3d-on) .highball__copy{
   .herowords .hero__actions .btn{font-size:.57rem;padding:11px 16px;} /* 75% of the former size, still one line at 320px */
   .herowords .hero__foot{text-align:center;margin-left:0;margin-right:0;}
   /* phone: longer act runway — each swipe advances the whisky act LESS (the
-     scrub felt hair-trigger under touch: "turn down the sensitivity"). The
-     glass canvas must extend just as far or the cup clips at its bottom edge. */
+     scrub felt hair-trigger under touch: "turn down the sensitivity") */
   html.bottle3d-on .highball{height:230svh;}
-  .herowords__glass3d{bottom:-230svh;}
+  /* phone: the cup canvas is pinned to the VIEWPORT, not scrolled with the
+     page. Scrolling a ~9000px canvas while re-aiming the cup inside it every
+     frame SHIMMERED on iOS — the compositor moves the canvas before JS can
+     counter-move the cup (the reported jitter). Pinned, the locked cup is
+     drawn at a literal fixed screen point (zero counter-scroll) and the GPU
+     surface shrinks ~10x. bottle-3d.js hides it outside the cup's chapters. */
+  .herowords__glass3d{position:fixed;top:0;bottom:0;left:0;right:0;}
   /* the panorama shrinks to a sliver at phone width — run it at 175% and
      crop the sides so Fuji, the boat and the acropolis stay legible */
   .footer{overflow:hidden;}

@@ -2099,7 +2099,9 @@
 
     _resize() {
       var w = this.clientWidth || 1, h = this.clientHeight || 1;
-      var dpr = Math.min(window.innerWidth <= 760 ? 1.5 : 2, window.devicePixelRatio || 1);
+      // full dpr on phones too: the viewport-fixed canvas is ~10x smaller
+      // than the old section-spanning one, so crispness is affordable now
+      var dpr = Math.min(2, window.devicePixelRatio || 1);
       this._renderer.setPixelRatio(dpr);
       this._renderer.setSize(w, h, false);
       this._narrow = window.innerWidth <= 760;
@@ -2209,6 +2211,9 @@
         var vh = window.innerHeight;
         var cupPx = this._cupPx || 269;
         var pr2 = this.parentElement.getBoundingClientRect();
+        // phones: the canvas is viewport-FIXED (style.css) — it must vanish
+        // outside the cup's chapters or it would sit over every later section
+        this._storyLive = pr2.top < vh * 1.5 && hb.bottom > -0.5 * vh;
         // the herowords park. Phones CAP the park depth in absolute screens:
         // the section is ~3 screens taller there (the walk-to-centre runway),
         // and a pure fraction would sink the park far below the hero pour —
@@ -2449,6 +2454,13 @@
       this._updateSplash(dt, Math.max(pour, wp), jx, waterY);
       this._updateBubbles(dt, Math.max(pour, wp), jx, waterY, rIn);
 
+      // phones: hide the viewport-fixed canvas (and skip the GPU) outside
+      // the cup's chapters — desktop's canvas is section-bound and self-clips
+      if (this._narrow && this._storyLive === false) {
+        if (!this._cvsHidden) { this._cvsHidden = true; this._renderer.domElement.style.visibility = 'hidden'; }
+        return;
+      }
+      if (this._cvsHidden) { this._cvsHidden = false; this._renderer.domElement.style.visibility = ''; }
       this._renderer.render(this._scene, this._camera);
     }
 
