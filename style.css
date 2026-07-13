@@ -247,6 +247,11 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
    story-gating now, the pin doesn't have to) */
 @media (min-width:1001px){
   .heropin{height:720svh;}
+  /* Windows (.win-runway, stamped by script.js on non-calm Windows desktops):
+     wheel notches advance far more per tick than Mac trackpads — a longer
+     runway slows the whole choreography without touching the scroll itself */
+  html.win-runway.bottle3d-on .heropin{height:1000svh;}
+  html.win-runway.bottle3d-on .highball{height:230svh;}
 }
 .heropin__sticky{
   position:sticky;top:0;height:100svh;overflow:hidden;
@@ -286,7 +291,7 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   padding:clamp(90px,14vh,160px) clamp(20px,6vw,90px) clamp(60px,8vh,110px);
 }
 .herowords .hero__copy{
-  display:flex;flex-direction:column;align-items:center;
+  display:flex;flex-direction:column;align-items:center;position:relative;z-index:3; /* words paint above the cup canvas at EVERY width (tablets included) */
   max-width:min(640px,58vw);
   margin-right:clamp(60px,13vw,300px); /* nudged further left — nearer centre; the glass still clears it */
 }
@@ -592,15 +597,18 @@ html:not(.bottle3d-on) .highball__copy{
   letter-spacing:.3em;color:var(--olive);margin-bottom:10px;
 }
 .scenery__dots{
-  position:absolute;right:clamp(20px,5vw,60px);bottom:clamp(22px,4.4vw,48px);
+  position:absolute;right:clamp(20px,5vw,60px);bottom:calc(clamp(22px,4.4vw,48px) - 10px);
   display:flex;gap:8px;z-index:5;
 }
+/* the painted bar stays 34x4 — the padding grows the TAP TARGET to 34x24
+   (background-clip:content-box keeps the padding transparent; the state
+   rules MUST use the background-color longhand or the clip resets) */
 .scenery__dots button{
-  width:34px;height:4px;border-radius:4px;border:0;cursor:pointer;
-  background:rgba(29,46,24,.22);transition:background .4s;padding:0;
+  width:34px;height:24px;border-radius:4px;border:0;cursor:pointer;
+  background:rgba(29,46,24,.22);background-clip:content-box;transition:background .4s;padding:10px 0;
 }
-.scenery__dots button.is-active{background:var(--olive);}
-.scenery__dots button:hover{background:var(--olive-deep);}
+.scenery__dots button.is-active{background-color:var(--olive);}
+.scenery__dots button:hover{background-color:var(--olive-deep);}
 
 /* ═══ ISLAND — the 3D mark floating over its own water ═══ */
 .island{
@@ -779,6 +787,7 @@ html:not(.bottle3d-on) .highball__copy{
   .nav__burger{display:block;}
   .nav{gap:20px;}
   .nav__logo-jp{display:none;}
+  .nav__lang a{padding:12px 8px;} /* EN·JP switch: a real thumb-sized tap target */
   .stats{grid-template-columns:repeat(2,1fr);row-gap:40px;}
   .ritual__grid{grid-template-columns:1fr;}
   .find__form{flex-direction:column;}
@@ -789,6 +798,7 @@ html:not(.bottle3d-on) .highball__copy{
   .section__title{font-size:clamp(1.65rem,7.4vw,2.1rem);}
   .flavours__bottlewrap{height:min(44vh,380px);}
   .seal__paper{width:min(300px,78vw);}
+  .scenery__dots{top:14px;bottom:auto;} /* phones: dots to the frame's top-right, clear of the caption card */
   /* phones (PRIORITY layout): the crystal cup rides down the LEFT (the pour
      line); the whole text box sits COMPACT on the RIGHT so they never overlap */
   .herowords__pour{left:19%;height:40%;}
@@ -805,7 +815,7 @@ html:not(.bottle3d-on) .highball__copy{
   .herowords .hero__title{transform:none;font-size:clamp(1.02rem,4.3vw,1.35rem);line-height:1.18;}
   .herowords .hero__sub{font-size:.8rem;margin-left:0;margin-right:0;max-width:none;}
   .herowords .hero__actions{justify-content:flex-start;flex-wrap:wrap;gap:8px;}
-  .herowords .hero__actions .btn{font-size:.76rem;}
+  .herowords .hero__actions .btn{font-size:.76rem;padding-left:22px;padding-right:22px;} /* single line even at 320px */
   .herowords .hero__foot{text-align:left;margin-left:0;margin-right:0;}
   /* the panorama shrinks to a sliver at phone width — run it at 175% and
      crop the sides so Fuji, the boat and the acropolis stay legible */

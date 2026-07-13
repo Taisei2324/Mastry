@@ -5,6 +5,14 @@
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   /* phones get a calmer page: no scroll-driven transforms, ambient animation only */
   var calmScroll = reduceMotion || window.matchMedia("(max-width: 760px)").matches;
+
+  /* Windows desktops scroll in big discrete wheel notches (a Mac trackpad tick
+     is a few px; a mouse notch is ~100+), so the same choreography plays much
+     faster there. Stamp .win-runway and style.css lengthens the animation
+     runway — each notch advances the story less. No scroll hijacking. */
+  if (!calmScroll && /Win/.test((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "")) {
+    document.documentElement.classList.add("win-runway");
+  }
   if (reduceMotion) {
     document.querySelectorAll("model-viewer[auto-rotate]").forEach(function (mv) {
       mv.removeAttribute("auto-rotate");
@@ -119,6 +127,14 @@
       burger.setAttribute("aria-expanded", "false");
     }
   });
+
+  /* in-page anchor clicks glide with scroll-behavior:smooth — stamp the moment
+     so THE WALL (bottle-3d.js) and the frame freeze stand down during the
+     flight instead of killing it mid-pour */
+  document.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a && a.getAttribute("href").length > 1) window.__anchorGlide = Date.now();
+  }, true);
 
   /* ── scrollspy: mark the nav link for the section in view ── */
   var spyLinks = {};
@@ -436,9 +452,9 @@
     var line = document.createElement("div");
     line.style.cssText = "position:fixed;left:0;right:0;height:1px;background:rgba(255,80,80,.8);z-index:99998;pointer-events:none;top:0;";
     document.body.appendChild(line);
-    /* start the drop slider at THIS device's real default (phones 70 / desktop 150),
-       so opening ?coords on a phone doesn't shove the cup to the desktop offset */
-    var dropDefault = window.matchMedia("(max-width: 760px)").matches ? 70 : 170;
+    /* start the drop slider at THIS device's real default (a viewport fraction,
+       so it matches what the page is actually showing on this screen) */
+    var dropDefault = Math.round(window.innerHeight * (window.matchMedia("(max-width: 760px)").matches ? 0.086 : 0.2125));
     window.__cupDrop = dropDefault;
     window.__cupGlide = 280;
     window.__frameHold = 2000;
@@ -464,6 +480,7 @@
   if (!calmScroll && !/[?&]nofreeze/.test(location.search)) (function () {
     var box = document.querySelector(".herowords .hero__copy");
     if (!box) return;
+    var bottle = document.querySelector(".heropin bottle-3d"); // the WALL publishes engagement as _holdY — never freeze while it holds
     var HOLD_MS = 2000, holdTimer = 0, armed = true, holding = false, lastY = window.scrollY;
     // only a real reader can trip the freeze — a browser's async scroll-restore
     // crossing the frame on reload must never lock the page (or fight the
@@ -473,7 +490,7 @@
       window.addEventListener(t, function () { userGestured = true; }, { passive: true, once: true });
     });
     function vh() { return window.innerHeight; }
-    function frameY() { var r = box.getBoundingClientRect(); return Math.round(r.top + window.scrollY + r.height / 2 - 0.5 * vh()); } // fires when the TEXT BOX is vertically centred (cup midline meets it there)
+    function frameY() { var r = box.getBoundingClientRect(), y = window.scrollY; var raw = r.top + y + r.height / 2 - 0.5 * vh(); var sp = parseFloat(box.dataset.speed) || 0; return Math.round((raw + sp * y) / (1 + sp)); } // exact parallax fixed point — the box carries data-speed, so the naive measure drifts with where you measure from
     function freeze(e) { e.preventDefault(); }
     function keyFreeze(e) { var k = e.key; if (k === "ArrowDown" || k === "ArrowUp" || k === "PageDown" || k === "PageUp" || k === "Home" || k === "End" || k === " " || k === "Spacebar") e.preventDefault(); }
     function endHold() {
@@ -501,7 +518,7 @@
         // wheel preventDefault, so ENFORCE the still frame — any drift is
         // snapped straight back (instant, overriding the CSS smooth scroll)
         var fy2 = frameY();
-        if (Math.abs(y - fy2) > 1) {
+        if (Math.abs(y - fy2) > 1 && Math.abs(y - fy2) > Math.abs(prevY - fy2) + 0.5) { // clamp only motion AWAY from the frame; the settle glide converges and lands softly
           var de = document.documentElement, prevB = de.style.scrollBehavior;
           de.style.scrollBehavior = "auto";
           window.scrollTo(0, fy2);
@@ -512,7 +529,7 @@
       }
       var fy = frameY();
       if (y < fy - 0.20 * vh()) armed = true;                                 // re-arm as soon as the reader is just above the text box — no need to replay the pour; every fresh down-pass snaps again
-      if (userGestured && armed && down && prevY < fy && y >= fy && y <= fy + 0.30 * vh()) startHold(); // reached it going down → settle + lock (real gestures only, never a browser restore)
+      if (userGestured && armed && down && !(bottle && bottle._holdY != null) && Date.now() - (window.__anchorGlide || 0) > 1500 && prevY < fy && y >= fy && y <= fy + 0.90 * vh()) startHold(); // reached it going down → settle + lock. Wide catch (Windows wheels leap in big steps); never fires while THE WALL holds or an anchor link is gliding
     }, { passive: true });
     window.addEventListener("blur", function () { if (holding) endHold(); });
     document.addEventListener("visibilitychange", function () { if (document.hidden && holding) endHold(); });

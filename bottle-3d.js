@@ -48,10 +48,15 @@
   }
   window.addEventListener('pageshow', function (e) {
     if (location.hash) return;
-    snapTop(); // EVERY show, INSTANT (reload fires this too, after any late restore)
+    if (e.persisted || freshPin) snapTop(); // bfcache return, or still pre-gesture — never yank a reader who already scrolled
     var b = document.querySelector('bottle-3d');
     if (e.persisted && b) { b._level = 1; b._wallT = 0; } // bfcache: full bottle, wall re-armed
   });
+
+  // nav/CTA anchor links glide with scroll-behavior:smooth; THE WALL must stand
+  // down while one is in flight or the glide dies mid-pour (script.js stamps
+  // __anchorGlide on every in-page link click)
+  function anchorGlideActive() { return window.__anchorGlide && Date.now() - window.__anchorGlide < 1500; }
 
   // Bottle silhouette: [radius, y] pairs, base y=0, top y≈3.26.
   // Sampled from the user's Blender model ("bottle only reset .blend"):
@@ -800,12 +805,12 @@
         // THE WALL, scroll-event side: arms here too, so a violent flick that
         // outruns the ticker (or lands while the bottle is offscreen) still
         // hits it — same conditions as _tick, including the 12s release
-        if (self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
+        if (!anchorGlideActive() && self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
             (!self._wallT || self._clock.elapsedTime - self._wallT < 12)) {
           var end = self._pin.offsetTop + 0.88 * Math.max(1, self._pin.offsetHeight - window.innerHeight);
           if (y > end) self._holdY = end;
         }
-        if (self._holdY != null && y > self._holdY) {
+        if (self._holdY != null && y > self._holdY && !anchorGlideActive()) {
           window.scrollTo(0, self._holdY);
           y = self._holdY;
         }
@@ -912,7 +917,7 @@
       }
 
       if (p < 0.7) { this._sawHero = true; if (this._level > 0.9) this._wallT = 0; }
-      var wall = this._sawHero && !this._noWall && this._pin && this._level > 0.245;
+      var wall = !anchorGlideActive() && this._sawHero && !this._noWall && this._pin && this._level > 0.245;
       if (wall) {
         var wallY = this._pin.offsetTop + 0.88 * Math.max(1, this._pin.offsetHeight - window.innerHeight);
         wall = window.scrollY >= wallY - 2;
@@ -2016,7 +2021,7 @@
         if (box) {
           var brr = box.getBoundingClientRect();
           if (brr.height && brr.top < vh && brr.bottom > 0) {
-            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : (this._narrow ? 70 : 170); // px BELOW the text-box midline (desktop — nudged 0.5cm back up per the user; phones 70). Live-tunable via ?coords
+            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : Math.round(vh * (this._narrow ? 0.086 : 0.2125)); // BELOW the text-box midline as a FRACTION of the viewport (= 170px at 800vh desktop, 70px at 812vh phone) so the composition reads identically on short Windows windows and tall Mac ones. Live-tunable in px via ?coords
             var boxMid = brr.top + brr.height * 0.5;                    // the whole copy block's vertical centre — NOT just the title
             var baseOn = boxMid + cupPx * 0.5 + drop;                   // cup visual centre = boxMid + drop
             // wt=1 while the text box is framed (cup locked beside it); eases to
@@ -2044,10 +2049,18 @@
         // never drifting toward the centre (the user was firm on this)
         this._glass.position.x = (this._fxDefault - 0.5) * 2 * this._halfW;
         this._glass.position.y = (0.5 - (baseScr - grA.top) / Math.max(1, grA.height)) * 2 * this._halfH;
+        // hand the copy its cue whether or not a whisky vessel exists — CSS
+        // reads --hb to fade in "Splits beautifully with a little whisky";
+        // gating this on _wb left the stage wordless while the act sleeps
+        var w0 = Math.max(0, Math.min(1, (vh * 0.80 - hb.top) / Math.max(1, hb.height - vh * 0.20)));
+        if (Math.abs((this._hbLast || 0) - w0) > 0.002) {
+          this._hbLast = w0;
+          this._hb.style.setProperty('--hb', w0.toFixed(3));
+        }
         // whisky timeline, scrubbed by how deep the stage has been ridden —
         // asleep until the user's bottle file gives us _wb again
         if (this._wb) {
-          var w = Math.max(0, Math.min(1, (vh * 0.80 - hb.top) / Math.max(1, hb.height - vh * 0.20)));
+          var w = w0;
           this._extra = 0.07 * smoothstep(0.50, 0.74, w);
           var a2 = smoothstep(0.06, 0.24, w) * (1 - smoothstep(0.90, 0.995, w));
           if (a2 > 0.002) {
@@ -2067,11 +2080,6 @@
                        cupX: this._glass.position.x };
             }
           } else this._wb.visible = false;
-          // hand the copy its cue (CSS reads --hb): the line lands after the pour
-          if (Math.abs((this._hbLast || 0) - w) > 0.002) {
-            this._hbLast = w;
-            this._hb.style.setProperty('--hb', w.toFixed(3));
-          }
         }
       } else if (this._wb) this._wb.visible = false;
 
