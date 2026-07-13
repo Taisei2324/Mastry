@@ -454,7 +454,9 @@
     document.body.appendChild(line);
     /* start the drop slider at THIS device's real default (a viewport fraction,
        so it matches what the page is actually showing on this screen) */
-    var dropDefault = Math.round(window.innerHeight * (window.matchMedia("(max-width: 760px)").matches ? 0.086 : 0.2125));
+    var dropDefault = window.matchMedia("(max-width: 760px)").matches
+      ? Math.round(window.innerHeight * 0.086)
+      : Math.min(170, Math.round(window.innerHeight * 0.2125));
     window.__cupDrop = dropDefault;
     window.__cupGlide = 280;
     window.__frameHold = 2000;

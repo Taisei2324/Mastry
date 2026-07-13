@@ -2021,7 +2021,7 @@
         if (box) {
           var brr = box.getBoundingClientRect();
           if (brr.height && brr.top < vh && brr.bottom > 0) {
-            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : Math.round(vh * (this._narrow ? 0.086 : 0.2125)); // BELOW the text-box midline as a FRACTION of the viewport (= 170px at 800vh desktop, 70px at 812vh phone) so the composition reads identically on short Windows windows and tall Mac ones. Live-tunable in px via ?coords
+            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : (this._narrow ? Math.round(vh * 0.086) : Math.min(170, Math.round(vh * 0.2125))); // BELOW the text-box midline: desktop is the user-approved 170px, scaling DOWN only on short (Windows) windows — a pure fraction sat too low on tall Mac viewports. Live-tunable in px via ?coords
             var boxMid = brr.top + brr.height * 0.5;                    // the whole copy block's vertical centre — NOT just the title
             var baseOn = boxMid + cupPx * 0.5 + drop;                   // cup visual centre = boxMid + drop
             // wt=1 while the text box is framed (cup locked beside it); eases to
