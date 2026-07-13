@@ -425,8 +425,8 @@
     var cbox = document.createElement("div");
     cbox.style.cssText = "position:fixed;top:14px;left:14px;z-index:99999;background:rgba(20,30,20,.92);color:#fff;font:13px/1.6 ui-monospace,Menlo,monospace;padding:12px 14px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3);";
     cbox.innerHTML =
-      'cup drop: <b id="cdVal">0</b> px &nbsp;(+ = below the text-box midline)' +
-      '<br><input id="cdSlider" type="range" min="-300" max="400" value="0" style="width:240px;margin:6px 0">' +
+      'cup drop: <b id="cdVal">150</b> px &nbsp;(+ = lower / below the text-box midline)' +
+      '<br><input id="cdSlider" type="range" min="-200" max="450" value="150" style="width:240px;margin:6px 0">' +
       '<br>glide: <b id="cgVal">280</b> ms &nbsp;(higher = duller / less jittery)' +
       '<br><input id="cgSlider" type="range" min="20" max="700" value="280" style="width:240px;margin:6px 0">' +
       '<br>freeze at frame: <b id="fhVal">2000</b> ms &nbsp;(lock the framed shot)' +
@@ -436,7 +436,7 @@
     var line = document.createElement("div");
     line.style.cssText = "position:fixed;left:0;right:0;height:1px;background:rgba(255,80,80,.8);z-index:99998;pointer-events:none;top:0;";
     document.body.appendChild(line);
-    window.__cupDrop = 0;
+    window.__cupDrop = 150;
     window.__cupGlide = 280;
     window.__frameHold = 2000;
     var sl = cbox.querySelector("#cdSlider"), val = cbox.querySelector("#cdVal"), mo = cbox.querySelector("#cdMouse");
