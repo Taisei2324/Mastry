@@ -956,7 +956,11 @@
       if (this._holdY != null && window.scrollY > this._holdY + 1) window.scrollTo(0, this._holdY);
 
       // twist: scroll up → twist right, scroll down → twist left (reversed)
-      this._rotY += -vel * 0.0018 * dt * 60 * 0.016;
+      // scroll-reactive twist. PHONES get ~1/6th the coupling: a touch flick
+      // covers the short mobile pin in a couple of screens of fast scroll,
+      // which whipped the bottle around (user: "it spins a lot — slow it
+      // down by a lot"). Drag-to-spin and the home-return are untouched.
+      this._rotY += -vel * (this._narrow ? 0.0003 : 0.0018) * dt * 60 * 0.016;
       this._rotY += this._spinVel * dt;                 // flick inertia from drag
       this._spinVel *= Math.pow(0.12, dt);              // spins down gradually
       // settle brand-front: once scroll and drag go quiet, ease to the nearest
