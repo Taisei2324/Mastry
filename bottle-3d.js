@@ -2113,8 +2113,11 @@
       var targetPx;
       if (this._narrow) {
         // phones: a bigger cup that rides down the LEFT column, beside the
-        // compact text box on the right (they must not overlap)
-        targetPx = Math.max(120, Math.min(bPx ? bPx * 0.85 : 170, 0.46 * window.innerWidth, 210));
+        // compact text box on the right (they must not overlap). 0.58vw
+        // (was 0.46) — the cup read "very small next to the text"; at the
+        // 0.17vw pour line its half-width (0.213/unit height) still clears
+        // both the left edge and the 63vw text box with a whisker to spare.
+        targetPx = Math.max(140, Math.min(bPx ? bPx * 0.95 : 200, 0.58 * window.innerWidth, 255));
       } else {
         targetPx = Math.max(240, Math.min(520, bPx ? bPx * 0.85 : 269));
       }
@@ -2222,7 +2225,7 @@
         if (box) {
           var brr = box.getBoundingClientRect();
           if (brr.height && brr.top < vh && brr.bottom > 0) {
-            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : (this._narrow ? Math.round(vh * 0.086) : Math.min(170, Math.round(vh * 0.2125))); // BELOW the text-box midline: desktop is the user-approved 170px, scaling DOWN only on short (Windows) windows — a pure fraction sat too low on tall Mac viewports. Live-tunable in px via ?coords
+            var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : (this._narrow ? Math.round(vh * 0.045) : Math.min(170, Math.round(vh * 0.2125))); // BELOW the text-box midline: desktop is the user-approved 170px, scaling DOWN only on short (Windows) windows — a pure fraction sat too low on tall Mac viewports. Phones ride higher (0.045vh, was 0.086 — "the glass has to sit a little higher"). Live-tunable in px via ?coords
             var boxMid = brr.top + brr.height * 0.5;                    // the whole copy block's vertical centre — NOT just the title
             var baseOn = boxMid + cupPx * 0.5 + drop;                   // cup visual centre = boxMid + drop
             // wt=1 while the text box is framed (cup locked beside it); eases to

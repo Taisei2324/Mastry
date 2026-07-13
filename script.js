@@ -561,10 +561,18 @@
         return;
       }
       var clear = !(bottle && bottle._holdY != null) && Date.now() - (window.__anchorGlide || 0) > 1500;
+      // phones: a momentum flick leaps far between two scroll EVENTS, so the
+      // catch zone is deeper (the settle glide brings the frame back)
+      var catchVh = calmScroll ? 1.35 : 0.90;
       for (var i = 0; i < frames.length; i++) {
         var f = frames[i], fy = f.fy();
         if (y < fy - 0.20 * vh()) f.armed = true;                              // re-arm just above each frame — every fresh down-pass locks again
-        if (userGestured && f.armed && down && clear && prevY < fy && y >= fy && y <= fy + 0.90 * vh()) { startHold(f); break; } // settle + lock. Wide catch (Windows wheels leap in big steps)
+        // ZONE ENTRY, not strict crossing: iOS delivers momentum scroll in
+        // bursts, so two consecutive events can BOTH land past the frame —
+        // requiring prevY < fy skipped the lock entirely (the reported
+        // "snap is not guaranteed" on mobile). `armed` already guarantees
+        // one lock per down-pass; `down` keeps upward scrolling free.
+        if (userGestured && f.armed && down && clear && y >= fy && y <= fy + catchVh * vh()) { startHold(f); break; }
       }
     }, { passive: true });
     window.addEventListener("blur", function () { if (holding) endHold(); });
