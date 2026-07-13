@@ -489,7 +489,20 @@
     }
     window.addEventListener("scroll", function () {
       var y = window.scrollY, prevY = lastY, down = y > prevY; lastY = y;
-      if (holding) return;
+      if (holding) {
+        // belt & braces: some browsers (Safari trackpad momentum) ignore the
+        // wheel preventDefault, so ENFORCE the still frame — any drift is
+        // snapped straight back (instant, overriding the CSS smooth scroll)
+        var fy2 = frameY();
+        if (Math.abs(y - fy2) > 1) {
+          var de = document.documentElement, prevB = de.style.scrollBehavior;
+          de.style.scrollBehavior = "auto";
+          window.scrollTo(0, fy2);
+          de.style.scrollBehavior = prevB;
+          lastY = fy2;
+        }
+        return;
+      }
       var fy = frameY();
       if (y < fy - 0.6 * vh()) armed = true;                                  // re-arm well above the frame
       if (armed && down && prevY < fy && y >= fy && y <= fy + 0.30 * vh()) startHold(); // reached it going down → settle + lock (window catches fast flicks too)
