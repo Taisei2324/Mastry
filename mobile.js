@@ -455,8 +455,8 @@
       '<br><input id="cdSlider" type="range" min="-200" max="450" style="width:240px;margin:6px 0">' +
       '<br>glide: <b id="cgVal">280</b> ms &nbsp;(higher = duller / less jittery)' +
       '<br><input id="cgSlider" type="range" min="20" max="700" value="280" style="width:240px;margin:6px 0">' +
-      '<br>freeze at frame: <b id="fhVal">2000</b> ms &nbsp;(lock the framed shot)' +
-      '<br><input id="fhSlider" type="range" min="0" max="4000" step="100" value="2000" style="width:240px;margin:6px 0">' +
+      '<br>freeze at frame: <b id="fhVal">1000</b> ms &nbsp;(lock the framed shot)' +
+      '<br><input id="fhSlider" type="range" min="0" max="4000" step="100" value="1000" style="width:240px;margin:6px 0">' +
       '<br><span id="cdMouse" style="opacity:.75">move mouse — read Y</span>';
     document.body.appendChild(cbox);
     var line = document.createElement("div");
@@ -469,7 +469,7 @@
       : Math.min(170, Math.round(window.innerHeight * 0.2125));
     window.__cupDrop = dropDefault;
     window.__cupGlide = 280;
-    window.__frameHold = 2000;
+    window.__frameHold = 1000;
     var sl = cbox.querySelector("#cdSlider"), val = cbox.querySelector("#cdVal"), mo = cbox.querySelector("#cdMouse");
     sl.value = dropDefault; val.textContent = dropDefault;
     var gl = cbox.querySelector("#cgSlider"), gval = cbox.querySelector("#cgVal");
@@ -497,7 +497,7 @@
     var hbSec = document.querySelector(".highball");
     if (!box) return;
     var bottle = document.querySelector(".heropin bottle-3d"); // the WALL publishes engagement as _holdY — never freeze while it holds
-    var HOLD_MS = 2000, holdTimer = 0, holding = false, lastY = window.scrollY, activeFrame = null;
+    var HOLD_MS = 1000, holdTimer = 0, holding = false, lastY = window.scrollY, activeFrame = null;   // manual-freeze fallback hold: 1s to match the conductor
     // only a real reader can trip the freeze — a browser's async scroll-restore
     // crossing a frame on reload must never lock the page (or fight the
     // start-at-top guard in bottle-3d.js)
@@ -631,7 +631,7 @@
     // negative-exponential time constants per segment (ms): ~95% of the
     // travel lands within 3τ — tune the feel here
     var TAU_POUR = 900, TAU_TITLE = 600, TAU_WHISKY = 800;
-    var HOLD_MS = 2000, DRAIN_MAX_MS = 6000;
+    var HOLD_MS = 1000, DRAIN_MAX_MS = 6000;   // each still holds ~1s (user-set "scroll disable time"), matching desktop
     var state = "wait";          // wait | tween | hold | done
     var released = false;
     var timer = 0, lastT = 0, tweenTo = 0, tweenTau = 900, tweenKind = "";
