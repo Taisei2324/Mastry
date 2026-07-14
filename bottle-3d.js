@@ -889,7 +889,7 @@
       var dpr = Math.min(2, window.devicePixelRatio || 1);
       this._renderer.setPixelRatio(dpr);
       this._renderer.setSize(w, h, false);
-      this._narrow = window.innerWidth <= 760;
+      this._narrow = window.__forceMobile || window.innerWidth <= 760; // the dedicated mobile page pins this true at any width
       // the canvas spans the whole pinned hero so the pour can run off the
       // frame; push the camera back so the bottle keeps the size it had when
       // the canvas was only the centre stage box
@@ -2104,7 +2104,7 @@
       var dpr = Math.min(2, window.devicePixelRatio || 1);
       this._renderer.setPixelRatio(dpr);
       this._renderer.setSize(w, h, false);
-      this._narrow = window.innerWidth <= 760;
+      this._narrow = window.__forceMobile || window.innerWidth <= 760; // the dedicated mobile page pins this true at any width
       this._needsRender = true;
       // size the camera so the tumbler renders at a chosen pixel height, then
       // park the tumbler on the pour line at the right height of the section

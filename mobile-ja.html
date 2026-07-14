@@ -2,16 +2,15 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<script>/* device routing — phones go to the dedicated mobile site (JP). ?mobile
-  forces it (sticky), ?desktop pins desktop (sticky). Runs before render. */(function(){try{var M='mobile-ja.html',q=location.search;
-if(/[?&]desktop\b/.test(q)){try{localStorage.setItem('mastry-view','desktop');}catch(e){}return;}
-if(/[?&]mobile\b/.test(q)){try{localStorage.setItem('mastry-view','mobile');}catch(e){}location.replace(M);return;}
-var pref=null;try{pref=localStorage.getItem('mastry-view');}catch(e){}
-if(pref==='desktop')return;
-var small=matchMedia('(max-width:760px)').matches,coarse=matchMedia('(pointer:coarse)').matches,ua=/Android|iPhone|iPod|IEMobile|BlackBerry|Opera Mini|webOS|Windows Phone/i.test(navigator.userAgent);
-if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='desktop')location.replace(M);
-}catch(e){}})();</script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script>/* device routing — DEDICATED MOBILE SITE (JP). Non-phones go back to the
+  desktop JP index; ?desktop forces desktop (sticky), ?mobile forces this. */(function(){try{var D='index-ja.html',q=location.search;
+if(/[?&]mobile\b/.test(q)){try{localStorage.setItem('mastry-view','mobile');}catch(e){}}
+else if(/[?&]desktop\b/.test(q)){try{localStorage.setItem('mastry-view','desktop');}catch(e){}location.replace(D);return;}
+else{var pref=null;try{pref=localStorage.getItem('mastry-view');}catch(e){}
+if(pref!=='mobile'){var small=matchMedia('(max-width:760px)').matches,coarse=matchMedia('(pointer:coarse)').matches,ua=/Android|iPhone|iPod|IEMobile|BlackBerry|Opera Mini|webOS|Windows Phone/i.test(navigator.userAgent);
+if(!(small||ua||(coarse&&matchMedia('(max-width:900px)').matches))){location.replace(D);return;}}}
+window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>MASTRY — マスティック炭酸水 · ヒオス島 × 日本</title>
 <meta name="description" content="マストリーは、ギリシャ・ヒオス島の樹脂の結晶「マスティック」を、日本の精密なものづくりで仕立てた炭酸水。砂糖ゼロ。原材料は3つ。二つの古き島から。" />
 <meta property="og:type" content="website" />
@@ -30,7 +29,7 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=20260714manual30" />
+<link rel="stylesheet" href="mobile.css?v=20260714mobile1" />
 <style>:root{--sans:"Inter","Noto Sans JP",system-ui,sans-serif;--serif:"Cormorant Garamond","Noto Serif JP",serif;}</style>
 <link rel="preload" href="assets/bottle.glb" as="fetch" crossorigin />
 <link rel="prefetch" href="assets/glass.glb" as="fetch" crossorigin />
@@ -392,15 +391,15 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
   <div class="footer__bottom">
     <p>ギリシャ・ヒオス島のマスティック · 日本で仕上げ</p>
     <p>© 2026 Mastry. マスティック炭酸水。</p>
-    <p><a class="viewswitch" href="?mobile">モバイル版を表示 →</a></p>
+    <p><a class="viewswitch" href="?desktop">デスクトップ版を表示 →</a></p>
   </div>
   <img class="footer__art" src="images/m/footer-panorama.jpg"
     alt="墨絵のパノラマ：崖の松と富士山、海の向こうのギリシャの神殿、その間を行く舟人、青海波の縁取り" loading="lazy" />
 </footer>
 
-<script src="script.js?v=20260714manual30"></script>
+<script src="mobile.js?v=20260714mobile1"></script>
 <script src="vendor/three-0.147.0.min.js"></script>
 <script src="vendor/GLTFLoader-0.147.0.js"></script>
-<script src="bottle-3d.js?v=20260714manual30"></script>
+<script src="bottle-3d.js?v=20260714mobile1"></script>
 </body>
 </html>

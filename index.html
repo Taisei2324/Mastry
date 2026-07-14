@@ -2,6 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<script>/* device routing — phones go to the dedicated mobile site (mobile.html).
+  ?mobile forces it (sticky), ?desktop pins desktop (sticky). Runs before
+  render so there's no flash. */(function(){try{var M='mobile.html',q=location.search;
+if(/[?&]desktop\b/.test(q)){try{localStorage.setItem('mastry-view','desktop');}catch(e){}return;}
+if(/[?&]mobile\b/.test(q)){try{localStorage.setItem('mastry-view','mobile');}catch(e){}location.replace(M);return;}
+var pref=null;try{pref=localStorage.getItem('mastry-view');}catch(e){}
+if(pref==='desktop')return;
+var small=matchMedia('(max-width:760px)').matches,coarse=matchMedia('(pointer:coarse)').matches,ua=/Android|iPhone|iPod|IEMobile|BlackBerry|Opera Mini|webOS|Windows Phone/i.test(navigator.userAgent);
+if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='desktop')location.replace(M);
+}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MASTRY — Sparkling Water with Mastic · Chios × Japan</title>
 <meta name="description" content="Mastry is sparkling water infused with mastic — the crystal resin of Chios, Greece — carbonated and bottled with Japanese precision. Zero sugar. Three ingredients. Two ancient islands." />
@@ -20,7 +30,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=20260713manual29" />
+<link rel="stylesheet" href="style.css?v=20260714manual30" />
 <!-- the hero bottle model starts downloading WITH the page, not after the script
      chain boots — this is what makes the 3D bottle appear promptly -->
 <link rel="preload" href="assets/bottle.glb" as="fetch" crossorigin />
@@ -386,16 +396,17 @@
   <div class="footer__bottom">
     <p>Mastic from Chios, Greece · Assembled in Japan</p>
     <p>© 2026 Mastry. Sparkling water with mastic.</p>
+    <p><a class="viewswitch" href="?mobile">View mobile site →</a></p>
   </div>
   <img class="footer__art" src="images/m/footer-panorama.jpg"
     alt="Ink panorama: a pine on a cliff and Mount Fuji facing a Greek acropolis across the sea, a lone boatman between them, over a border of seigaiha waves" loading="lazy" />
 </footer>
 
-<script src="script.js?v=20260713manual29"></script>
+<script src="script.js?v=20260714manual30"></script>
 <!-- self-hosted (was unpkg — a free CDN whose latency spikes made the bottle
      "sometimes take a couple of seconds"); same-origin loads are consistent -->
 <script src="vendor/three-0.147.0.min.js"></script>
 <script src="vendor/GLTFLoader-0.147.0.js"></script>
-<script src="bottle-3d.js?v=20260713manual29"></script>
+<script src="bottle-3d.js?v=20260714manual30"></script>
 </body>
 </html>
