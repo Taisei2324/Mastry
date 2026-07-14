@@ -1905,8 +1905,8 @@
             prof.unshift(new THREE.Vector2(0.002, self._wbBase));   // closed bottom
             // resting/empty fill lines (offsets from the vessel origin; fed to
             // the level plane per frame, and drained during the pour)
-            self._wbFillRest = self._wbBase + 0.55 * (self._wbTopY - self._wbBase);
-            self._wbFillLow  = self._wbBase + 0.13 * (self._wbTopY - self._wbBase);
+            self._wbFillRest = self._wbBase + 0.62 * (self._wbTopY - self._wbBase);
+            self._wbFillLow  = self._wbBase + 0.52 * (self._wbTopY - self._wbBase);   // only a LITTLE pours out (copy: "a little whisky") — decanter stays mostly full
             self._wbFill = self._wbFillRest;
             self._wbLiquidPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), self._wbFillRest);
             var lgeo = new THREE.LatheGeometry(prof, 48);
@@ -2373,12 +2373,12 @@
         // back on. All scrubbed by w, so scrolling up rewinds the whole act.
         if (this._wb) {
           var w = w0;
-          this._extra = 0.07 * smoothstep(0.62, 0.86, w);        // cup browns during/after the pour
+          this._extra = 0.05 * smoothstep(0.60, 0.78, w);        // cup gets a LITTLE whisky ("one part whisky · four parts mastry")
           var a2 = smoothstep(0.05, 0.20, w) * (1 - smoothstep(0.95, 0.995, w)); // drops in (lid on), holds, fades out
           if (a2 > 0.002) {
             this._whiskyArm();
-            var k2 = smoothstep(0.42, 0.58, w) * (1 - smoothstep(0.84, 0.94, w)); // tilt in, HELD through the pour, rights late (widened so it doesn't blow by)
-            var rz2 = k2 * 1.45;
+            var k2 = smoothstep(0.42, 0.56, w) * (1 - smoothstep(0.74, 0.88, w)); // tip in, brief hold for the splash, then rights back up (a measured pour, not a dump)
+            var rz2 = k2 * 1.2;   // gentler pour angle — tips enough to splash, not to empty
             // BOTTLE PHYSICS: as it tips, the decanter swings UP and OVER so its
             // mouth ends just above the cup — the whisky then simply FALLS in,
             // near-vertical like the hero pour (no sideways squirt, no bent
@@ -2393,7 +2393,7 @@
             // rewind is deterministic); slosh is a decaying, tightly-clamped
             // overlay driven by scrub speed that settles to level when idle.
             if (this._wbLiquidPlane) {
-              var drain = smoothstep(0.58, 0.86, w);                              // pours out over the (widened) pour window
+              var drain = smoothstep(0.58, 0.76, w);                              // a brief splash — the level drops only a little (rest 0.62 -> 0.52)
               var fill = this._wbFillRest + (this._wbFillLow - this._wbFillRest) * drain;
               var dw = w - (this._wLast == null ? w : this._wLast); this._wLast = w;
               var sv = (this._sloshV || 0);
@@ -2437,7 +2437,7 @@
               this._wbCork.quaternion.copy(_sq).slerp(upQ, off);
               this._wbCork.scale.copy(_ss);
             }
-            wp = smoothstep(0.58, 0.66, w) * (1 - smoothstep(0.80, 0.86, w)); // pour, only while tilted (widened to slow the pour beat)
+            wp = smoothstep(0.58, 0.64, w) * (1 - smoothstep(0.72, 0.78, w)); // a brief SPLASH, not a long pour (copy: "a little whisky")
             if (wp > 0.01) {
               // the stream leaves the lip with barely any sideways speed and
               // FALLS — the mouth is over the cup, so gravity does the pouring
