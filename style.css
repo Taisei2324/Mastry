@@ -94,9 +94,14 @@ input,select,textarea{accent-color:var(--olive);}
    pour show runs (p 0.35→0.995) and the bar stays out of the frame — it
    used to flicker against THE WALL's per-frame scroll clamps */
 html.heroseq .nav{transform:translateY(-100%) !important;}
-/* pointer near the top edge summons the bar back, beating both .hidden and the
-   heroseq force-hide by SPECIFICITY (0,3,1 > 0,2,1) — not just source order */
+/* the whisky (highball) act likewise owns the screen: glass-3d sets
+   html.whiskyseq while the decanter is on stage so the cap has headroom to lift.
+   A SEPARATE class from heroseq (different owner, different section) */
+html.whiskyseq .nav{transform:translateY(-100%) !important;}
+/* pointer near the top edge summons the bar back, beating .hidden and both
+   force-hides by SPECIFICITY (0,3,1 > 0,2,1) — not just source order */
 html.heroseq .nav.peek,
+html.whiskyseq .nav.peek,
 .nav.peek{transform:translateY(0) !important;}
 .nav.solid{
   background:rgba(249,245,233,.88);

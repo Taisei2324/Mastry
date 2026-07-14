@@ -1809,6 +1809,14 @@
        REVERSIBLE — _stream/_core are the hero water pour's own tube, so the
        clear colours are cached and restored when the act sleeps, or free
        upward scroll would replay an amber water pour. */
+    /* force-hide the top nav while the decanter act is on stage (own class,
+       toggled only on change so it never thrashes; cleared on every off-path). */
+    _setWhiskySeq(on) {
+      if (on === this._whiskySeq) return;
+      this._whiskySeq = on;
+      document.documentElement.classList.toggle('whiskyseq', on);
+    }
+
     _whiskyArm() {
       if (this._whiskyOn) return;
       this._whiskyOn = true;
@@ -2411,6 +2419,11 @@
           var w = w0;
           this._extra = 0.05 * smoothstep(0.60, 0.78, w);        // cup gets a LITTLE whisky ("one part whisky · four parts mastry")
           var a2 = smoothstep(0.05, 0.20, w) * (1 - smoothstep(0.86, 0.93, w)); // drops in, holds, then DISSOLVES as it finishes righting — gone before the "Splits beautifully" still is composed (cup + copy only)
+          // force-hide the top nav while the decanter is on stage (a SIBLING of
+          // the hero's heroseq — a separate class, since Bottle3D owns heroseq
+          // and re-toggles it every frame; two owners would fight and flicker).
+          // Frees the headroom for the cap to lift; .peek still summons the bar.
+          this._setWhiskySeq(a2 > 0.05);
           if (a2 > 0.002) {
             this._whiskyArm();
             var k2 = smoothstep(0.42, 0.56, w) * (1 - smoothstep(0.74, 0.88, w)); // tip in, brief hold for the splash, then rights back up (a measured pour, not a dump)
@@ -2445,15 +2458,19 @@
             }
             this._wb.rotation.z = rz2;
             this._wbMats.forEach(function (m) { m.opacity = m._op0 * a2; });
-            // the stopper: on 0.06→0.34 seated · off 0.34→0.48 lifts aside ·
-            // then it DISAPPEARS during the pour (0.55→0.70) and never comes
-            // back — no re-seat (user: "let the cap come off and let it
-            // disappear forever"). Scrub-driven, so rewinding restores it.
             if (this._wbCork && this._wbHolder) {
-              var corkK = 1 - smoothstep(0.56, 0.72, w);
+              // the cap comes off in THREE clean beats (user: "up, then to the
+              // right, then disappear"): 1) lifts straight UP off the mouth,
+              // 2) glides to the RIGHT at that height, 3) fades away for good
+              // (no re-seat). All pure functions of w, so scrubbing up restores it.
+              // INVARIANT: the lift window must fully CLOSE (cLift=1 at 0.40)
+              // before the right window OPENS (cRight>0 at 0.41), or the two
+              // chained lerps overlap and the L-path corner-cuts into a diagonal.
+              var cLift = smoothstep(0.28, 0.40, w);   // 1) rise vertically
+              var cRight = smoothstep(0.41, 0.54, w);  // 2) slide right (after the lift completes)
+              var corkK = 1 - smoothstep(0.56, 0.70, w); // 3) disappear
               if (this._wbCorkMats) for (var ci = 0; ci < this._wbCorkMats.length; ci++) this._wbCorkMats[ci].opacity *= corkK;
               this._wbCork.visible = corkK > 0.002;
-              var off = smoothstep(0.28, 0.44, w);
               this._wb.updateMatrixWorld(true);
               // seated pose: where the cork sits ON the vessel (follows its tilt)
               var seatM = new THREE.Matrix4().multiplyMatrices(
@@ -2463,14 +2480,23 @@
               var _sq = this._corkSQ || (this._corkSQ = new THREE.Quaternion());
               var _ss = this._corkSS || (this._corkSS = new THREE.Vector3());
               seatM.decompose(_sp, _sq, _ss);
-              // waiting pose: upright, off to the outer side, held level in the world
+              // world-fixed waypoints (glass-relative, so once the cap lifts off
+              // it no longer drifts with the tilting vessel): straight above the
+              // mouth, then the same height shifted to the right.
               var upX = this._glass.position.x + (this._narrow ? 1.05 : 1.45);
               var upY = this._glass.position.y + 0.55;
-              var restW = this._corkRest || (this._corkRest = new THREE.Vector3());
-              restW.set(upX + 0.48, upY + 0.55, 0.34); // waits low at the side, fully in frame
+              var liftP = this._corkLift || (this._corkLift = new THREE.Vector3());
+              var rightP = this._corkRight || (this._corkRight = new THREE.Vector3());
+              // the decanter mouth already sits near the frame TOP, so the lift
+              // is modest by necessity (a big rise just clears the viewport top).
+              // The win from html.whiskyseq (nav force-hidden during the act) is
+              // that this modest rise is now VISIBLE at the top instead of tucked
+              // behind the bar. Keep it on-screen; let the RIGHT glide read.
+              liftP.set(upX, upY + 1.0, 0.34);                                 // modest, on-screen lift off the mouth
+              rightP.set(upX + (this._narrow ? 0.55 : 0.75), upY + 1.0, 0.34); // then glide right (nav gone → stays visible) and fade
               var upQ = this._corkUpQ || (this._corkUpQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -0.4, 0)));
-              this._wbCork.position.copy(_sp).lerp(restW, off);
-              this._wbCork.quaternion.copy(_sq).slerp(upQ, off);
+              this._wbCork.position.copy(_sp).lerp(liftP, cLift).lerp(rightP, cRight); // seat → up → right
+              this._wbCork.quaternion.copy(_sq).slerp(upQ, cLift);
               this._wbCork.scale.copy(_ss);
             }
             wp = smoothstep(0.58, 0.64, w) * (1 - smoothstep(0.72, 0.78, w)); // a brief SPLASH, not a long pour (copy: "a little whisky")
@@ -2508,9 +2534,9 @@
                        g: 12.5, r0: 0.022 + 0.02 * wp,
                        cupX: this._glass.position.x };
             }
-          } else { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; this._sloshV = 0; this._sloshA = 0; this._wLast = null; this._whiskyDisarm(); }
+          } else { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; this._sloshV = 0; this._sloshA = 0; this._wLast = null; this._whiskyDisarm(); this._setWhiskySeq(false); }
         }
-      } else if (this._wb) { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; this._whiskyDisarm(); }
+      } else if (this._wb) { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; this._whiskyDisarm(); this._setWhiskySeq(false); }
 
       // waterline
       var waterY = this._glass.position.y + this._waterBase + Math.min(0.92, this._level + this._extra) * (0.97 - this._waterBase);
