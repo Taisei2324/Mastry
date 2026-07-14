@@ -1906,7 +1906,7 @@
             // resting/empty fill lines (offsets from the vessel origin; fed to
             // the level plane per frame, and drained during the pour)
             self._wbFillRest = self._wbBase + 0.62 * (self._wbTopY - self._wbBase);
-            self._wbFillLow  = self._wbBase + 0.52 * (self._wbTopY - self._wbBase);   // only a LITTLE pours out (copy: "a little whisky") — decanter stays mostly full
+            self._wbFillLow  = self._wbBase + 0.56 * (self._wbTopY - self._wbBase);   // pours only a LITTLE (62% -> 56%) — decanter stays mostly full
             self._wbFill = self._wbFillRest;
             self._wbLiquidPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), self._wbFillRest);
             var lgeo = new THREE.LatheGeometry(prof, 48);

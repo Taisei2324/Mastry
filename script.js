@@ -540,11 +540,6 @@
       var top = hbSec.getBoundingClientRect().top + window.scrollY;
       return Math.round(top - 0.8 * vh() + 1.0 * (hbSec.offsetHeight - 0.2 * vh()));
     }
-    function whiskyPourY() {   // w≈0.70 — the decanter tipped and mid-pour (the conductor stops here so the pour isn't blown past)
-      if (!hbSec) return -1e9;
-      var top = hbSec.getBoundingClientRect().top + window.scrollY;
-      return Math.round(top - 0.8 * vh() + 0.70 * (hbSec.offsetHeight - 0.2 * vh()));
-    }
     var frames = [{ fy: cupFrameY, armed: true }, { fy: whiskyFrameY, armed: true }];
     function freeze(e) { e.preventDefault(); }
     function keyFreeze(e) { var k = e.key; if (k === "ArrowDown" || k === "ArrowUp" || k === "PageDown" || k === "PageUp" || k === "Home" || k === "End" || k === " " || k === "Spacebar") e.preventDefault(); }
@@ -622,7 +617,7 @@
       window.addEventListener("blur", function () { if (holding) endHold(); });
       document.addEventListener("visibilitychange", function () { if (document.hidden && holding) endHold(); });
     }
-    window.__mastryFreeze = { get holding() { return holding; }, frames: frames, cupFrameY: cupFrameY, whiskyFrameY: whiskyFrameY, whiskyPourY: whiskyPourY, endHold: endHold };
+    window.__mastryFreeze = { get holding() { return holding; }, frames: frames, cupFrameY: cupFrameY, whiskyFrameY: whiskyFrameY, endHold: endHold };
   })();
 
   /* ── THE CONDUCTOR (phones): the story drives itself. A downward swipe is
@@ -643,7 +638,7 @@
     if (!pin || !F) return;
     // negative-exponential time constants per segment (ms): ~95% of the
     // travel lands within 3τ — tune the feel here
-    var TAU_POUR = 900, TAU_TITLE = 600, TAU_WHISKY = 1300;   // slower whisky glides (user: "the animation blows by too fast")
+    var TAU_POUR = 900, TAU_TITLE = 600, TAU_WHISKY = 1500;   // one smooth (no-stop) whisky glide — slow enough not to blow by
     var HOLD_MS = 1000, DRAIN_MAX_MS = 6000;   // each still holds ~1s (user-set "scroll disable time")
     var state = "wait";          // wait | tween | hold | done
     var released = false;
@@ -661,8 +656,7 @@
       return [
         { y: Math.round(pin.offsetTop + 0.88 * Math.max(1, pin.offsetHeight - vh())), tau: TAU_POUR, kind: "pour" },
         { y: F.cupFrameY(), tau: TAU_TITLE, kind: "still" },
-        { y: F.whiskyPourY(), tau: TAU_WHISKY, kind: "whiskypour" },   // stop ON the pour before the closing still
-        { y: F.whiskyFrameY(), tau: TAU_WHISKY, kind: "final" }
+        { y: F.whiskyFrameY(), tau: TAU_WHISKY, kind: "final" }   // no mid-pour stop — the whisky act plays as ONE smooth glide (user)
       ];
     }
     function release() {
