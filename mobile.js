@@ -636,23 +636,41 @@
     var released = false;
     var timer = 0, lastT = 0, tweenTo = 0, tweenTau = 900, tweenKind = "";
     var lockY = window.scrollY;  // the one-way gate: never below this without an activation
+    var idleT = 0, idleCueT = 0, idleOff = false;   // idle assist: gently leads an IDLE/new reader on; killed for the whole session by the first up-gesture
+    var IDLE_MS = 5000, CUE_MS = 2500;              // 2.5s silence -> "keep scrolling" cue · 5s -> gently advance one beat
+    var marqueeEl = document.querySelector(".marquee");
+    var docEl = document.documentElement;
     function vh() { return window.innerHeight; }
+    function armIdle() {
+      clearTimeout(idleT); clearTimeout(idleCueT); docEl.removeAttribute("data-conduct-idle");
+      if (state !== "wait" || idleOff || released) return;
+      var ld = document.getElementById("loader");
+      var pad = (ld && !ld.classList.contains("done")) ? 3600 : 0;   // don't count idle time behind the loader
+      idleCueT = setTimeout(function () { if (state === "wait" && !idleOff && !released) docEl.setAttribute("data-conduct-idle", ""); }, pad + CUE_MS);
+      idleT = setTimeout(function () { if (state === "wait" && !idleOff && !released && !document.hidden) { docEl.removeAttribute("data-conduct-idle"); activate(); } }, pad + IDLE_MS);
+    }
+    function setState(s) { state = s; docEl.setAttribute("data-conduct", s); armIdle(); }
     function snapTo(y) {
       var de = document.documentElement, pb = de.style.scrollBehavior;
       de.style.scrollBehavior = "auto";
       window.scrollTo(0, y);
       de.style.scrollBehavior = pb;
     }
+    function exitY() {   // scroll position that lands the .marquee ("since antiquity") flush at the viewport top
+      if (!marqueeEl) return F.whiskyFrameY() + vh();
+      return Math.round(marqueeEl.getBoundingClientRect().top + window.scrollY);
+    }
     function checkpoints() { // recomputed fresh — layout may have shifted
       return [
         { y: Math.round(pin.offsetTop + 0.88 * Math.max(1, pin.offsetHeight - vh())), tau: TAU_POUR, kind: "pour" },
         { y: F.cupFrameY(), tau: TAU_TITLE, kind: "still" },
-        { y: F.whiskyFrameY(), tau: TAU_WHISKY, kind: "final" }   // no mid-pour stop — the whisky act plays as ONE smooth glide (user)
+        { y: F.whiskyFrameY(), tau: TAU_WHISKY, kind: "final" },   // no mid-pour stop — the whisky act plays as ONE smooth glide (user)
+        { y: exitY(), tau: 900, kind: "exit" }                     // after the closing still, auto-lead down to the content ("since antiquity")
       ];
     }
     function release() {
       if (released) return;
-      released = true; state = "done";
+      released = true; setState("done");
       clearTimeout(timer);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
@@ -667,7 +685,7 @@
       var y = window.scrollY, list = checkpoints(), next = null;
       for (var i = 0; i < list.length; i++) { if (list[i].y > y + 4) { next = list[i]; break; } }
       if (!next) { release(); return; } // already past the last checkpoint
-      state = "tween"; tweenTo = next.y; tweenTau = next.tau; tweenKind = next.kind;
+      setState("tween"); tweenTo = next.y; tweenTau = next.tau; tweenKind = next.kind;
       lastT = performance.now();
       clearTimeout(timer); timer = setTimeout(step, 16);
     }
@@ -688,29 +706,36 @@
       timer = setTimeout(step, 16);
     }
     function arrive() {
-      state = "hold";
+      setState("hold");
       if (tweenKind === "pour") {
         // the scrub holds the bottle tilted here; the drain is time-based —
         // wait for the pour to finish (hard ceiling so nobody is trapped)
         var t0 = Date.now();
         (function drained() {
           if (state !== "hold") return; // an up-gesture already freed the reader
-          if ((bottle && bottle._level <= 0.25) || !bottle || Date.now() - t0 > DRAIN_MAX_MS) { state = "wait"; return; }
+          if ((bottle && bottle._level <= 0.25) || !bottle || Date.now() - t0 > DRAIN_MAX_MS) { setState("wait"); return; }
           timer = setTimeout(drained, 150);
         })();
       } else if (tweenKind === "final") {
-        timer = setTimeout(release, HOLD_MS); // the last still: hold, then hand the page over
+        // hold the "Splits beautifully" still ~1s, then auto-LEAD the reader
+        // down to the content ("since antiquity") — the designed hand-off
+        timer = setTimeout(function () { if (state === "hold") { setState("wait"); activate(); } }, HOLD_MS);
+      } else if (tweenKind === "exit") {
+        release(); // landed on the content at the top — hand the page over, no hold
       } else {
-        timer = setTimeout(function () { state = "wait"; }, HOLD_MS);
+        timer = setTimeout(function () { setState("wait"); }, HOLD_MS);
       }
     }
     function abortToFree() { // an up-gesture: hand control straight back
+      idleOff = true;        // ...and never auto-assist again this session (an up-scroller wants to browse)
       clearTimeout(timer);
-      state = "wait";
+      if (tweenKind === "exit") { release(); return; } // up during the exit lead: the story's over, hand back HERE
+      setState("wait");
     }
     // ── input: DOWN is an activation, UP is native and free ──
     var tY0 = 0, tX0 = 0, tFired = false, tCommit = "";
     function onTouchStart(e) {
+      armIdle();                            // any touch resets the idle-assist countdown
       var t = e.touches[0]; if (!t) return;
       tY0 = t.clientY; tX0 = t.clientX; tFired = false; tCommit = "";
     }
@@ -724,7 +749,7 @@
         // not give that away before knowing the direction
         if (Math.abs(dy) < 9 && dx < 9) { e.preventDefault(); return; }
         tCommit = (dy > 0 && dy >= dx * 0.7) ? "down" : (dy < 0 ? "up" : "spin");
-        if (tCommit === "up" && state !== "wait" && state !== "done") abortToFree();
+        if (tCommit === "up") { if (window.scrollY > 4) { idleOff = true; clearTimeout(idleT); clearTimeout(idleCueT); docEl.removeAttribute("data-conduct-idle"); } if (state !== "wait" && state !== "done") abortToFree(); }
       }
       if (tCommit === "down") {
         e.preventDefault();                  // the one-way gate: no native downward motion, ever
@@ -737,16 +762,26 @@
     function onTouchEnd() { tCommit = ""; tFired = false; }
     var wheelT = 0;
     function onWheel(e) {
+      armIdle();                            // any wheel resets the idle-assist countdown
       if (e.deltaY > 0) {
         e.preventDefault();
         var now = Date.now();
         if (now - wheelT > 400) { wheelT = now; activate(); }
-      } else if (state !== "wait" && state !== "done") abortToFree();
+      } else if (e.deltaY < 0) {
+        // an up-scroll AFTER engaging (not at the very top, where a fresh idle
+        // reader waits) means "I'll browse myself" — never auto-assist again
+        if (window.scrollY > 4) { idleOff = true; clearTimeout(idleT); clearTimeout(idleCueT); docEl.removeAttribute("data-conduct-idle"); }
+        if (state !== "wait" && state !== "done") abortToFree();
+      }
     }
     function onKey(e) {
+      armIdle();                            // any keypress resets the idle-assist countdown
       var k = e.key;
       if (k === "ArrowDown" || k === "PageDown" || k === "End" || k === " " || k === "Spacebar") { e.preventDefault(); activate(); }
-      else if ((k === "ArrowUp" || k === "PageUp" || k === "Home") && state !== "wait" && state !== "done") abortToFree();
+      else if (k === "ArrowUp" || k === "PageUp" || k === "Home") {
+        if (window.scrollY > 4) { idleOff = true; clearTimeout(idleT); clearTimeout(idleCueT); docEl.removeAttribute("data-conduct-idle"); }
+        if (state !== "wait" && state !== "done") abortToFree();
+      }
     }
     // the one-way gate's backstop: native motion may only ever DECREASE
     // scrollY. If a gesture that committed upward hooks back down (iOS keeps
@@ -763,6 +798,7 @@
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("keydown", onKey, true);
     window.addEventListener("scroll", onScrollGate, { passive: true });
+    setState("wait");   // stamps html[data-conduct] + arms the idle assist
     // reader taps a nav/anchor link: they chose to skip the story — stand down
     document.addEventListener("click", function (e) {
       var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;

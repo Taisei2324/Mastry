@@ -2374,7 +2374,7 @@
         if (this._wb) {
           var w = w0;
           this._extra = 0.05 * smoothstep(0.60, 0.78, w);        // cup gets a LITTLE whisky ("one part whisky · four parts mastry")
-          var a2 = smoothstep(0.05, 0.20, w) * (1 - smoothstep(0.95, 0.995, w)); // drops in (lid on), holds, fades out
+          var a2 = smoothstep(0.05, 0.20, w) * (1 - smoothstep(0.86, 0.93, w)); // drops in, holds, then DISSOLVES as it finishes righting — gone before the "Splits beautifully" still is composed (cup + copy only)
           if (a2 > 0.002) {
             this._whiskyArm();
             var k2 = smoothstep(0.42, 0.56, w) * (1 - smoothstep(0.74, 0.88, w)); // tip in, brief hold for the splash, then rights back up (a measured pour, not a dump)
