@@ -129,6 +129,27 @@
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
 
+  /* ── HUD reveal: the top bar pops up when the pointer nears the top edge,
+     even mid-hero-sequence (html.heroseq otherwise pins it out of view). A
+     mouse feature only — phones have no hover. Hysteresis (summon ≤78px, only
+     dismiss past 140px after a beat) so a quick dip can't strobe it. ── */
+  if (nav && window.matchMedia("(pointer: fine)").matches) {
+    var peekHide = 0;
+    window.addEventListener("mousemove", function (e) {
+      if (e.clientY <= 78) {
+        clearTimeout(peekHide);
+        nav.classList.add("peek");
+      } else if (e.clientY > 140 && nav.classList.contains("peek")) {
+        clearTimeout(peekHide);
+        peekHide = setTimeout(function () { nav.classList.remove("peek"); }, 260);
+      }
+    }, { passive: true });
+    document.addEventListener("mouseleave", function () {
+      clearTimeout(peekHide);
+      peekHide = setTimeout(function () { nav.classList.remove("peek"); }, 260);
+    }, { passive: true });
+  }
+
   var burger = document.getElementById("burger");
   var navLinks = document.getElementById("navLinks");
   burger.addEventListener("click", function () {

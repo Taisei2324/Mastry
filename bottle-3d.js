@@ -955,6 +955,20 @@
       this._holdY = wall ? wallY : null;
       if (this._holdY != null && window.scrollY > this._holdY + 1) window.scrollTo(0, this._holdY);
 
+      // RELOAD-ON-RE-ENTRY: once the guided run retires the WALL (__conducted),
+      // a reader who scrolls back UP to the full bottle should be able to watch
+      // the whole pour again. When they genuinely return to the very top with
+      // the bottle refilled, clear that one-shot so the WALL can hold the pour
+      // once more. STATE ONLY — never a scroll write, and the conductor's own
+      // auto-glide stays retired (re-arming it could hijack a returning reader).
+      if (p > 0.85) this._leftHero = true;                       // they went through the hero
+      if (this._leftHero && p < 0.08 && this._level > 0.9 &&
+          !anchorGlideActive() && !this._noWall) {               // back at the full-bottle top, invisibly
+        this._leftHero = false;                                  // one re-arm per genuine round-trip
+        window.__conducted = false;                              // WALL can hold again (its timer re-zeroed above)
+        this._wallT = 0;
+      }
+
       // twist: scroll up → twist right, scroll down → twist left (reversed)
       // scroll-reactive twist. PHONES get ~1/6th the coupling: a touch flick
       // covers the short mobile pin in a couple of screens of fast scroll,
@@ -1925,6 +1939,7 @@
           } else if (nm.indexOf('stopper') !== -1 || nm.indexOf('cap') !== -1 || nm.indexOf('lid') !== -1) {
             stopperGeos.push(geo);          // seated separately so it can pop off
           } else {
+            if (nm.indexOf('body') !== -1) self._captureLip(geo, holder); // remember the real pouring lip
             mats = mats.concat(self._whiskyShellify(holder, geo)); // body crystal
           }
         });
@@ -1994,6 +2009,27 @@
         set: function (v) { this.uniforms.uOp.value = v; }
       });
       return [back.material, front.material, fres.material];
+    }
+
+    /* remember the decanter's pouring LIP so the whisky leaves the real spout,
+       not the mouth's axis centre. The mouth is a near-circle; we fit it once
+       (centre C at the top edge + outer radius R) and solve the lowest rim
+       point analytically per frame during the pour — smooth, no facet jitter. */
+    _captureLip(geo, holder) {
+      var pos = geo.attributes.position; if (!pos) return;
+      geo.computeBoundingBox();
+      var topY = geo.boundingBox.max.y, minY = geo.boundingBox.min.y;
+      var band = Math.max(0.02, (topY - minY) * 0.04); // a thin ring at the mouth
+      var sx = 0, sz = 0, n = 0, rMax = 0;
+      for (var i = 0; i < pos.count; i++) {
+        var y = pos.getY(i); if (y < topY - band) continue;
+        var x = pos.getX(i), z = pos.getZ(i);
+        sx += x; sz += z; n++;
+        var r = Math.sqrt(x * x + z * z); if (r > rMax) rMax = r;
+      }
+      if (!n) return;
+      this._wbLipC = new THREE.Vector3(sx / n, topY, sz / n); // rim centre, at the top edge
+      this._wbLipR = rMax;                                    // outer lip radius (where it spills)
     }
 
     /* the Higgsfield socket: pour-src names a GREEN-SCREEN video of a real
@@ -2439,10 +2475,37 @@
             }
             wp = smoothstep(0.58, 0.64, w) * (1 - smoothstep(0.72, 0.78, w)); // a brief SPLASH, not a long pour (copy: "a little whisky")
             if (wp > 0.01) {
-              // the stream leaves the lip with barely any sideways speed and
-              // FALLS — the mouth is over the cup, so gravity does the pouring
-              wjet = { x0: wbx - 0.75 * Math.sin(rz2), y0: wby + 0.75 * Math.cos(rz2),
-                       vx: -0.10 * k2, vy: -0.6, g: 12.5, r0: 0.022 + 0.02 * wp,
+              // emit from the decanter's ACTUAL lip: the lowest point of the
+              // mouth rim under the vessel's live tilt (fit at load, solved
+              // analytically here). The old formula used the mouth AXIS centre,
+              // which sits ~0.15 above the tilted lip — the stream visibly
+              // started inside the mouth instead of spilling off the spout.
+              var lipX, lipY, outX = 0;
+              if (this._wbLipC && this._wbHolder) {
+                this._wbHolder.updateWorldMatrix(true, false);
+                var M = this._wbHolder.matrixWorld;
+                var Cw = this._wbTmpC || (this._wbTmpC = new THREE.Vector3());
+                var Uw = this._wbTmpU || (this._wbTmpU = new THREE.Vector3());
+                var Vw = this._wbTmpV || (this._wbTmpV = new THREE.Vector3());
+                Cw.copy(this._wbLipC).applyMatrix4(M);
+                Uw.set(1, 0, 0).transformDirection(M);   // rim-plane basis in world (unit — M is rotation only)
+                Vw.set(0, 0, 1).transformDirection(M);
+                var a = Uw.y, b = Vw.y, mag = Math.sqrt(a * a + b * b), R = this._wbLipR;
+                if (mag > 1e-4) {                          // lowest circle point: minimise (a·cosθ + b·sinθ)
+                  var cT = -a / mag, sT = -b / mag;
+                  lipX = Cw.x + R * (cT * Uw.x + sT * Vw.x);
+                  lipY = Cw.y + R * (cT * Uw.y + sT * Vw.y);
+                } else { lipX = Cw.x; lipY = Cw.y; } // vessel upright — no defined low point
+                outX = lipX - Cw.x;                    // horizontal offset toward the pour side
+              } else {                                  // fallback: the old axis-mouth point
+                lipX = wbx - 0.75 * Math.sin(rz2);
+                lipY = wby + 0.75 * Math.cos(rz2);
+              }
+              // it FALLS off the lip — a gentle outward lean that grows with the
+              // pour strength (a trickle hugs the spout, a full tip arcs a little)
+              wjet = { x0: lipX, y0: lipY,
+                       vx: outX * (0.6 + 0.8 * wp) - 0.05 * k2, vy: -(0.45 + 0.35 * wp),
+                       g: 12.5, r0: 0.022 + 0.02 * wp,
                        cupX: this._glass.position.x };
             }
           } else { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; this._sloshV = 0; this._sloshA = 0; this._wLast = null; this._whiskyDisarm(); }
@@ -2464,10 +2527,10 @@
         this._waterC1 = new THREE.Color(0xa5611a);   // deep whiskey amber (was 0xc9a45e — user: more tint)
         this._topC0 = this._waterTop.material.color.clone();
         this._topC1 = new THREE.Color(0xd39a44);      // warmer amber surface sheen (was 0xe8d3a2)
-        this._glassTint = new THREE.Color(0x9c6a30);  // warm brown wash for the glass walls
+        this._glassTint = new THREE.Color(0x8a561f);  // richer warm brown wash for the glass walls (was 0x9c6a30 — user: stronger)
       }
       var whiskyAmt = Math.min(1, this._extra / 0.05); // 0 → 1 as the cup takes its pour
-      var wmix = whiskyAmt * 0.85;                     // deeper blend than before (was *0.7)
+      var wmix = whiskyAmt * 0.90;                     // deeper blend (was *0.85 → *0.7 originally)
       this._water.material.color.lerpColors(this._waterC0, this._waterC1, wmix);
       this._waterTop.material.color.lerpColors(this._topC0, this._topC1, wmix);
 
@@ -2475,7 +2538,7 @@
       // Skip the fresnel ShaderMaterial (no .color); cache each material's base
       // colour so a loaded glass-src GLB tints from its own hue too.
       if (this._tumblerShells) {
-        var gt = whiskyAmt * 0.30; // gentle — a warm wash, still glass not plastic
+        var gt = whiskyAmt * 0.44; // stronger warm wash (was 0.30) — still reads as glass
         for (var si = 0; si < this._tumblerShells.length; si++) {
           var sm = this._tumblerShells[si].material;
           if (!sm || !sm.color) continue;
