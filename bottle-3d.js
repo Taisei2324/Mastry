@@ -2297,6 +2297,14 @@
               // still the user approved at "Splits beautifully". The box bows
               // out as it lifts off the frame; position-driven, so it rewinds.
               box.style.opacity = smoothstep(0.10 * vh, 0.45 * vh, boxMid).toFixed(3);
+              // user: lift the cup a little on the "Two ancient islands" still.
+              // Active only while the title box sits LOW in the frame (that still);
+              // eases to 0 as the title rises off the top, so the later "Splits
+              // beautifully" still keeps its screen-centre placement. Position-
+              // driven → rewinds cleanly. Live-tunable in px via ?coords __cupLift.
+              var titleFramed = smoothstep(0.50 * vh, 0.72 * vh, boxMid);
+              var lift = (typeof window.__cupLift === "number") ? window.__cupLift : Math.round(vh * 0.075);
+              baseScr -= lift * titleFramed;
             } else {
               var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : Math.min(170, Math.round(vh * 0.2125)) - 200; // BELOW the text-box midline, minus a 5cm lift (≈200px at the user's ~40px/cm) — the framed cup sat a little low. DESKTOP ONLY (the else branch). Live-tunable in px via ?coords
               var baseOn = boxMid + cupPx * 0.5 + drop;                 // cup visual centre = boxMid + drop
