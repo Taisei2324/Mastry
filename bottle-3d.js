@@ -2457,16 +2457,32 @@
       this._waterTop.scale.set(rIn, rIn, 1);
       this._waterTop.visible = this._level + this._extra > 0.02;
 
-      // the whisky folds in: the water warms toward gold as the spirit lands
+      // the whisky folds in: the water warms toward a rich amber and the
+      // clear tumbler walls take on a matching brown cast as the spirit lands
       if (this._waterC0 === undefined) {
         this._waterC0 = this._water.material.color.clone();
-        this._waterC1 = new THREE.Color(0xc9a45e);
+        this._waterC1 = new THREE.Color(0xa5611a);   // deep whiskey amber (was 0xc9a45e — user: more tint)
         this._topC0 = this._waterTop.material.color.clone();
-        this._topC1 = new THREE.Color(0xe8d3a2);
+        this._topC1 = new THREE.Color(0xd39a44);      // warmer amber surface sheen (was 0xe8d3a2)
+        this._glassTint = new THREE.Color(0x9c6a30);  // warm brown wash for the glass walls
       }
-      var wmix = Math.min(1, this._extra / 0.07) * 0.7;
+      var whiskyAmt = Math.min(1, this._extra / 0.05); // 0 → 1 as the cup takes its pour
+      var wmix = whiskyAmt * 0.85;                     // deeper blend than before (was *0.7)
       this._water.material.color.lerpColors(this._waterC0, this._waterC1, wmix);
       this._waterTop.material.color.lerpColors(this._topC0, this._topC1, wmix);
+
+      // tint the glass itself: the clear tumbler warms brown with the whisky.
+      // Skip the fresnel ShaderMaterial (no .color); cache each material's base
+      // colour so a loaded glass-src GLB tints from its own hue too.
+      if (this._tumblerShells) {
+        var gt = whiskyAmt * 0.30; // gentle — a warm wash, still glass not plastic
+        for (var si = 0; si < this._tumblerShells.length; si++) {
+          var sm = this._tumblerShells[si].material;
+          if (!sm || !sm.color) continue;
+          if (!sm.userData._baseCol) sm.userData._baseCol = sm.color.clone();
+          sm.color.lerpColors(sm.userData._baseCol, this._glassTint, gt);
+        }
+      }
 
       // feed the shared water-realism shader uniforms (guarded — they only
       // exist after the first program compile)
