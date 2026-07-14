@@ -1856,30 +1856,69 @@
           var geo = o.geometry.clone();
           geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(norm, o.matrixWorld));
           if (nm.indexOf('whisk') !== -1 || nm.indexOf('liquid') !== -1) {
-            // realistic liquid: instead of the GLB's static puddle (which tilts
-            // with the glass), fill the body with an amber column and clip it
-            // with a WORLD-horizontal plane. As the decanter tips the column
-            // tilts with it, but the plane stays level — the whiskey surface
-            // stays horizontal and pools to the low side. Same clip trick the
-            // cup's water uses. The plane's height is fed per frame.
-            geo.computeBoundingBox();
-            var gb = geo.boundingBox;
-            var rIn = Math.max(Math.abs(gb.max.x), Math.abs(gb.min.x), Math.abs(gb.max.z), Math.abs(gb.min.z)) * 0.8;
-            var lBase = gb.min.y - 0.04;
-            var lRest = gb.max.y;              // upright fill line = the level plane's rest height
-            var lTop = 0.66;                   // fill up the body toward the mouth (mouth ≈ 0.75)
-            if (lTop < lRest + 0.1) lTop = lRest + 0.4;
-            self._wbFill = lRest;
-            self._wbLiquidPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), lRest);
-            var lgeo = new THREE.CylinderGeometry(rIn, rIn, lTop - lBase, 40, 1, false);
+            // realistic CONTAINED liquid: a lathe that follows the vessel's own
+            // INSCRIBED interior profile (the decanter is faceted + necks in, so
+            // we bin the body verts by height and take the MIN radius per band,
+            // inset ~10%). The column lives inside the interior volume and turns
+            // rigidly with the holder, so it can never poke through the walls at
+            // any tilt; a WORLD-horizontal clip plane keeps the surface level
+            // (and drains it on the pour). Sampled from the BODY geo, normalized
+            // into this same space. Replaces the old straight cylinder, which
+            // ignored the shoulder taper and jutted through the neck when tipped.
+            var bodyPrim = null;
+            prims.forEach(function (p) {
+              var pn = ((p.name || '') + ' ' + ((p.material && p.material.name) || '')).toLowerCase();
+              if (pn.indexOf('body') !== -1) bodyPrim = p;
+            });
+            var prof = [];   // Vector2(radius, y), base -> up
+            if (bodyPrim) {
+              var bgeo = bodyPrim.geometry.clone();
+              bgeo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(norm, bodyPrim.matrixWorld));
+              bgeo.computeBoundingBox();
+              var by0 = bgeo.boundingBox.min.y, by1 = bgeo.boundingBox.max.y, BN = 26;
+              var bp = bgeo.attributes.position, mn = [];
+              for (var bi = 0; bi < BN; bi++) mn[bi] = 1e9;
+              for (var vi = 0; vi < bp.count; vi++) {
+                var vx = bp.getX(vi), vy = bp.getY(vi), vz = bp.getZ(vi);
+                var rr = Math.sqrt(vx * vx + vz * vz), yi = Math.floor((vy - by0) / (by1 - by0) * BN);
+                if (yi < 0) yi = 0; if (yi >= BN) yi = BN - 1;
+                if (rr < mn[yi]) mn[yi] = rr;
+              }
+              var lastR = 0, fillTopY = by0 + 0.90 * (by1 - by0);
+              for (var pi = 0; pi < BN; pi++) {
+                var yy = by0 + (pi + 0.5) / BN * (by1 - by0);
+                if (yy > fillTopY) break;                       // stop below the mouth
+                var rIns = (mn[pi] < 1e8 ? mn[pi] : lastR) * 0.90;
+                if (pi > BN * 0.6 && rIns > lastR) rIns = lastR; // neck only narrows, never balloons back out
+                lastR = rIns;
+                prof.push(new THREE.Vector2(Math.max(0.003, rIns), yy));
+              }
+              self._wbBase = by0;
+              self._wbTopY = fillTopY;
+            }
+            if (!prof.length) {   // fallback: straight cylinder from the liquid bbox
+              geo.computeBoundingBox(); var gb = geo.boundingBox;
+              var r0 = Math.max(Math.abs(gb.max.x), Math.abs(gb.min.x), Math.abs(gb.max.z), Math.abs(gb.min.z)) * 0.8;
+              self._wbBase = gb.min.y - 0.04; self._wbTopY = 0.66;
+              prof = [new THREE.Vector2(r0, self._wbBase), new THREE.Vector2(r0, 0.66)];
+            }
+            prof.unshift(new THREE.Vector2(0.002, self._wbBase));   // closed bottom
+            // resting/empty fill lines (offsets from the vessel origin; fed to
+            // the level plane per frame, and drained during the pour)
+            self._wbFillRest = self._wbBase + 0.55 * (self._wbTopY - self._wbBase);
+            self._wbFillLow  = self._wbBase + 0.13 * (self._wbTopY - self._wbBase);
+            self._wbFill = self._wbFillRest;
+            self._wbLiquidPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), self._wbFillRest);
+            var lgeo = new THREE.LatheGeometry(prof, 48);
             var lm = new THREE.MeshPhysicalMaterial({
-              color: 0x9a4d16, roughness: 0.22, metalness: 0,
-              emissive: 0x35190a, emissiveIntensity: 0.5,
-              transparent: true, opacity: 0.92, envMapIntensity: 1.35, depthWrite: false,
+              // richer whisky amber — emissive-boosted so it reads golden THROUGH
+              // the frosted crystal shells instead of washing out to cream
+              color: 0xb5641c, roughness: 0.18, metalness: 0,
+              emissive: 0x6a3208, emissiveIntensity: 1.05,
+              transparent: true, opacity: 0.96, envMapIntensity: 1.4, depthWrite: false,
               side: THREE.DoubleSide, clippingPlanes: [self._wbLiquidPlane]
             });
             var lmesh = new THREE.Mesh(lgeo, lm);
-            lmesh.position.y = (lBase + lTop) / 2;
             lmesh.renderOrder = 3;
             holder.add(lmesh);
             mats.push(lm);
@@ -2326,11 +2365,11 @@
         // back on. All scrubbed by w, so scrolling up rewinds the whole act.
         if (this._wb) {
           var w = w0;
-          this._extra = 0.07 * smoothstep(0.60, 0.82, w);        // cup browns during/after the pour
-          var a2 = smoothstep(0.06, 0.22, w) * (1 - smoothstep(0.93, 0.99, w)); // drops in (lid on), holds, fades out
+          this._extra = 0.07 * smoothstep(0.62, 0.86, w);        // cup browns during/after the pour
+          var a2 = smoothstep(0.05, 0.20, w) * (1 - smoothstep(0.95, 0.995, w)); // drops in (lid on), holds, fades out
           if (a2 > 0.002) {
             this._whiskyArm();
-            var k2 = smoothstep(0.48, 0.60, w) * (1 - smoothstep(0.72, 0.82, w)); // tilt: only after the lid is fully off
+            var k2 = smoothstep(0.42, 0.58, w) * (1 - smoothstep(0.84, 0.94, w)); // tilt in, HELD through the pour, rights late (widened so it doesn't blow by)
             var rz2 = k2 * 1.45;
             // BOTTLE PHYSICS: as it tips, the decanter swings UP and OVER so its
             // mouth ends just above the cup — the whisky then simply FALLS in,
@@ -2341,9 +2380,25 @@
             var wby = this._glass.position.y + 0.45 + (1 - a2) * 1.1 + k2 * 0.95;
             this._wb.visible = true;
             this._wb.position.set(wbx, wby, 0);
-            // hold the whisky surface level at a fixed world height as the vessel
-            // moves and tilts (world-horizontal clip plane, so it never tilts)
-            if (this._wbLiquidPlane) this._wbLiquidPlane.constant = wby + this._wbFill;
+            // liquid SURFACE: level in the world, DRAINING as it pours, with a
+            // small settling slosh. Baseline is a pure function of w (so scrub /
+            // rewind is deterministic); slosh is a decaying, tightly-clamped
+            // overlay driven by scrub speed that settles to level when idle.
+            if (this._wbLiquidPlane) {
+              var drain = smoothstep(0.58, 0.86, w);                              // pours out over the (widened) pour window
+              var fill = this._wbFillRest + (this._wbFillLow - this._wbFillRest) * drain;
+              var dw = w - (this._wLast == null ? w : this._wLast); this._wLast = w;
+              var sv = (this._sloshV || 0);
+              sv += dw * 45;                                                       // scrub speed kicks the surface
+              sv -= (this._sloshA || 0) * 0.20;                                    // spring back to level
+              sv *= 0.80;                                                          // damping
+              var sa = (this._sloshA || 0) + sv * Math.min(1, dt * 60);
+              sa = Math.max(-0.06, Math.min(0.06, sa));                            // clamp <= ~3.5deg (never pokes the wall)
+              if (Math.abs(dw) < 0.0004) sa *= 0.86;                              // settle to level when the scroll stops
+              this._sloshV = sv; this._sloshA = sa;
+              var n = this._wbLiquidPlane.normal.set(sa, -1, 0); n.normalize();
+              this._wbLiquidPlane.constant = -n.y * (wby + fill);                  // surface through (0, wby+fill, 0), tilted by slosh
+            }
             this._wb.rotation.z = rz2;
             this._wbMats.forEach(function (m) { m.opacity = m._op0 * a2; });
             // the stopper: on 0.06→0.34 seated · off 0.34→0.48 lifts aside ·
@@ -2351,10 +2406,10 @@
             // back — no re-seat (user: "let the cap come off and let it
             // disappear forever"). Scrub-driven, so rewinding restores it.
             if (this._wbCork && this._wbHolder) {
-              var corkK = 1 - smoothstep(0.55, 0.70, w);
+              var corkK = 1 - smoothstep(0.56, 0.72, w);
               if (this._wbCorkMats) for (var ci = 0; ci < this._wbCorkMats.length; ci++) this._wbCorkMats[ci].opacity *= corkK;
               this._wbCork.visible = corkK > 0.002;
-              var off = smoothstep(0.34, 0.48, w);
+              var off = smoothstep(0.28, 0.44, w);
               this._wb.updateMatrixWorld(true);
               // seated pose: where the cork sits ON the vessel (follows its tilt)
               var seatM = new THREE.Matrix4().multiplyMatrices(
@@ -2374,7 +2429,7 @@
               this._wbCork.quaternion.copy(_sq).slerp(upQ, off);
               this._wbCork.scale.copy(_ss);
             }
-            wp = smoothstep(0.60, 0.65, w) * (1 - smoothstep(0.70, 0.76, w)); // pour, only while tilted
+            wp = smoothstep(0.58, 0.66, w) * (1 - smoothstep(0.80, 0.86, w)); // pour, only while tilted (widened to slow the pour beat)
             if (wp > 0.01) {
               // the stream leaves the lip with barely any sideways speed and
               // FALLS — the mouth is over the cup, so gravity does the pouring
@@ -2382,7 +2437,7 @@
                        vx: -0.10 * k2, vy: -0.6, g: 12.5, r0: 0.022 + 0.02 * wp,
                        cupX: this._glass.position.x };
             }
-          } else { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; this._whiskyDisarm(); }
+          } else { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; this._sloshV = 0; this._sloshA = 0; this._wLast = null; this._whiskyDisarm(); }
         }
       } else if (this._wb) { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; this._whiskyDisarm(); }
 
