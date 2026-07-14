@@ -831,7 +831,7 @@
         // THE WALL, scroll-event side: arms here too, so a violent flick that
         // outruns the ticker (or lands while the bottle is offscreen) still
         // hits it — same conditions as _tick, including the 12s release
-        if (!anchorGlideActive() && self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
+        if (!anchorGlideActive() && !window.__conducted && self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
             (!self._wallT || self._clock.elapsedTime - self._wallT < 12)) {
           var end = self._pin.offsetTop + 0.88 * Math.max(1, self._pin.offsetHeight - window.innerHeight);
           if (y > end) self._holdY = end;
@@ -943,7 +943,7 @@
       }
 
       if (p < 0.7) { this._sawHero = true; if (this._level > 0.9) this._wallT = 0; }
-      var wall = !anchorGlideActive() && this._sawHero && !this._noWall && this._pin && this._level > 0.245;
+      var wall = !anchorGlideActive() && !window.__conducted && this._sawHero && !this._noWall && this._pin && this._level > 0.245;
       if (wall) {
         var wallY = this._pin.offsetTop + 0.88 * Math.max(1, this._pin.offsetHeight - window.innerHeight);
         wall = window.scrollY >= wallY - 2;
@@ -960,7 +960,9 @@
       // covers the short mobile pin in a couple of screens of fast scroll,
       // which whipped the bottle around (user: "it spins a lot — slow it
       // down by a lot"). Drag-to-spin and the home-return are untouched.
-      this._rotY += -vel * (this._narrow ? 0.0003 : 0.0018) * dt * 60 * 0.016;
+      // during a conductor auto-glide the machine-driven scroll pumps vel high;
+      // use the gentle (phone) coupling then so the bottle doesn't whip around.
+      this._rotY += -vel * ((this._narrow || anchorGlideActive()) ? 0.0003 : 0.0018) * dt * 60 * 0.016;
       this._rotY += this._spinVel * dt;                 // flick inertia from drag
       this._spinVel *= Math.pow(0.12, dt);              // spins down gradually
       // settle brand-front: once scroll and drag go quiet, ease to the nearest
