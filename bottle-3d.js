@@ -2257,7 +2257,7 @@
               // out as it lifts off the frame; position-driven, so it rewinds.
               box.style.opacity = smoothstep(0.10 * vh, 0.45 * vh, boxMid).toFixed(3);
             } else {
-              var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : Math.min(170, Math.round(vh * 0.2125)); // BELOW the text-box midline: the user-approved 170px, scaling DOWN only on short (Windows) windows — a pure fraction sat too low on tall Mac viewports. Live-tunable in px via ?coords
+              var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : Math.min(170, Math.round(vh * 0.2125)) - 200; // BELOW the text-box midline, minus a 5cm lift (≈200px at the user's ~40px/cm) — the framed cup sat a little low. DESKTOP ONLY (the else branch). Live-tunable in px via ?coords
               var baseOn = boxMid + cupPx * 0.5 + drop;                 // cup visual centre = boxMid + drop
               // wt=1 while the text box is framed (cup locked beside it); eases to
               // 0 (centre-follow) as the box's centre rises past the top.
