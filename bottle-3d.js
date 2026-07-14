@@ -1825,9 +1825,9 @@
         c: this._core.material.color.getHex(),
         p: this._splash.material.color.getHex()
       };
-      this._stream.material.color.setHex(0xd9a441);
-      this._core.material.color.setHex(0xead9a0);
-      this._splash.material.color.setHex(0xdcae5f);
+      this._stream.material.color.setHex(0xe4b962);   // lighter honey-gold — was 0xd9a441 (user: the pour read too brown)
+      this._core.material.color.setHex(0xf2e6bd);
+      this._splash.material.color.setHex(0xe7c074);
     }
     _whiskyDisarm() {
       if (!this._whiskyOn || !this._jetC0) return;
@@ -1933,11 +1933,15 @@
             self._wbLiquidPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), self._wbFillRest);
             var lgeo = new THREE.LatheGeometry(prof, 48);
             var lm = new THREE.MeshPhysicalMaterial({
-              // richer whisky amber — emissive-boosted so it reads golden THROUGH
-              // the frosted crystal shells instead of washing out to cream
-              color: 0xb5641c, roughness: 0.18, metalness: 0,
-              emissive: 0x6a3208, emissiveIntensity: 1.05,
-              transparent: true, opacity: 0.96, envMapIntensity: 1.4, depthWrite: false,
+              // whisky amber rendered FAITHFULLY like the unlit pour stream
+              // (toneMapped:false). The lit path + ACES tone mapping was
+              // desaturating the warm amber toward white through the frosted
+              // crystal shells, so it read pale/thin (user: "the liquid in the
+              // decanter is too thin"). The colour is carried by the emissive so
+              // it stays a rich gold regardless of the studio lighting/frost.
+              color: 0x1c0e02, roughness: 0.35, metalness: 0,
+              emissive: 0xc8842c, emissiveIntensity: 1.15, toneMapped: false,
+              transparent: true, opacity: 0.9, envMapIntensity: 0.35, depthWrite: false,
               side: THREE.DoubleSide, clippingPlanes: [self._wbLiquidPlane]
             });
             var lmesh = new THREE.Mesh(lgeo, lm);
