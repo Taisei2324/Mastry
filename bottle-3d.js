@@ -2637,6 +2637,7 @@
               wjet = { x0: lipX - dxu * inset, y0: lipY - dyu * inset,
                        vx: dxu * sp, vy: Math.min(-0.12, dyu * sp),
                        g: 12.5, r0: 0.022 + 0.02 * wp,
+                       organic: true,   // the hero pour's physics: varicose wave, breakup, droplets
                        cupX: this._glass.position.x };
             }
           } else { this._wb.visible = false; if (this._wbCork) this._wbCork.visible = false; this._sloshV = 0; this._sloshA = 0; this._wLast = null; this._whiskyDisarm(); }
@@ -2773,6 +2774,7 @@
     _updateJet(pour, jet, waterY, time) {
       var stream = this._stream, core = this._core;
       if (pour <= 0.01) {
+        this._jetBk = null;
         stream.material.opacity = Math.max(0, stream.material.opacity - 0.08);
         core.material.opacity = Math.max(0, core.material.opacity - 0.12);
         if (stream.material.opacity <= 0.01) { stream.visible = false; core.visible = false; }
@@ -2798,16 +2800,41 @@
         corr = jet.cupX - (jet.x0 + jet.vx * tofl);
         if (corr > 0.4) corr = 0.4; else if (corr < -0.4) corr = -0.4;
       }
+      // ── ORGANIC (whisky) mode: the HERO pour's physics, copied verbatim
+      // from Bottle3D._updateStream (user: "just like the one above it") —
+      // mass-conservation taper, a Plateau–Rayleigh varicose wave that
+      // DEEPENS downstream, the same breakup length, the neck-in at the
+      // pinch-off, and the lateral wander. Past the breakup the tube ends
+      // and _updateSplash rains it on as prolate droplets (this._jetBk).
+      var organic = !!jet.organic;
+      var v0m = Math.max(0.2, Math.sqrt(jet.vx * jet.vx + jet.vy * jet.vy));
+      var Lb = Math.min(6.5, Math.max(0.14, 26 * v0m * Math.pow(r0, 0.75)));
+      var s = 0, bk = null;
       for (var i = 0; i < RINGS; i++) {
         var tt = i * dtt;
         var wy = jet.y0 + jet.vy * tt - 0.5 * G * tt * tt;
         var u = time - tt;
         var fr = tt / Math.max(1e-4, tofl);
+        var cvx = jet.vx + 2 * corr * fr / Math.max(1e-4, tofl);   // includes the cup-bend drift
+        var cvy = jet.vy - G * tt;
+        var spd = Math.sqrt(cvx * cvx + cvy * cvy);
+        if (i > 0) s += spd * dtt;
         // the identical throat flare as the bottle's jet — same birth at the lip
         var thr = 1 - fr / 0.10; if (thr < 0) thr = 0;
-        var r = r0 * (1 - 0.22 * fr) * (1 + 0.07 * Math.sin(u * 22.0)) * (1 + 0.35 * thr * thr);
-        if (r < 0.008) r = 0.008;
         var wx = jet.x0 + jet.vx * tt + corr * fr * fr;
+        var r;
+        if (organic) {
+          var rBase = r0 * Math.sqrt(v0m / Math.max(v0m, spd));    // mass conservation: gravity stretches, the jet thins
+          var frac = s / Lb;
+          r = rBase * (1 + (0.08 + 0.95 * frac * frac) * 0.42 * Math.sin(s * 10.5 - time * 30));
+          if (frac > 0.78) r *= Math.max(0.10, 1 - (frac - 0.78) * 3.6); // necks into the pinch-off
+          r *= (1 + 0.35 * thr * thr);                             // keep the lip wrap (nappe)
+          if (r < 0.003) r = 0.003;
+          wx += Math.sin(s * 7.5 - time * 11) * 0.016 * frac;      // lateral wander grows down-stream
+        } else {
+          r = r0 * (1 - 0.22 * fr) * (1 + 0.07 * Math.sin(u * 22.0)) * (1 + 0.35 * thr * thr);
+          if (r < 0.008) r = 0.008;
+        }
         for (var j = 0; j < SEG; j++) {
           var a2 = j / SEG * Math.PI * 2;
           var nx = Math.cos(a2), nz = Math.sin(a2);
@@ -2820,8 +2847,14 @@
           posC[o] = wx + nx * rc; posC[o + 1] = wy; posC[o + 2] = nz * rc;
         }
         nr = i + 1;
+        if (organic && s >= Lb && fr > 0.12 && wy > waterY + 0.05) {
+          // pinched off mid-air: hand the rest of the fall to droplets
+          bk = { x: wx, y: wy, vx: cvx, vy: cvy };
+          break;
+        }
         if (wy <= waterY) break;
       }
+      this._jetBk = bk; this._jetBkPour = pour;
       stream.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
       core.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
       stream.geometry.attributes.position.needsUpdate = true;
@@ -2848,6 +2881,23 @@
             x: x + Math.cos(ang) * rs, y: waterY + 0.005, z: Math.sin(ang) * rs,
             vx: Math.cos(ang) * sp, vy: 1.5 + Math.random() * 1.8 * pour, vz: Math.sin(ang) * sp,
             life: 0.55, s: 0.5 + Math.random() * 0.9
+          });
+        }
+      }
+      // past the whisky jet's Plateau–Rayleigh pinch-off (this._jetBk, set by
+      // _updateJet's organic mode), the column rains on as prolate droplets —
+      // the hero pour's exact hand-over. They inherit the breakup velocity
+      // (cup-bend included), fall under the same gravity, and die at the
+      // water where the splash ejecta above takes over the impact.
+      var bk = this._jetBk;
+      if (bk) {
+        this._dripClock = (this._dripClock || 0) + dt * (26 + 40 * (this._jetBkPour || 0));
+        var nd = Math.floor(this._dripClock); this._dripClock -= nd;
+        for (var kd = 0; kd < nd && data.length < mesh.instanceMatrix.count; kd++) {
+          data.push({
+            x: bk.x + (Math.random() - 0.5) * 0.02, y: bk.y, z: (Math.random() - 0.5) * 0.02,
+            vx: bk.vx + (Math.random() - 0.5) * 0.12, vy: bk.vy + (Math.random() - 0.5) * 0.3, vz: (Math.random() - 0.5) * 0.1,
+            life: 0.9, s: 0.55 + Math.random() * 0.75
           });
         }
       }
