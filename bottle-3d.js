@@ -1960,33 +1960,35 @@
               bgeo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(norm, bodyPrim.matrixWorld));
               bgeo.computeBoundingBox();
               var by0 = bgeo.boundingBox.min.y, by1 = bgeo.boundingBox.max.y, BN = 26;
-              var bp = bgeo.attributes.position, mn = [];
+              var bp = bgeo.attributes.position, bnr = bgeo.attributes.normal, mn = [];
               for (var bi = 0; bi < BN; bi++) mn[bi] = 1e9;
               for (var vi = 0; vi < bp.count; vi++) {
+                // WALLS ONLY: the mouth is modelled with a flat closed centre
+                // face (and the collar has flat top rings) whose vertices span
+                // r 0..rim and used to poison the min-radius of the top bands.
+                // Flat faces point along the axis (|ny|≈1); walls point out.
+                if (bnr && Math.abs(bnr.getY(vi)) > 0.88) continue;
                 var vx = bp.getX(vi), vy = bp.getY(vi), vz = bp.getZ(vi);
                 var rr = Math.sqrt(vx * vx + vz * vz), yi = Math.floor((vy - by0) / (by1 - by0) * BN);
                 if (yi < 0) yi = 0; if (yi >= BN) yi = BN - 1;
                 if (rr < mn[yi]) mn[yi] = rr;
               }
-              var lastR = 0, fillTopY = by0 + 0.90 * (by1 - by0);
+              // the column runs base → MOUTH (the hero bottle's "ONE liquid"
+              // lesson — a lathe stopping short showed an EMPTY neck under a
+              // full stream), and it follows the REAL inscribed bore the whole
+              // way: a constant-radius neck extension poked through the wall
+              // where the neck tightens (user: "whiskey popping out of the
+              // neck"). Fill lines stay keyed to the 90% mark as before.
+              var lastR = 0;
               for (var pi = 0; pi < BN; pi++) {
                 var yy = by0 + (pi + 0.5) / BN * (by1 - by0);
-                if (yy > fillTopY) break;                       // top bands are polluted by the mouth's closed centre face — don't sample them
-                var rIns = (mn[pi] < 1e8 ? mn[pi] : lastR) * 0.90;
-                if (pi > BN * 0.6 && rIns > lastR) rIns = lastR; // neck only narrows, never balloons back out
+                var rIns = (mn[pi] < 1e8 ? mn[pi] : lastR / 0.90) * 0.90;
+                if (pi > BN * 0.6 && lastR > 0 && rIns > lastR) rIns = lastR; // neck only narrows, never balloons back out
                 lastR = rIns;
                 prof.push(new THREE.Vector2(Math.max(0.003, rIns), yy));
               }
-              // ...but the column itself must run TO THE MOUTH (the hero
-              // bottle's "ONE liquid" lesson): with the lathe stopping at 90%
-              // the tipped pour showed an EMPTY neck under a full stream — the
-              // whisky visibly never reached the lip it was pouring from.
-              // Extend the bore at the last clean inscribed radius; the FILL
-              // LINES below stay keyed to the old 90% mark, so the upright
-              // level is unchanged — only the tipped neck now carries amber.
-              prof.push(new THREE.Vector2(Math.max(0.003, lastR), by1 - 0.004));
               self._wbBase = by0;
-              self._wbTopY = fillTopY;
+              self._wbTopY = by0 + 0.90 * (by1 - by0);
             }
             if (!prof.length) {   // fallback: straight cylinder from the liquid bbox
               geo.computeBoundingBox(); var gb = geo.boundingBox;
@@ -2559,10 +2561,8 @@
             if (wp > 0.01) {
               // emit from the decanter's ACTUAL lip: the lowest point of the
               // mouth rim under the vessel's live tilt (fit at load, solved
-              // analytically here). The old formula used the mouth AXIS centre,
-              // which sits ~0.15 above the tilted lip — the stream visibly
-              // started inside the mouth instead of spilling off the spout.
-              var lipX, lipY, outX = 0;
+              // analytically here — no facet jitter).
+              var lipX, lipY, dxu = 0, dyu = -1;
               if (this._wbLipC && this._wbHolder) {
                 this._wbHolder.updateWorldMatrix(true, false);
                 var M = this._wbHolder.matrixWorld;
@@ -2577,16 +2577,25 @@
                   var cT = -a / mag, sT = -b / mag;
                   lipX = Cw.x + R * (cT * Uw.x + sT * Vw.x);
                   lipY = Cw.y + R * (cT * Uw.y + sT * Vw.y);
+                  dxu = (lipX - Cw.x) / R; dyu = (lipY - Cw.y) / R; // unit downhill direction IN the rim plane
                 } else { lipX = Cw.x; lipY = Cw.y; } // vessel upright — no defined low point
-                outX = lipX - Cw.x;                    // horizontal offset toward the pour side
               } else {                                  // fallback: the old axis-mouth point
                 lipX = wbx - 0.75 * Math.sin(rz2);
                 lipY = wby + 0.75 * Math.cos(rz2);
               }
-              // it FALLS off the lip — a gentle outward lean that grows with the
-              // pour strength (a trickle hugs the spout, a full tip arcs a little)
-              wjet = { x0: lipX, y0: lipY,
-                       vx: outX * (0.6 + 0.8 * wp) - 0.05 * k2, vy: -(0.45 + 0.35 * wp),
+              // REALISTIC EXIT (user: "there should be a curve from the lip to
+              // the stream, not a straight cut-off"): the liquid doesn't drop
+              // off the lip point — it SLIDES ACROSS the tilted mouth and
+              // launches TANGENT to it. Start the arc a little INSIDE the
+              // mouth (the head overlaps the liquid surface — no seam) with
+              // velocity along the rim plane's downhill direction; gravity
+              // then bends it over the lip into the fall — the nappe curve.
+              // The jet's built-in throat flare widens the first 10%, so the
+              // head visually wraps the lip edge. All pure functions of w.
+              var inset = (this._wbLipR || 0.15) * 0.5;
+              var sp = 0.55 + 0.75 * wp;                 // exit speed grows with the pour
+              wjet = { x0: lipX - dxu * inset, y0: lipY - dyu * inset,
+                       vx: dxu * sp, vy: Math.min(-0.12, dyu * sp),
                        g: 12.5, r0: 0.022 + 0.02 * wp,
                        cupX: this._glass.position.x };
             }
