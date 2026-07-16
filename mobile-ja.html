@@ -11,6 +11,25 @@ if(pref!=='mobile'){var small=matchMedia('(max-width:760px)').matches,coarse=mat
 if(!(small||ua||(coarse&&matchMedia('(max-width:900px)').matches))){location.replace(D);return;}}}
 window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<script>/* Mastry TIER: persist a ?slow/?fast override, set window.__mastryLite
+  (LITE=slow) before the engine boots, and inject the RIGHT preloads — FAST warms
+  the 3.97MB bottle.glb; LITE skips it and warms only the label the lathe needs
+  ("lower gibs on slow wifi"). Auto-detect only downgrades phones. */
+(function(){var lite=false;try{var q=location.search;
+  if(/[?&]slow\b/.test(q))localStorage.setItem('mastry-tier','slow');
+  else if(/[?&]fast\b/.test(q))localStorage.setItem('mastry-tier','fast');
+  var t=localStorage.getItem('mastry-tier');
+  if(t==='slow')lite=true;else if(t==='fast')lite=false;
+  else if(window.__forceMobile||matchMedia('(max-width:760px)').matches){
+    var ts=+localStorage.getItem('mastry-net-ts')||0;
+    if(localStorage.getItem('mastry-net')==='slow'&&Date.now()-ts<6048e5)lite=true;
+    else{var c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+    if(c){if(c.saveData)lite=true;else if(/(^|-)2g$|(^|-)3g$/.test(c.effectiveType||''))lite=true;
+    else if(c.downlink>0&&c.downlink<4.5)lite=true;else if(c.rtt>300&&c.effectiveType!=='4g')lite=true;}}}
+  }catch(e){}window.__mastryLite=lite;
+  try{var h=document.head,mk=function(rel,href,as,co){var l=document.createElement('link');l.rel=rel;l.href=href;if(as)l.as=as;if(co)l.setAttribute('crossorigin','anonymous');h.appendChild(l);};
+  if(lite)mk('preload','assets/label-full.jpg','image');
+  else{mk('preload','assets/bottle.glb','fetch',1);mk('prefetch','assets/glass.glb','fetch',1);}}catch(e){}})();</script>
 <title>MASTRY — マスティック炭酸水 · ヒオス島 × 日本</title>
 <meta name="description" content="マストリーは、ギリシャ・ヒオス島の樹脂の結晶「マスティック」を、日本の精密なものづくりで仕立てた炭酸水。砂糖ゼロ。原材料は3つ。二つの古き島から。" />
 <meta property="og:type" content="website" />
@@ -29,10 +48,9 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="mobile.css?v=20260714m5" />
+<link rel="stylesheet" href="mobile.css?v=20260714m6" />
 <style>:root{--sans:"Inter","Noto Sans JP",system-ui,sans-serif;--serif:"Cormorant Garamond","Noto Serif JP",serif;}</style>
-<link rel="preload" href="assets/bottle.glb" as="fetch" crossorigin />
-<link rel="prefetch" href="assets/glass.glb" as="fetch" crossorigin />
+<!-- hero-model preloads injected conditionally by the tier script (FAST: bottle.glb+glass.glb · LITE: label-full.jpg) -->
 <script type="module" fetchpriority="low" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 </head>
 <body>
@@ -400,9 +418,11 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
     alt="墨絵のパノラマ：崖の松と富士山、海の向こうのギリシャの神殿、その間を行く舟人、青海波の縁取り" loading="lazy" />
 </footer>
 
-<script src="mobile.js?v=20260714m5"></script>
+<script src="mobile.js?v=20260714m6"></script>
 <script src="vendor/three-0.147.0.min.js"></script>
 <script src="vendor/GLTFLoader-0.147.0.js"></script>
-<script src="bottle-3d.js?v=20260714m5"></script>
+<script src="bottle-3d.js?v=20260714m6"></script>
+<script>addEventListener('load',function(){try{if(!window.__mastryLite){var e=performance.getEntriesByName(new URL('assets/bottle.glb',location.href).href)[0];if(e&&e.transferSize>0&&e.duration>0){localStorage.setItem('mastry-net',(e.transferSize/(e.duration/1000))<2e5?'slow':'fast');localStorage.setItem('mastry-net-ts',Date.now());}}}catch(e){}});</script>
+<script>if('serviceWorker'in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).catch(function(){});});}</script>
 </body>
 </html>

@@ -263,6 +263,7 @@
     disconnectedCallback() {
       _pourHandoff.hasBottle = false; _pourHandoff.live = false;
       cancelAnimationFrame(this._raf);
+      if (this._glbTimer) { clearTimeout(this._glbTimer); this._glbTimer = null; } // a pending GLB-timeout must not fire onto a disposed renderer
       if (this._ro) this._ro.disconnect();
       if (this._io) this._io.disconnect();
       document.removeEventListener('visibilitychange', this._onVis);
@@ -357,11 +358,54 @@
 
     _buildBottle(parent) {
       this._buildWater(parent);
-      // glass + label + cap come from the user's Blender GLB when provided;
-      // the runtime lathe (same silhouette) is the fallback
+      // glass + label + cap come from the user's Blender GLB when provided; the
+      // runtime lathe (same silhouette) is the fallback. On a slow connection a
+      // pending 3.97MB GLB never fires onError, so a hard timeout + the LITE
+      // skip guarantee the glass body ALWAYS renders. _glassBuilt is the
+      // single-writer race gate (set ONLY by the two body builders — never in
+      // _addGlassShells, which _buildWater also uses for the neck run).
+      this._glassBuilt = false; this._latheBuilt = false; this._glbTimer = null;
+      this._decideBody(parent);
+    }
+
+    // LITE (slow) tier? window.__mastryLite (set in the page head) is
+    // authoritative; the self-contained fallback keeps the engine correct even
+    // standalone. Auto-detect only ever downgrades PHONES — the bug is mobile.
+    _isLite() {
+      if (typeof window.__mastryLite === 'boolean') return window.__mastryLite;
+      try {
+        var t = localStorage.getItem('mastry-tier');
+        if (t === 'slow') return true;
+        if (t === 'fast') return false;
+        if (!(window.__forceMobile || window.innerWidth <= 760)) return false;
+        var ts = +localStorage.getItem('mastry-net-ts') || 0;
+        if (localStorage.getItem('mastry-net') === 'slow' && Date.now() - ts < 6048e5) return true; // measured, <7d
+        var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (c) {
+          if (c.saveData) return true;
+          if (/(^|-)2g$|(^|-)3g$/.test(c.effectiveType || '')) return true;
+          if (c.downlink > 0 && c.downlink < 4.5) return true;         // just under DevTools "Fast 4G"
+          if (c.rtt > 300 && c.effectiveType !== '4g') return true;
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    // exactly one body path, decided once. FAST/desktop → the modelled GLB
+    // (with the 2.5s safety net). LITE → the instant procedural lathe, UNLESS
+    // the real GLB is already in the SW cache (reuse it, zero network).
+    _decideBody(parent) {
       var bottleSrc = this.getAttribute('bottle-src') || this.getAttribute('bottlesrc');
-      if (bottleSrc && THREE.GLTFLoader) this._buildFromGLB(bottleSrc, parent);
-      else this._buildLatheGlass(parent);
+      if (!bottleSrc || !THREE.GLTFLoader) { this._buildLatheGlass(parent); return; }
+      if (!this._isLite()) { this._buildFromGLB(bottleSrc, parent); return; }
+      var self = this, decided = false;
+      var toLathe = function () { if (decided || !self._started) return; decided = true; self._buildLatheGlass(parent); };
+      var toGLB = function () { if (decided || !self._started) return; decided = true; self._buildFromGLB(bottleSrc, parent); };
+      try {
+        var href = new URL(bottleSrc, location.href).href;
+        if (window.caches && caches.match) { setTimeout(toLathe, 200); caches.match(href).then(function (hit) { hit ? toGLB() : toLathe(); }, toLathe); }
+        else toLathe();
+      } catch (e) { toLathe(); }
     }
 
     /* glass rendered as three passes over one geometry: tinted back faces,
@@ -391,12 +435,21 @@
 
     _buildFromGLB(src, parent) {
       var self = this;
+      function commitLathe() { if (self._glassBuilt || !self._started || !self._renderer) return; self._glbTimer = null; self._buildLatheGlass(parent); }
+      // SAFETY NET: a slow GLB never fires onError (pending ≠ failed), so
+      // guarantee the glass within 2.5s with the procedural lathe. A GLB that
+      // resolves AFTER this is ignored wholesale (the _glassBuilt guard) — no
+      // double bottle. THIS is the fix for "only water and lid on slow wifi".
+      self._glbTimer = setTimeout(commitLathe, 2500);
       new THREE.GLTFLoader().load(src, function (g) {
+        if (self._glassBuilt || !self._started || !self._renderer) return; // lathe already committed, or detached mid-load
+        if (self._glbTimer) { clearTimeout(self._glbTimer); self._glbTimer = null; }
         g.scene.updateMatrixWorld(true);
         var prims = [];
         g.scene.traverse(function (o) { if (o.isMesh) prims.push(o); });
         var box = new THREE.Box3().setFromObject(g.scene);
         if (!prims.length || box.isEmpty()) return fail();
+        self._glassBuilt = true; // committing to the modelled bottle — the timeout/lathe stands down
         // normalize the whole model: base at y=0, total height H, centred on the axis
         var s = H / (box.max.y - box.min.y);
         var norm = new THREE.Matrix4().makeScale(s, s, s).multiply(
@@ -429,14 +482,17 @@
         });
         if (!self._hasGLBCap) self._loadCapOBJ();
       }, undefined, fail);
-      function fail() { self._buildLatheGlass(parent); }
+      function fail() { if (self._glbTimer) { clearTimeout(self._glbTimer); self._glbTimer = null; } commitLathe(); }
     }
 
     _buildLatheGlass(parent) {
+      if (this._latheBuilt || this._glassBuilt) return; // idempotent: called from _decideBody, the 2.5s timeout, AND fail() — build exactly once
+      this._latheBuilt = true; this._glassBuilt = true;
       var pts = PROFILE.map(function (p) { return new THREE.Vector2(p[0], p[1]); });
       this._addGlassShells(parent, new THREE.LatheGeometry(pts, 144));
-      // label: wrap texture on a PROFILE-sized cylinder
-      var tex = new THREE.TextureLoader().load((this.getAttribute('label-src') || 'assets/label.jpg'));
+      // label: wrap texture on a PROFILE-sized cylinder (the glass shells render
+      // WITHOUT it, so a slow label never gates the glass-body guarantee)
+      var tex = new THREE.TextureLoader().load((this.getAttribute('label-src') || 'assets/label-full.jpg'));
       tex.encoding = THREE.sRGBEncoding;
       tex.wrapS = THREE.RepeatWrapping;
       tex.anisotropy = this._renderer.capabilities.getMaxAnisotropy();
@@ -534,7 +590,7 @@
       // max-LOD OBJ cap (assets/cap.obj); procedural fallback below.
       // Phones skip the 6.7MB download outright — at hand-held size the
       // procedural cap reads identically, and cellular gets its bandwidth back.
-      if (window.innerWidth <= 760) return this._buildProceduralCap();
+      if (window.innerWidth <= 760 || window.__mastryLite) return this._buildProceduralCap(); // LITE desktop: don't newly fetch the 6.7MB cap.obj on the lathe path
       var self = this;
       var src = this.getAttribute('cap-src') || this.getAttribute('capsrc') || 'assets/cap.obj';
       fetch(src)
@@ -1799,8 +1855,22 @@
       // backstop so it always arrives. ?nowhisky disables the whole act.
       if (!/[?&]nowhisky/.test(location.search)) (function (self) {
         var fired = false, go = function () { if (fired) return; fired = true; self._loadWhisky(); };
-        window.addEventListener('scroll', go, { once: true, passive: true });
-        setTimeout(go, 3500);
+        if (window.__mastryLite) {
+          // LITE: never during the hero. Wait for the first real scroll, THEN
+          // watch the actual pour stage (.highball) approach; a 12s backstop
+          // guarantees the whisky act still plays if the reader never scrolls.
+          window.addEventListener('scroll', function () {
+            var stage = document.querySelector('.highball') || self;
+            try {
+              var io = new IntersectionObserver(function (en) { if (en[0].isIntersecting) { io.disconnect(); go(); } }, { rootMargin: '0px 0px 100% 0px' });
+              io.observe(stage);
+            } catch (e) { go(); }
+          }, { once: true, passive: true });
+          setTimeout(go, 12000);
+        } else {
+          window.addEventListener('scroll', go, { once: true, passive: true });
+          setTimeout(go, 3500);
+        }
       })(this);
       this._resize();
     }
@@ -2131,7 +2201,7 @@
     /* swap the procedural tumbler for the user's rendered glass when given */
     _loadGlassSrc(g) {
       var src = this.getAttribute('glass-src') || this.getAttribute('glasssrc');
-      if (!src || !THREE.GLTFLoader) return;
+      if (!src || !THREE.GLTFLoader || window.__mastryLite) return; // LITE keeps the procedural tumbler (saves 1.5MB); the pour target survives
       var self = this;
       this._glbTries = (this._glbTries || 0) + 1;
       new THREE.GLTFLoader().load(src, function (m) {

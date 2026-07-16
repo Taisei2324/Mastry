@@ -233,5 +233,6 @@
   });
 })();
 </script>
+<script>/* one SW at /Mastry/ controls every entry point */if('serviceWorker'in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).catch(function(){});});}</script>
 </body>
 </html>
