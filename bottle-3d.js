@@ -2351,7 +2351,7 @@
               // beautifully" still keeps its screen-centre placement. Position-
               // driven → rewinds cleanly. Live-tunable in px via ?coords __cupLift.
               var titleFramed = smoothstep(0.50 * vh, 0.72 * vh, boxMid);
-              var lift = (typeof window.__cupLift === "number") ? window.__cupLift : Math.round(vh * 0.075);
+              var lift = (typeof window.__cupLift === "number") ? window.__cupLift : 0; // user: cup DEAD-CENTRE (v+h) on the "Two ancient islands" still — was vh*0.075. Live-tunable via ?coords __cupLift.
               baseScr -= lift * titleFramed;
             } else {
               var drop = (typeof window.__cupDrop === "number") ? window.__cupDrop : Math.min(170, Math.round(vh * 0.2125)) - 200; // BELOW the text-box midline, minus a 5cm lift (≈200px at the user's ~40px/cm) — the framed cup sat a little low. DESKTOP ONLY (the else branch). Live-tunable in px via ?coords

@@ -535,8 +535,15 @@
     // freeze it") — box flush with the viewport bottom, centred cup above.
     function cupFrameY() {
       if (calmScroll) {
+        // PHONES: freeze with the title text directly UNDER the screen-centred
+        // cup (user: "text right under the cup, a little higher"). The box top
+        // lands just below the cup's bottom edge (cup centred → bottom = vh/2 +
+        // cupHalf), instead of the old box-bottom-flush-with-viewport-bottom.
         var br = box.getBoundingClientRect();
-        return Math.round(br.top + window.scrollY + br.height - vh());
+        var gEl = document.querySelector("glass-3d");
+        var cupHalf = (gEl && gEl._cupPx) ? gEl._cupPx / 2 : innerWidth * 0.29;
+        var underCupTop = vh() * 0.5 + cupHalf + 22; // 22px gap beneath the cup
+        return Math.round(br.top + window.scrollY - underCupTop);
       }
       var r = box.getBoundingClientRect(), y = window.scrollY;
       var raw = r.top + y + r.height / 2 - 0.5 * vh();

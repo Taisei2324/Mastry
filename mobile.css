@@ -829,8 +829,8 @@ html[data-conduct="done"] .guidecue{opacity:0!important;}
      line); the whole text box sits COMPACT on the RIGHT so they never overlap */
   .herowords__pour{left:19%;height:40%;}
   .highball__copy{
-    justify-content:flex-end;align-items:center;text-align:center;
-    padding:0 20px 12svh;
+    justify-content:flex-start;align-items:center;text-align:center;
+    padding:calc(50svh + 135px) 20px 0; /* the "Splits beautifully" line sits directly UNDER the screen-centred cup (cup half ~113px + gap) */
   }
   .herowords__glass{width:64px;}
   /* phone: three quiet screens between the bottle's pour and the title —
