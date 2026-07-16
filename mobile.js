@@ -655,6 +655,10 @@
     var bottle = document.querySelector(".heropin bottle-3d");
     var F = window.__mastryFreeze;
     if (!pin || !F) return;
+    // deep-linked load (#find etc.): the browser's async hash jump fires AFTER
+    // the listeners arm, and the gate would read it as a downward leak and
+    // yank the reader back up. A hash reader chose a destination — stand down.
+    if (location.hash) return;
     // negative-exponential time constants per segment (ms): ~95% of the
     // travel lands within 3τ — tune the feel here
     var TAU_POUR = 900, TAU_TITLE = 600, TAU_WHISKY = 1500;   // one smooth (no-stop) whisky glide — slow enough not to blow by

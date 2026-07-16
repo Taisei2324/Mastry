@@ -657,6 +657,11 @@
     var bottle = document.querySelector(".heropin bottle-3d");
     var F = window.__mastryFreeze;
     if (!pin || !F) return;
+    // deep-linked load (merch → index.html#find): the browser's async hash jump
+    // fires AFTER arm(), and the gate (which now clamps ALL desktop leaks)
+    // would read it as a downward leak and yank the reader back to the top.
+    // A hash reader chose a destination — no conducting this load at all.
+    if (location.hash) return;
     // negative-exponential time constants per segment (ms): ~95% of the
     // travel lands within 3τ — tune the feel here
     var TAU_POUR = 900, TAU_TITLE = 600, TAU_WHISKY = 1500;   // one smooth (no-stop) whisky glide — slow enough not to blow by
@@ -816,27 +821,43 @@
       if (tgt && (/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(tgt.tagName) || tgt.isContentEditable ||
           (tgt.closest && tgt.closest('a[href],button,[role="button"],[role="tab"],[tabindex],summary,label')))) return;
       var k = e.key;
-      // ArrowDown / PageDown / Space advance one chapter. End & Home are left
-      // NATIVE (jump to footer / top) so a keyboard reader is never trapped.
+      // ArrowDown / PageDown / Space advance one chapter. Home stays NATIVE
+      // (upward is always free). End = the keyboard ESCAPE: the gate now clamps
+      // native downward motion (Windows driver-scroll fix), so an End jump
+      // RELEASES the conductor first — a keyboard reader is never trapped.
       if (k === "ArrowDown" || k === "PageDown" || k === " " || k === "Spacebar") { e.preventDefault(); activate(); }
+      else if (k === "End") { release(); }
       else if (k === "ArrowUp" || k === "PageUp") {
         if (window.scrollY > 4) { idleOff = true; clearTimeout(idleT); clearTimeout(idleCueT); docEl.removeAttribute("data-conduct-idle"); }
         if (state !== "wait" && state !== "done") abortToFree();
       }
     }
-    // the one-way gate's backstop is TOUCH-ONLY: on a touchscreen iOS keeps a
-    // gesture native once granted, so a committed up-swipe that hooks back down
-    // must be clamped. On a MOUSE/keyboard desktop we must NEVER trap native
-    // downward scroll — the scrollbar thumb, scrollbar-track click, middle-click
-    // autoscroll, Ctrl+F find-in-page, Tab focus-scroll and the End key all
-    // depend on it — so the clamp is gated behind a coarse (touch) pointer.
+    // the one-way gate's backstop now catches EVERY pointer. It was touch-only
+    // (desktop native scroll passed freely for scrollbar/middle-click/Ctrl+F),
+    // but on Windows many mouse wheels scroll WITHOUT wheel events — vendor
+    // drivers (Logitech/Razer "smooth scroll", free-spin wheels) and scrollbar
+    // messages move scrollY directly, so onWheel never fired and the wheel
+    // BLASTED past every checkpoint (user: "windows has a bypass through the
+    // animation because of the mouse scroll — make the windows user go through
+    // the animation with checkpoints"). Desktop leaks now snap back and CONVERT
+    // into a proper activation, so any downward intent still advances — through
+    // the checkpoints, never past them. UP stays native and free, always.
+    // Escape hatches: End key = skip the story (release), nav/anchor clicks
+    // release (below), ?noguide kills the conductor entirely.
     var coarsePointer = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
     function onScrollGate() {
-      if (state === "tween" || state === "hold") return; // the conductor is driving/holding
+      if (state === "tween") return;                     // the conductor is driving (its own writes land here)
       var y = window.scrollY;
-      if (y < lockY) lockY = y;                             // riding up freely: the gate follows
-      else if (coarsePointer && y > lockY + 2) snapTo(lockY); // touch only: clamp a native downward leak
-      else if (y > lockY) lockY = y;                        // desktop: let mouse/kbd scroll pass, gate follows
+      if (state === "hold") {
+        // desktop: enforce the hold against driver-scroll/scrollbar leaks.
+        // (touch path unchanged — momentum dies inside the tween on phones)
+        if (!coarsePointer && y > lockY + 2) snapTo(lockY);
+        return;
+      }
+      if (y < lockY) { lockY = y; return; }              // riding up freely: the gate follows
+      if (y <= lockY + 2) return;                        // settled on the gate
+      snapTo(lockY);                                     // downward leak: back to the checkpoint...
+      if (!coarsePointer && state === "wait") activate(); // ...and on desktop it still ADVANCES — as a glide (touch keeps its gesture-driven activation)
     }
     function arm() {
       released = false; idleOff = false; clearTimeout(timer); lockY = window.scrollY;
