@@ -22,13 +22,29 @@
     });
   }
 
-  /* ── loader ── */
+  /* ── loader: STAGE-1 GATE — the veil holds until the HERO is ready ──
+     bottle-3d.js sets window.__heroReady (+ fires mastry:heroready) when the
+     bottle's body path COMMITS (real GLB with label+cap, or the fallback).
+     While the veil is up the engine keeps waiting for the REAL bottle (up to
+     7s), so "sometimes the bottle doesn't load on reload" becomes "the
+     loading screen runs a little longer" instead. Ceilings keep it a veil,
+     never a trap: 3.5s once the hero is ready, 8s absolute. */
   var loader = document.getElementById("loader");
+  function loaderDone() {
+    if (!loader || loader.classList.contains("done")) return;
+    loader.classList.add("done");
+    document.dispatchEvent(new CustomEvent("mastry:loaderdone")); // conductor re-arms its idle clock off this
+  }
+  var pageLoaded = false, brandMin = false;
+  function tryLoaderDone() { if (pageLoaded && brandMin && window.__heroReady) loaderDone(); }
   window.addEventListener("load", function () {
-    setTimeout(function () { loader.classList.add("done"); }, reduceMotion ? 0 : 900);
+    pageLoaded = true;
+    setTimeout(function () { brandMin = true; tryLoaderDone(); }, reduceMotion ? 0 : 900);
   });
+  document.addEventListener("mastry:heroready", tryLoaderDone);
   /* safety: never trap the user behind the loader */
-  setTimeout(function () { loader.classList.add("done"); }, 3500);
+  setTimeout(function () { if (window.__heroReady) loaderDone(); }, 3500);
+  setTimeout(loaderDone, 8000);
 
   /* ── scroll engine: data-speed (parallax Y), data-drift (X scrub), data-rotate ──
      Layout positions are cached (not read per frame) so scrolling stays 60fps. */
@@ -835,6 +851,10 @@
       var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
       if (a && !released) release();
     }, true);
+    // the loader can now hold up to 8s (stage-1 gate) — restart the idle-assist
+    // clock the moment the veil actually lifts, so its countdown never runs
+    // out while the reader is still staring at the loading screen
+    document.addEventListener("mastry:loaderdone", armIdle);
     // tab hidden mid-glide: land the tween instantly, keep the machine sane
     document.addEventListener("visibilitychange", function () {
       if (document.hidden && state === "tween") { clearTimeout(timer); snapTo(tweenTo); lockY = tweenTo; arrive(); }

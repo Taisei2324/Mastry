@@ -30,6 +30,15 @@
     window.scrollTo(0, 0);
     de.style.scrollBehavior = pb;
   }
+  /* STAGE-1 READY: the hero bottle's body path has COMMITTED (the real GLB —
+     glass + label + cap — or the procedural fallback). The page loader HOLDS
+     until this fires (script.js/mobile.js), so the reader never meets a
+     half-built bottle; stage-2 assets (the decanter) also key off it. */
+  function markHeroReady() {
+    if (window.__heroReady) return;
+    window.__heroReady = true;
+    try { document.dispatchEvent(new CustomEvent('mastry:heroready')); } catch (e) {}
+  }
   // drop any #hash BEFORE the browser anchors to it (see above) — the URL
   // stays clean so later reloads can't reopen mid-story either
   if (location.hash) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
@@ -250,7 +259,10 @@
       canvas.style.cssText = 'width:100%;height:100%;display:block;';
       this.appendChild(canvas);
       this._canvas = canvas;
-      this._initThree();
+      // no WebGL (hardware accel off, VMs): the renderer constructor throws,
+      // the static hero photo stays (bottle3d-on never lands) — and the page
+      // LOADER must not wait 8s for a hero that can never come: mark ready.
+      try { this._initThree(); } catch (e) { markHeroReady(); _pourHandoff.hasBottle = false; return; }
       this._bindEvents();
       this._clock = new THREE.Clock();
       var self = this;
@@ -440,8 +452,26 @@
       // guarantee the glass within 2.5s with the procedural lathe. A GLB that
       // resolves AFTER this is ignored wholesale (the _glassBuilt guard) — no
       // double bottle. THIS is the fix for "only water and lid on slow wifi".
-      self._glbTimer = setTimeout(commitLathe, 2500);
-      new THREE.GLTFLoader().load(src, function (g) {
+      // ...EXCEPT while the page LOADER still covers the stage: behind the
+      // veil nobody can see an empty hero, so waiting longer for the REAL
+      // bottle (glass + label + cap) is free — keep re-checking up to 7s
+      // (user: "make sure the bottle loads; if it doesn't, make the loading
+      // screen a little longer"). The moment the veil lifts, the 2.5s
+      // visible-stage guarantee is back in force.
+      var glbT0 = Date.now();
+      function loaderUp() { var l = document.getElementById('loader'); return !!(l && !l.classList.contains('done')); }
+      function netCheck() {
+        self._glbTimer = null;
+        if (self._glassBuilt || !self._started || !self._renderer) return;
+        if (Date.now() - glbT0 < 7000 && loaderUp()) { self._glbTimer = setTimeout(netCheck, 400); return; }
+        commitLathe();
+      }
+      self._glbTimer = setTimeout(netCheck, 2500);
+      // test hook: ?glbdelay=N delays the fetch by N ms (verification only)
+      var dm = /[?&]glbdelay=(\d+)/.exec(location.search);
+      var loadGLB = function () { new THREE.GLTFLoader().load(src, onGLB, undefined, fail); };
+      if (dm) setTimeout(loadGLB, Math.min(20000, +dm[1])); else loadGLB();
+      function onGLB(g) {
         if (self._glassBuilt || !self._started || !self._renderer) return; // lathe already committed, or detached mid-load
         if (self._glbTimer) { clearTimeout(self._glbTimer); self._glbTimer = null; }
         g.scene.updateMatrixWorld(true);
@@ -481,7 +511,8 @@
           }
         });
         if (!self._hasGLBCap) self._loadCapOBJ();
-      }, undefined, fail);
+        markHeroReady();   // real bottle committed: glass + label (+ cap) are in
+      }
       function fail() { if (self._glbTimer) { clearTimeout(self._glbTimer); self._glbTimer = null; } commitLathe(); }
     }
 
@@ -504,6 +535,7 @@
       label.renderOrder = 3;
       parent.add(label);
       this._loadCapOBJ();
+      markHeroReady();   // fallback body committed (label/cap streams fill in)
     }
 
     _buildWater(parent) {
@@ -1869,7 +1901,15 @@
           setTimeout(go, 12000);
         } else {
           window.addEventListener('scroll', go, { once: true, passive: true });
-          setTimeout(go, 3500);
+          // STAGE 2: the old flat 3.5s backstop fired while the hero GLB was
+          // still downloading and the 2.9MB decanter STOLE ITS BANDWIDTH on
+          // slow links (part of "sometimes the bottle doesn't load"). The
+          // backstop now waits for the hero to be READY first, +2.5s of calm;
+          // a 15s absolute ceiling still guarantees the whisky act arrives.
+          var back = function () { setTimeout(go, 2500); };
+          if (window.__heroReady) back();
+          else document.addEventListener('mastry:heroready', back, { once: true });
+          setTimeout(go, 15000);
         }
       })(this);
       this._resize();
