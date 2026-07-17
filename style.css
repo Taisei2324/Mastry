@@ -914,11 +914,19 @@ html[data-conduct="done"] .guidecue{opacity:0!important;}
 .stats li:nth-child(4) .stats__n{color:var(--clay);}
 
 .flavours--plain{background:transparent;transition:none;text-align:center;}
-.flavours__plain{
-  list-style:none;margin:clamp(8px,2vw,20px) auto 0;padding:0;max-width:620px;
-  border-top:1px solid var(--hairline);
+.flavours__grid{
+  list-style:none;margin:clamp(28px,4vw,52px) auto 0;padding:0;max-width:1240px;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(20px,2.6vw,40px);
+  text-align:left;
 }
-.flavours__plain li{
-  display:flex;align-items:baseline;gap:22px;
-  padding:20px 10px;border-bottom:1px solid var(--hairline);
+.flavours__shot{
+  display:block;aspect-ratio:2/3;overflow:hidden;background:#fff;
+  border:1px solid var(--hairline);
+}
+.flavours__shot img{width:100%;height:100%;object-fit:cover;display:block;}
+.flavours__cap{display:flex;align-items:baseline;gap:12px;margin-top:14px;}
+.flavours__cap .flavours__no{transition:none;}
+.flavours__cap .flavours__name{font-size:clamp(.95rem,1.05vw,1.08rem);}
+@media (max-width:960px){
+  .flavours__grid{grid-template-columns:repeat(2,1fr);max-width:640px;}
 }

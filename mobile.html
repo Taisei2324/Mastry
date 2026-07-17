@@ -48,7 +48,7 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="mobile.css?v=20260718min1" />
+<link rel="stylesheet" href="mobile.css?v=20260718min2" />
 <!-- the hero bottle model starts downloading WITH the page, not after the script
      chain boots — this is what makes the 3D bottle appear promptly -->
 <!-- hero-model preloads injected conditionally by the tier script (FAST: bottle.glb+glass.glb · LITE: label-full.jpg) -->
@@ -161,11 +161,23 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
 <!-- ══ The line — four waters, no theatre ══ -->
 <section class="flavours flavours--plain section" id="flavours">
   <h2 class="section__title">Four waters. <em>One resin.</em></h2>
-  <ul class="flavours__plain">
-    <li><span class="flavours__no">01</span><span class="flavours__name">Original Mastic</span></li>
-    <li><span class="flavours__no">02</span><span class="flavours__name">Yuzu Mastic</span></li>
-    <li><span class="flavours__no">03</span><span class="flavours__name">Ume Mastic</span></li>
-    <li><span class="flavours__no">04</span><span class="flavours__name">Hinoki Mastic</span></li>
+  <ul class="flavours__grid">
+    <li>
+      <span class="flavours__shot"><img src="images/brand%20new%20original%20catalog.png" srcset="images/m/brand%20new%20original%20catalog.png 512w, images/brand%20new%20original%20catalog.png 1024w" sizes="44vw" alt="Mastry Original Mastic bottle" width="1024" height="1536" loading="lazy" decoding="async"></span>
+      <span class="flavours__cap"><span class="flavours__no">01</span><span class="flavours__name">Original Mastic</span></span>
+    </li>
+    <li>
+      <span class="flavours__shot"><img src="images/Mastry%20ad%20yuzu.png" srcset="images/m/Mastry%20ad%20yuzu.jpg 640w, images/Mastry%20ad%20yuzu.png 1024w" sizes="44vw" alt="Mastry Yuzu Mastic bottle" width="1024" height="1536" loading="lazy" decoding="async"></span>
+      <span class="flavours__cap"><span class="flavours__no">02</span><span class="flavours__name">Yuzu Mastic</span></span>
+    </li>
+    <li>
+      <span class="flavours__shot"><img src="images/Ume%20mastry%20Ad.png" srcset="images/m/Ume%20mastry%20Ad.jpg 640w, images/Ume%20mastry%20Ad.png 1024w" sizes="44vw" alt="Mastry Ume Mastic bottle" width="1024" height="1536" loading="lazy" decoding="async"></span>
+      <span class="flavours__cap"><span class="flavours__no">03</span><span class="flavours__name">Ume Mastic</span></span>
+    </li>
+    <li>
+      <span class="flavours__shot"><img src="images/hinoki%20mastry%20ad.png" srcset="images/m/hinoki%20mastry%20ad.jpg 640w, images/hinoki%20mastry%20ad.png 1024w" sizes="44vw" alt="Mastry Hinoki Mastic bottle" width="1024" height="1536" loading="lazy" decoding="async"></span>
+      <span class="flavours__cap"><span class="flavours__no">04</span><span class="flavours__name">Hinoki Mastic</span></span>
+    </li>
   </ul>
 </section>
 
@@ -240,12 +252,12 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
     alt="Ink panorama: a pine on a cliff and Mount Fuji facing a Greek acropolis across the sea, a lone boatman between them, over a border of seigaiha waves" loading="lazy" />
 </footer>
 
-<script src="mobile.js?v=20260718min1"></script>
+<script src="mobile.js?v=20260718min2"></script>
 <!-- self-hosted (was unpkg — a free CDN whose latency spikes made the bottle
      "sometimes take a couple of seconds"); same-origin loads are consistent -->
 <script src="vendor/three-0.147.0.min.js"></script>
 <script src="vendor/GLTFLoader-0.147.0.js"></script>
-<script src="bottle-3d.js?v=20260718min1"></script>
+<script src="bottle-3d.js?v=20260718min2"></script>
 <script>addEventListener('load',function(){try{if(!window.__mastryLite){var e=performance.getEntriesByName(new URL('assets/bottle.glb',location.href).href)[0];if(e&&e.transferSize>0&&e.duration>0){localStorage.setItem('mastry-net',(e.transferSize/(e.duration/1000))<2e5?'slow':'fast');localStorage.setItem('mastry-net-ts',Date.now());}}}catch(e){}});</script>
 <script>if('serviceWorker'in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).catch(function(){});});}</script>
 </body>
