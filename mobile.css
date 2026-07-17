@@ -891,3 +891,32 @@ html[data-conduct="done"] .guidecue{opacity:0!important;}
   text-decoration:none;border-bottom:1px solid transparent;transition:color .3s,border-color .3s;
 }
 .viewswitch:hover{color:var(--olive);border-bottom-color:var(--olive);}
+
+/* ═══ THE MINIMAL CUT (2026-07) — below the hero, nothing moves ═══
+   Mirrors style.css: static essence + facts row + plain flavour list. */
+.essence{text-align:center;}
+.essence__line{
+  font-family:var(--serif);font-weight:400;
+  font-size:clamp(1.9rem,4vw,3.2rem);line-height:1.25;letter-spacing:.01em;
+  margin:0 auto clamp(48px,7vw,84px);max-width:22em;
+}
+.essence__line em{font-style:italic;color:var(--olive-deep);}
+.essence .stats{max-width:820px;margin:0 auto;}
+.stats__n{ /* static twin of .stats__num — the numbers no longer count up */
+  display:block;font-family:var(--serif);font-weight:300;
+  font-size:clamp(2.6rem,5vw,4rem);line-height:1;color:var(--ink);
+}
+.stats li:nth-child(1) .stats__n{color:var(--creek);}
+.stats li:nth-child(2) .stats__n{color:var(--sun);}
+.stats li:nth-child(3) .stats__n{color:var(--olive);}
+.stats li:nth-child(4) .stats__n{color:var(--clay);}
+
+.flavours--plain{background:transparent;transition:none;text-align:center;}
+.flavours__plain{
+  list-style:none;margin:clamp(8px,2vw,20px) auto 0;padding:0;max-width:620px;
+  border-top:1px solid var(--hairline);
+}
+.flavours__plain li{
+  display:flex;align-items:baseline;gap:22px;
+  padding:20px 10px;border-bottom:1px solid var(--hairline);
+}

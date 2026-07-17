@@ -48,10 +48,9 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="mobile.css?v=20260714m12" />
+<link rel="stylesheet" href="mobile.css?v=20260718min1" />
 <style>:root{--sans:"Inter","Noto Sans JP",system-ui,sans-serif;--serif:"Cormorant Garamond","Noto Serif JP",serif;}</style>
 <!-- hero-model preloads injected conditionally by the tier script (FAST: bottle.glb+glass.glb · LITE: label-full.jpg) -->
-<script type="module" fetchpriority="low" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 </head>
 <body>
 
@@ -70,10 +69,7 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
 <header class="nav" id="nav">
   <a class="nav__logo" href="#top">MASTRY<span class="nav__logo-jp">マストリー</span></a>
   <nav class="nav__links" id="navLinks" aria-label="メイン">
-    <a href="#story">物語</a>
     <a href="#flavours">フレーバー</a>
-    <a href="#seal">印</a>
-    <a href="#ritual">作法</a>
     <a href="merch-ja.html">グッズ</a>
   </nav>
   <div class="nav__lang" aria-label="言語">
@@ -134,7 +130,6 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
     その香りを、日本の精密なものづくりで、きめ細かな炭酸水に閉じ込めました。</p>
     <div class="hero__actions reveal">
       <a class="btn btn--solid" href="#flavours">フレーバーを見る</a>
-      <a class="btn btn--ghost" href="#story">マスティックとは</a>
     </div>
     <p class="hero__foot reveal">ΧΙΟΣ — 日本 &nbsp;·&nbsp; 二つの岸辺から</p>
   </div>
@@ -149,209 +144,35 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
   </div>
 </section>
 
-<!-- ══ Marquee ══ -->
-<div class="marquee" aria-hidden="true">
-  <div class="marquee__track">
-    <span>マスティックの炭酸水 · <em class="mk-jp">Sparkling water</em> · <em class="mk-gr">ΧΙΟΣ</em> · 砂糖ゼロ · <em class="mk-craft">職人技</em> · 古代より · <em class="mk-resin">マスティック</em> ·&nbsp;</span>
-    <span>マスティックの炭酸水 · <em class="mk-jp">Sparkling water</em> · <em class="mk-gr">ΧΙΟΣ</em> · 砂糖ゼロ · <em class="mk-craft">職人技</em> · 古代より · <em class="mk-resin">マスティック</em> ·&nbsp;</span>
-  </div>
-</div>
-
-<!-- ══ Story ══ -->
-<section class="story section" id="story">
-  <p class="section__eyebrow reveal">協業 — The Collaboration</p>
-  <h2 class="section__title reveal" data-progress>エーゲ海が三千年、<br /><em>守りつづけた樹脂。</em></h2>
-
-  <div class="story__grid">
-    <article class="story__col reveal--fade" data-speed="0.045">
-      <p class="story__label">Χίος — ギリシャ</p>
-      <h3 class="story__head">ヒオスの涙</h3>
-      <p>マスティックの木の幹に傷をつけると、樹脂がゆっくりと滴り、
-      香り高い結晶へと固まります。島の人々はそれを「涙」と呼びます。
-      南ヒオスの林で古代から手摘みされてきたその味は、ほかのどこにもありません —
-      冷たい松、杉、そしてかすかな潮の香り。</p>
-    </article>
-    <div class="story__divider" aria-hidden="true">
-      <span class="story__divider-line"></span>
-      <img src="images/m/seal-transparent.png" alt="" class="story__divider-seal" data-rotate="55" loading="lazy" decoding="async" />
-      <span class="story__divider-line"></span>
-    </div>
-    <article class="story__col reveal--fade" data-speed="-0.045">
-      <p class="story__label story__label--jp">日本 — Japan</p>
-      <h3 class="story__head">澄みの技</h3>
-      <p>やわらかな日本の水、細かく持続する炭酸、そして「入れない」という節度 —
-      砂糖も甘味料も、グラスを曇らせるものは何も加えません。
-      一本一本を日本で仕上げ、ラベルには水墨画の静かな伝統で風景を描きました。</p>
-    </article>
-  </div>
-
-  <ul class="stats reveal--fade" data-speed="0.06" aria-label="中身について">
-    <li><span class="stats__num" data-count="0">0</span><span class="stats__cap">砂糖</span></li>
-    <li><span class="stats__num" data-count="0">0</span><span class="stats__cap">カロリー</span></li>
-    <li><span class="stats__num" data-count="3">0</span><span class="stats__cap">原材料</span></li>
-    <li><span class="stats__num" data-count="2">0</span><span class="stats__cap">島</span></li>
+<!-- ══ The essence — one line, one row of facts. Nothing moves down here. ══ -->
+<section class="essence section" id="story">
+  <p class="essence__line">ヒオスのマスティック。日本の水。<br /><em>それだけ。</em></p>
+  <ul class="stats" aria-label="中身について">
+    <li><span class="stats__n">0</span><span class="stats__cap">砂糖</span></li>
+    <li><span class="stats__n">0</span><span class="stats__cap">カロリー</span></li>
+    <li><span class="stats__n">3</span><span class="stats__cap">原材料</span></li>
+    <li><span class="stats__n">2</span><span class="stats__cap">島</span></li>
   </ul>
 </section>
 
-<!-- ══ Driftline ══ -->
-<div class="driftline" aria-hidden="true">
-  <span data-drift="-160">Mastic · Χίος · マスティック · Mastic · Χίος · マスティック</span>
-  <span data-drift="130">Sparkling · 炭酸水 · Ύδωρ · Sparkling · 炭酸水 · 水</span>
-</div>
-
-<!-- ══ Flavours ══ -->
-<section class="flavours section" id="flavours">
-  <div class="flavours__head">
-    <p class="section__eyebrow reveal">味 — The Line</p>
-    <h2 class="section__title reveal" data-progress>四つの水。<em>一つの樹脂。</em></h2>
-  </div>
-
-  <div class="flavours__stage">
-    <div class="flavours__bottlewrap" data-speed="-0.045" data-zoom="0.93">
-      <div class="flavours__halo" aria-hidden="true"></div>
-      <img class="flavours__bottle is-active" src="images/brand%20new%20original%20catalog.png" srcset="images/m/brand%20new%20original%20catalog.png 512w, images/brand%20new%20original%20catalog.png 1024w" sizes="(max-width: 760px) 30vw, 420px" alt="マストリー オリジナル・マスティックのボトル" data-flavour="original" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/Mastry%20ad%20yuzu.png" srcset="images/m/Mastry%20ad%20yuzu.jpg 640w, images/Mastry%20ad%20yuzu.png 1024w" sizes="(max-width: 760px) 30vw, 420px" alt="マストリー ゆず・マスティックのボトル" data-flavour="yuzu" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/Ume%20mastry%20Ad.png" srcset="images/m/Ume%20mastry%20Ad.jpg 640w, images/Ume%20mastry%20Ad.png 1024w" sizes="(max-width: 760px) 30vw, 420px" alt="マストリー うめ・マスティックのボトル" data-flavour="ume" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/hinoki%20mastry%20ad.png" srcset="images/m/hinoki%20mastry%20ad.jpg 640w, images/hinoki%20mastry%20ad.png 1024w" sizes="(max-width: 760px) 30vw, 420px" alt="マストリー ヒノキ・マスティックのボトル" data-flavour="hinoki" loading="lazy" decoding="async" />
-    </div>
-
-    <div class="flavours__panel" data-speed="0.03">
-      <div class="flavours__list" role="tablist" aria-label="フレーバー">
-        <button class="flavours__tab is-active" role="tab" aria-selected="true" data-flavour="original">
-          <span class="flavours__no">01</span><span class="flavours__name">オリジナル・マスティック</span><span class="flavours__dot" aria-hidden="true"></span>
-        </button>
-        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="yuzu">
-          <span class="flavours__no">02</span><span class="flavours__name">ゆず・マスティック</span><span class="flavours__dot" aria-hidden="true"></span>
-        </button>
-        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="ume">
-          <span class="flavours__no">03</span><span class="flavours__name">うめ・マスティック</span><span class="flavours__dot" aria-hidden="true"></span>
-        </button>
-        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="hinoki">
-          <span class="flavours__no">04</span><span class="flavours__name">ヒノキ・マスティック</span><span class="flavours__dot" aria-hidden="true"></span>
-        </button>
-      </div>
-
-      <div class="flavours__detail" id="flavourDetail" aria-live="polite">
-        <p class="flavours__jp" id="fJp">マスティック</p>
-        <p class="flavours__desc" id="fDesc">ヒオスそのままの味わい。冷たい樹脂、白い花、
-        澄んだ潮風 — きめ細かく続く泡にのせて。</p>
-        <ul class="flavours__notes" id="fNotes">
-          <li>マスティック樹脂</li><li>杉と松</li><li>潮風</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ══ Seal ══ -->
-<section class="seal section" id="seal">
-  <div class="seal__inner">
-    <div class="seal__figure reveal">
-      <div class="seal__paper" data-speed="-0.04" data-zoom="0.9">
-        <img loading="lazy" decoding="async" src="images/m/seal-transparent.png" alt="マストリーの印 — ギリシャの円柱と鳥居、青海波の上に" />
-      </div>
-    </div>
-    <div class="seal__copy">
-      <p class="section__eyebrow section__eyebrow--light reveal">印 — The Seal</p>
-      <h2 class="section__title section__title--light reveal" data-progress>信じるものすべてを、<br /><em>一つの円に。</em></h2>
-      <ol class="seal__legend" data-speed="0.035">
-        <li class="reveal"><span>イオニア式円柱</span>樹脂が生まれる、ギリシャの岸。</li>
-        <li class="reveal"><span>鳥居</span>水がつくられる、日本の岸。</li>
-        <li class="reveal"><span>木</span>ヒオスのマスティックの木、ピスタキア・レンティスクス。</li>
-        <li class="reveal"><span>青海波</span>二つの島を隔て、荷を運ぶ海。</li>
-        <li class="reveal"><span>一滴</span>すべてのボトルに、マスティックの涙をひとつ。</li>
-      </ol>
-    </div>
-  </div>
-</section>
-
-<!-- ══ Scenery ══ -->
-<section class="scenery" id="scenery" aria-label="ラベルの風景">
-  <div class="scenery__head">
-    <p class="section__eyebrow reveal">風景 — Scenery</p>
-    <h2 class="section__title reveal" data-progress>すべてのラベルに、<em>世界を。</em></h2>
-  </div>
-  <div class="scenery__frame" id="sceneryFrame">
-    <div class="scenery__track" id="sceneryTrack">
-      <figure class="scenery__slide">
-        <img loading="lazy" decoding="async" src="images/web%20hero%20half%20&amp;%20half.png" srcset="images/m/web%20hero%20half%20&amp;%20half.jpg 1000w, images/web%20hero%20half%20&amp;%20half-1600.jpg 1600w" sizes="100vw" alt="日本の楼閣とギリシャの神殿を結ぶ長い橋の水墨画" />
-        <figcaption><span>01</span>橋</figcaption>
-      </figure>
-      <figure class="scenery__slide">
-        <img src="images/perfect%20web%20hero.png" srcset="images/m/perfect%20web%20hero.jpg 1000w, images/perfect%20web%20hero-1600.jpg 1600w" sizes="100vw" alt="富士山と鳥居、静かな水面の舟人の水墨画" loading="lazy" />
-        <figcaption><span>02</span>富士</figcaption>
-      </figure>
-      <figure class="scenery__slide">
-        <img src="images/web%20hero%20new%20striking.png" srcset="images/m/web%20hero%20new%20striking.jpg 1000w, images/web%20hero%20new%20striking-1600.jpg 1600w" sizes="100vw" alt="日本の楼閣とギリシャの列柱のあいだの海峡の水墨画" loading="lazy" />
-        <figcaption><span>03</span>海峡</figcaption>
-      </figure>
-      <figure class="scenery__slide">
-        <img src="images/image%20web%20hero%20temple.png" srcset="images/m/image%20web%20hero%20temple.jpg 1000w, images/image%20web%20hero%20temple-1600.jpg 1600w" sizes="100vw" alt="鳥居からアクロポリスへ漕ぎ出す渡し守の水墨画" loading="lazy" />
-        <figcaption><span>04</span>渡し</figcaption>
-      </figure>
-      <figure class="scenery__slide">
-        <img src="images/wider%20and%20newer%20web%20hero.png" srcset="images/m/wider%20and%20newer%20web%20hero.jpg 1000w, images/wider%20and%20newer%20web%20hero-1600.jpg 1600w" sizes="100vw" alt="夜明けの湖畔、濡れた岩の上のマストリーのボトルと富士山" loading="lazy" />
-        <figcaption><span>05</span>夜明け</figcaption>
-      </figure>
-    </div>
-    <div class="scenery__dots" id="sceneryDots" role="tablist" aria-label="風景スライド"></div>
-  </div>
-</section>
-
-<!-- ══ Island ══ -->
-<section class="island" aria-label="マストリーの島の印、立体で">
-  <p class="island__eyebrow reveal">島 — 印が、かたちに</p>
-  <div class="island__stage" data-speed="-0.045">
-    <model-viewer id="sealModel"
-      src="images/island_logo_holes_preserved_puffy_3d.glb"
-      alt="静かな水の上に浮かぶマストリーの島の印 — ドラッグで回せます"
-      auto-rotate rotation-per-second="13deg" auto-rotate-delay="0"
-      camera-controls disable-zoom disable-pan disable-tap
-      interaction-prompt="none" touch-action="pan-y"
-      shadow-intensity="0" exposure="1.08"
-      camera-orbit="0deg 85deg 108%"></model-viewer>
-  </div>
-  <div class="island__sea" aria-hidden="true">
-    <span class="island__shadow"></span>
-    <span class="island__ripple"></span>
-    <span class="island__ripple island__ripple--late"></span>
-  </div>
-  <p class="island__caption reveal">すべてのラベルに描かれた島が、自分の海に浮かんでいます。<em>— 回してみてください。</em></p>
-</section>
-
-<!-- ══ Ritual ══ -->
-<section class="ritual section" id="ritual">
-  <div class="ritual__wrap">
-  <p class="section__eyebrow reveal">作法 — The Ritual</p>
-  <h2 class="section__title reveal" data-progress>一杯を、<em>ひとときに。</em></h2>
-  <div class="ritual__grid">
-    <article class="ritual__step reveal--fade" data-speed="0.02" data-tilt="11">
-      <span class="ritual__no">01</span>
-      <h3>冷やす。凍らせない</h3>
-      <p>四度。泡が引き締まり、それでいて樹脂の声がまだ聞こえる温度です。</p>
-    </article>
-    <article class="ritual__step reveal--fade" data-speed="0.055" data-tilt="11">
-      <span class="ritual__no">02</span>
-      <h3>グラスの内側に注ぐ</h3>
-      <p>グラスを傾け、縁に沿わせてゆっくりと。この炭酸はきめ細かいもの — 大切に扱ってください。</p>
-    </article>
-    <article class="ritual__step reveal--fade" data-speed="0.09" data-tilt="11">
-      <span class="ritual__no">03</span>
-      <h3>地図をこえて合わせる</h3>
-      <p>オリジナルは刺身やメゼに。ゆずは揚げものに。うめは食前に、ヒノキは食後に。</p>
-    </article>
-  </div>
-  </div>
+<!-- ══ The line — four waters, no theatre ══ -->
+<section class="flavours flavours--plain section" id="flavours">
+  <h2 class="section__title">四つの水。<em>一つの樹脂。</em></h2>
+  <ul class="flavours__plain">
+    <li><span class="flavours__no">01</span><span class="flavours__name">オリジナル・マスティック</span></li>
+    <li><span class="flavours__no">02</span><span class="flavours__name">ゆず・マスティック</span></li>
+    <li><span class="flavours__no">03</span><span class="flavours__name">うめ・マスティック</span></li>
+    <li><span class="flavours__no">04</span><span class="flavours__name">ヒノキ・マスティック</span></li>
+  </ul>
 </section>
 
 <!-- ══ Order / Contact ══ -->
 <section class="order section" id="find">
   <div class="order__inner">
-    <div class="order__left reveal--fade" data-speed="0.03">
+    <div class="order__left">
       <p class="section__eyebrow">注文 — Order</p>
-      <h2 class="section__title" data-progress>マストリーを<br /><em>注文する。</em></h2>
-      <p class="order__sub">ご希望の品とお届け先をお知らせください。
-      一日以内にメールでご連絡いたします。</p>
+      <h2 class="section__title">マストリーを<br /><em>注文する。</em></h2>
+      <p class="order__sub">ご希望の品とお届け先をお知らせください。</p>
       <dl class="order__info">
         <div><dt>メール</dt><dd>hello@mastry.jp</dd></div>
         <div><dt>産地</dt><dd>ギリシャ・ヒオス島 × 日本</dd></div>
@@ -359,7 +180,7 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
       </dl>
     </div>
 
-    <form class="order__form reveal--fade" data-speed="-0.035" data-tilt="6" id="orderForm" novalidate="novalidate">
+    <form class="order__form" id="orderForm" novalidate="novalidate">
       <div class="fg">
         <label for="fname">お名前</label>
         <input type="text" id="fname" placeholder="山田 太郎" autocomplete="name" required />
@@ -402,10 +223,8 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
   <div class="footer__top">
     <a class="footer__logo" href="#top">MASTRY</a>
     <nav class="footer__links" aria-label="フッター">
-      <a href="#story">物語</a>
       <a href="#flavours">フレーバー</a>
-      <a href="#seal">印</a>
-      <a href="#ritual">作法</a>
+      <a href="#find">注文</a>
       <a href="merch-ja.html">グッズ</a>
     </nav>
   </div>
@@ -418,10 +237,10 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
     alt="墨絵のパノラマ：崖の松と富士山、海の向こうのギリシャの神殿、その間を行く舟人、青海波の縁取り" loading="lazy" />
 </footer>
 
-<script src="mobile.js?v=20260714m12"></script>
+<script src="mobile.js?v=20260718min1"></script>
 <script src="vendor/three-0.147.0.min.js"></script>
 <script src="vendor/GLTFLoader-0.147.0.js"></script>
-<script src="bottle-3d.js?v=20260714m12"></script>
+<script src="bottle-3d.js?v=20260718min1"></script>
 <script>addEventListener('load',function(){try{if(!window.__mastryLite){var e=performance.getEntriesByName(new URL('assets/bottle.glb',location.href).href)[0];if(e&&e.transferSize>0&&e.duration>0){localStorage.setItem('mastry-net',(e.transferSize/(e.duration/1000))<2e5?'slow':'fast');localStorage.setItem('mastry-net-ts',Date.now());}}}catch(e){}});</script>
 <script>if('serviceWorker'in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).catch(function(){});});}</script>
 </body>

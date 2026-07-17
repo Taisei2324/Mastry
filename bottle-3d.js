@@ -24,12 +24,17 @@
   // (A plain scrollTo(0,0) ANIMATES up through the whole choreography, which
   // read as "the screen slowly goes up by itself" on phones. Never animate
   // a reset.)
-  function snapTop() {
+  // INSTANT programmatic scroll — the site's scroll-behavior:smooth would
+  // otherwise ANIMATE every clamp, and each animated clamp re-fires scroll
+  // events that re-clamp: a rubber-band feedback loop that reads as glitchy,
+  // fighting scroll (THE WALL's original sin). Snap, never glide.
+  function snapScroll(y) {
     var de = document.documentElement, pb = de.style.scrollBehavior;
     de.style.scrollBehavior = 'auto';
-    window.scrollTo(0, 0);
+    window.scrollTo(0, y);
     de.style.scrollBehavior = pb;
   }
+  function snapTop() { snapScroll(0); }
   /* STAGE-1 READY: the hero bottle's body path has COMMITTED (the real GLB —
      glass + label + cap — or the procedural fallback). The page loader HOLDS
      until this fires (script.js/mobile.js), so the reader never meets a
@@ -122,6 +127,27 @@
       }
     }
     return PROFILE[PROFILE.length - 1][0];
+  }
+  /* hot-path sampler: the per-particle loops used to linear-scan the 45-entry
+     PROFILE per bubble per frame. Sampled once into a 512-entry LUT (linear
+     inside — sub-millimetre error on this smooth silhouette); radiusAt stays
+     for exact one-off calls. */
+  var R_LUT_N = 512, R_LUT = new Float32Array(R_LUT_N + 1);
+  for (var _ri = 0; _ri <= R_LUT_N; _ri++) R_LUT[_ri] = radiusAt(H * _ri / R_LUT_N);
+  function radiusAtFast(y) {
+    if (y <= 0) return 0.3;
+    if (y >= H) return R_LUT[R_LUT_N];
+    var f = y * (R_LUT_N / H), i = f | 0, t = f - i;
+    return R_LUT[i] + (R_LUT[i + 1] - R_LUT[i]) * t;
+  }
+  /* pre-allocated particle pool slot: spawns REUSE dead slots (swap-pop on
+     death) instead of allocating an object literal per particle — at ~200
+     spawns/s the churn was a GC tick source mid-pour */
+  function poolTake(pool, data) {
+    if (data.length >= pool.length) return null;
+    var o = pool[data.length];
+    data.push(o);
+    return o;
   }
   function smoothstep(e0, e1, x) {
     var t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
@@ -278,6 +304,7 @@
       if (this._glbTimer) { clearTimeout(this._glbTimer); this._glbTimer = null; } // a pending GLB-timeout must not fire onto a disposed renderer
       if (this._ro) this._ro.disconnect();
       if (this._io) this._io.disconnect();
+      if (this._classMO) this._classMO.disconnect();
       document.removeEventListener('visibilitychange', this._onVis);
       window.removeEventListener('scroll', this._onScroll);
       window.removeEventListener('wheel', this._onWheel);
@@ -311,7 +338,9 @@
     /* ---------- scene ---------- */
     _initThree() {
       if (!_v1) { _v1 = new THREE.Vector3(); _v2 = new THREE.Vector3(); _v3 = new THREE.Vector3(); _v4 = new THREE.Vector3(); _v5 = new THREE.Vector3(); _v6 = new THREE.Vector3(); _v7 = new THREE.Vector3(); _vZ = new THREE.Vector3(0, 0, 1); _vY = new THREE.Vector3(0, 1, 0); _q1 = new THREE.Quaternion(); _q2 = new THREE.Quaternion(); }
-      var renderer = new THREE.WebGLRenderer({ canvas: this._canvas, alpha: true, antialias: true });
+      // at DPR>=2 pixel density already smooths edges — dropping MSAA halves
+      // fill cost on this full-viewport canvas (same call the glass makes)
+      var renderer = new THREE.WebGLRenderer({ canvas: this._canvas, alpha: true, antialias: (window.devicePixelRatio || 1) < 2 });
       renderer.setClearColor(0x000000, 0);
       renderer.outputEncoding = THREE.sRGBEncoding;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -360,6 +389,7 @@
 
       // state
       this._pin = this.closest('.heropin'); // pinned-hero container drives the pour timeline
+      this._measurePin();
       this._vel = 0; this._lastScroll = window.scrollY;
       this._frontY = -0.35; // yaw that centres the label's front graphic on camera
       this._rotY = this._frontY; this._driftX = 0; this._driftY = 0; this._tiltV = 0;
@@ -779,6 +809,10 @@
       parent.add(mesh);
       this._fizz = mesh;
       this._fizzData = [];
+      this._fizzPool = [];
+      for (var fi = 0; fi < MAX; fi++) {
+        this._fizzPool.push({ x: 0, y: 0, z: 0, dx: 0, dy: 1, dz: 0, v: 0, s: 0, life: 0, w: 0, pop: false });
+      }
     }
 
     _buildCondensation(parent) {
@@ -825,7 +859,7 @@
     }
 
     _placeDrop(dummy, d, i) {
-      var r = radiusAt(d.y) + d.sc * 0.18;
+      var r = radiusAtFast(d.y) + d.sc * 0.18;
       dummy.position.set(Math.cos(d.a) * r, d.y, Math.sin(d.a) * r);
       dummy.lookAt(Math.cos(d.a) * (r + 1), d.y, Math.sin(d.a) * (r + 1));
       var sag = d.sliding ? 1.65 : 1.0 + (d.sc / (d.target || 1)) * 0.3; // heavy drops sag, runners stretch
@@ -845,6 +879,12 @@
       scene.add(mesh);
       this._pour = mesh;
       this._pourData = [];
+      // slot pool: spawns reuse pre-allocated slots (swap-pop on death) —
+      // no per-particle object literals at ~200 spawns/s
+      this._pourPool = [];
+      for (var pi = 0; pi < MAX; pi++) {
+        this._pourPool.push({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, life: 0, l0: 0, s: 0, g: 0, drag: 0, mist: false });
+      }
       this._pourClock = 0;
       this._glugPhase = 0; this._glugCool = 0;
       this._fizzBurst = 0; this._fizzArmed = false; this._fizzClock = 0;
@@ -853,7 +893,7 @@
       // accelerates it (mass conservation), a Plateau–Rayleigh varicose wave
       // deepens down-stream, and past the breakup length it hands over to
       // the droplet pool above.
-      var RINGS = this._strRings = 96, SEG = this._strSeg = 16; // max LOD on the jet
+      var RINGS = this._strRings = 64, SEG = this._strSeg = 10; // pour LOD: smooth at a third of the old vertex/upload cost
       function tubeGeo(withNormals) {
         var geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
@@ -918,14 +958,16 @@
         var y = window.scrollY;
         // THE WALL, scroll-event side: arms here too, so a violent flick that
         // outruns the ticker (or lands while the bottle is offscreen) still
-        // hits it — same conditions as _tick, including the 12s release
+        // hits it — same conditions as _tick, including the 12s release.
+        // The clamp is an INSTANT snap (snapScroll) — an animated scrollTo
+        // re-fires scroll events that re-clamp: a rubber-band feedback loop.
         if (!anchorGlideActive() && !window.__conducted && self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
             (!self._wallT || self._clock.elapsedTime - self._wallT < 12)) {
-          var end = self._pin.offsetTop + 0.88 * Math.max(1, self._pin.offsetHeight - window.innerHeight);
+          var end = (self._pinTop || 0) + 0.88 * Math.max(1, (self._pinH || 1) - window.innerHeight);
           if (y > end) self._holdY = end;
         }
         if (self._holdY != null && y > self._holdY && !anchorGlideActive()) {
-          window.scrollTo(0, self._holdY);
+          snapScroll(self._holdY);
           y = self._holdY;
         }
         self._vel += (y - self._lastScroll);
@@ -963,6 +1005,12 @@
       window.addEventListener('pointercancel', function () { dragging = false; self._dragging = false; });
       this._ro = new ResizeObserver(function () { self._resize(); });
       this._ro.observe(this);
+      // re-measure the cached pin geometry when layout can shift without an
+      // element resize: full load (fonts/late images) and documentElement
+      // class flips (bottle3d-on changes the pin's svh height)
+      window.addEventListener('load', function () { self._measurePin(); }, { once: true });
+      this._classMO = new MutationObserver(function () { self._measurePin(); });
+      this._classMO.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
       // perf guards: don't render when the tab is hidden or the element is offscreen
       this._onVis = function () { self._hidden = document.hidden; };
       document.addEventListener('visibilitychange', this._onVis);
@@ -972,11 +1020,24 @@
       this._io.observe(this);
     }
 
+    /* pin geometry cached: offsetTop/offsetHeight force layout, so they are
+       re-read only on resize / load / documentElement class shifts (the
+       bottle3d-on class changes the pin's svh height), never per frame or
+       per scroll event. Scroll-driven math uses window.scrollY + these. */
+    _measurePin() {
+      if (!this._pin) return;
+      this._pinTop = this._pin.offsetTop;
+      this._pinH = this._pin.offsetHeight;
+    }
+
     _resize() {
       var w = this.clientWidth || 1, h = this.clientHeight || 1;
-      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      // full-viewport canvas: DPR 2+ quadruples the fragment load for a gain
+      // the eye can't separate from 1.5 at this scene's softness — cap it
+      var dpr = Math.min(1.5, window.devicePixelRatio || 1);
       this._renderer.setPixelRatio(dpr);
       this._renderer.setSize(w, h, false);
+      this._measurePin(); // pin geometry is only re-read here + on load/class shifts, never per frame
       this._narrow = window.__forceMobile || window.innerWidth <= 760; // the dedicated mobile page pins this true at any width
       // the canvas spans the whole pinned hero so the pour can run off the
       // frame; push the camera back so the bottle keeps the size it had when
@@ -1005,9 +1066,10 @@
       this._vel *= Math.pow(0.0018, dt); // exponential decay
       var p;
       if (this._pin) {
-        // progress through the pinned hero (≈3 screens of scroll)
-        var span = Math.max(1, this._pin.offsetHeight - window.innerHeight);
-        p = Math.min(1, Math.max(0, (window.scrollY - this._pin.offsetTop) / span));
+        // progress through the pinned hero (≈3 screens of scroll) — cached
+        // pin geometry; offsetTop/offsetHeight are never read per frame
+        var span = Math.max(1, (this._pinH || 1) - window.innerHeight);
+        p = Math.min(1, Math.max(0, (window.scrollY - (this._pinTop || 0)) / span));
       } else {
         var doc = document.scrollingElement;
         var max = Math.max(1, doc.scrollHeight - window.innerHeight);
@@ -1033,15 +1095,18 @@
       if (p < 0.7) { this._sawHero = true; if (this._level > 0.9) this._wallT = 0; }
       var wall = !anchorGlideActive() && !window.__conducted && this._sawHero && !this._noWall && this._pin && this._level > 0.245;
       if (wall) {
-        var wallY = this._pin.offsetTop + 0.88 * Math.max(1, this._pin.offsetHeight - window.innerHeight);
+        var wallY = (this._pinTop || 0) + 0.88 * Math.max(1, (this._pinH || 1) - window.innerHeight);
         wall = window.scrollY >= wallY - 2;
         if (wall) {
           if (!this._wallT) this._wallT = t || 0.001;
           if (t - this._wallT > 12) wall = false;
         }
       }
+      // _holdY is PUBLISHED (script.js reads it to gate the frame freeze) but
+      // NOT enforced here: the per-frame clamp animated under
+      // scroll-behavior:smooth and fought the reader in a rubber-band loop.
+      // The scroll handler clamps every leak the instant it arrives.
       this._holdY = wall ? wallY : null;
-      if (this._holdY != null && window.scrollY > this._holdY + 1) window.scrollTo(0, this._holdY);
 
       // RELOAD-ON-RE-ENTRY: once the guided run retires the WALL (__conducted),
       // a reader who scrolls back UP to the full bottle should be able to watch
@@ -1155,7 +1220,7 @@
         this._waterLocalY = yLoc;
         this._waterTop.visible = true;
         this._waterTop.position.y = yLoc;
-        var rs = radiusAt(yLoc) / radiusAt(2.32);
+        var rs = radiusAtFast(yLoc) / radiusAtFast(2.32);
         this._waterTop.scale.set(rs, rs, 1);
         this._bottle.getWorldQuaternion(_q1);
         _v3.set(0, 1, 0).applyQuaternion(_q1.invert());
@@ -1190,12 +1255,15 @@
         Math.round(this._bubbleBase * (1 + capT + this._fizzBurst) * (1 - pourClean)));
       var wrapY = Math.min(this._waterLocalY || 2.28, 2.28);
       var bd = this._bubbleData, dummy = this._dropDummy;
-      for (var i = 0; i < bd.length; i++) {
+      // only the LIVE instances are stepped + uploaded — the pool is 180 deep
+      // but the visible count usually hovers near 90 (0 while pouring)
+      var liveN = this._bubbles.count;
+      for (var i = 0; i < liveN; i++) {
         var b = bd[i];
         b.y += (b.v * (1 + surge)) * dt;
         b.w += dt * 2;
         if (b.y > wrapY) { b.y = 0.1; b.a = Math.random() * Math.PI * 2; b.rf = Math.pow(Math.random(), 0.5) * 0.8; }
-        var r = radiusAt(b.y) * 0.85 * b.rf;
+        var r = radiusAtFast(b.y) * 0.85 * b.rf;
         dummy.position.set(Math.cos(b.a + Math.sin(b.w) * 0.15) * r, b.y, Math.sin(b.a) * r);
         var s = b.s * (0.7 + 0.3 * Math.sin(b.w));
         dummy.scale.set(s, s, s);
@@ -1203,7 +1271,7 @@
         dummy.updateMatrix();
         this._bubbles.setMatrixAt(i, dummy.matrix);
       }
-      this._bubbles.instanceMatrix.needsUpdate = true;
+      if (liveN) this._bubbles.instanceMatrix.needsUpdate = true;
 
       // condensation — droplet lifecycle: condense in, grow until heavy, run
       // downhill (meandering) under bottle-space gravity, vanish at the bottom
@@ -1227,7 +1295,7 @@
         d.sliding = free > 0.02;
         if (d.sliding) {
           d.wob += dt * 3;
-          var rr = Math.max(0.15, radiusAt(d.y) + 0.006);
+          var rr = Math.max(0.15, radiusAtFast(d.y) + 0.006);
           var ga = _v1.x * (-Math.sin(d.a)) + _v1.z * Math.cos(d.a); // downhill around the barrel
           d.a += ((ga / rr) * free * d.v + Math.sin(d.wob) * 0.10 * free) * dt * 2.4; // meanders as it runs
           d.y += _v1.y * free * d.v * dt * 2.4;
@@ -1311,15 +1379,15 @@
         for (var k = 0; k < n && data.length < mesh.instanceMatrix.count - 60; k++) {
           var sat = Math.random() < 0.35;
           var jr = bk.r * 1.4;
-          data.push({
-            x: bk.x + (Math.random() - 0.5) * jr, y: bk.y + (Math.random() - 0.5) * jr, z: bk.z + (Math.random() - 0.5) * jr,
-            vx: bk.vx + (Math.random() - 0.5) * 0.22,
-            vy: bk.vy + (Math.random() - 0.5) * 0.22,
-            vz: bk.vz + (Math.random() - 0.5) * 0.22,
-            life: 1.6, l0: 1.6,
-            s: Math.min(3.8, (sat ? 0.42 : 0.95) * bk.r * 94 * (0.8 + Math.random() * 0.4)),
-            g: 16, drag: 0.9, mist: false
-          });
+          var nd = poolTake(this._pourPool, data);
+          if (!nd) break;
+          nd.x = bk.x + (Math.random() - 0.5) * jr; nd.y = bk.y + (Math.random() - 0.5) * jr; nd.z = bk.z + (Math.random() - 0.5) * jr;
+          nd.vx = bk.vx + (Math.random() - 0.5) * 0.22;
+          nd.vy = bk.vy + (Math.random() - 0.5) * 0.22;
+          nd.vz = bk.vz + (Math.random() - 0.5) * 0.22;
+          nd.life = 1.6; nd.l0 = 1.6;
+          nd.s = Math.min(3.8, (sat ? 0.42 : 0.95) * bk.r * 94 * (0.8 + Math.random() * 0.4));
+          nd.g = 16; nd.drag = 0.9; nd.mist = false;
         }
       }
 
@@ -1331,7 +1399,8 @@
         pt.vx *= dg; pt.vy *= dg; pt.vz *= dg;
         pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.z += pt.vz * dt;
         pt.life -= dt;
-        if (pt.life <= 0 || pt.y < -8.5) data.splice(i, 1);
+        // swap-pop back into the pool — no splice realloc mid-loop
+        if (pt.life <= 0 || pt.y < -8.5) { data[i] = data[data.length - 1]; data.pop(); }
       }
       mesh.count = data.length;
       for (var m = 0; m < data.length; m++) {
@@ -1370,15 +1439,15 @@
         _v3.set(Math.cos(ang) * spread, 1, Math.sin(ang) * spread).normalize().applyQuaternion(_q1);
         var sp = spit ? 1.1 + Math.random() * 0.9 : 1.5 + Math.random() * 2.0;
         var life = spit ? 0.9 : 0.3 + Math.random() * 0.4;
-        data.push({
-          x: _v1.x + (Math.random() - 0.5) * 0.05,
-          y: _v1.y + (Math.random() - 0.5) * 0.02,
-          z: _v1.z + (Math.random() - 0.5) * 0.05,
-          vx: _v3.x * sp, vy: _v3.y * sp, vz: _v3.z * sp,
-          life: life, l0: life,
-          s: spit ? 0.5 + Math.random() * 0.4 : 0.13 + Math.random() * 0.2,
-          g: spit ? 7.5 : 0.8, drag: spit ? 0.55 : 0.008, mist: !spit
-        });
+        var mp = poolTake(this._pourPool, data);
+        if (!mp) break;
+        mp.x = _v1.x + (Math.random() - 0.5) * 0.05;
+        mp.y = _v1.y + (Math.random() - 0.5) * 0.02;
+        mp.z = _v1.z + (Math.random() - 0.5) * 0.05;
+        mp.vx = _v3.x * sp; mp.vy = _v3.y * sp; mp.vz = _v3.z * sp;
+        mp.life = life; mp.l0 = life;
+        mp.s = spit ? 0.5 + Math.random() * 0.4 : 0.13 + Math.random() * 0.2;
+        mp.g = spit ? 7.5 : 0.8; mp.drag = spit ? 0.55 : 0.008; mp.mist = !spit;
       }
     }
 
@@ -1393,23 +1462,24 @@
       // the slug: a bore-filling air pocket punched in at the mouth
       if (fd.length < cap) {
         var a0 = Math.random() * Math.PI * 2, r0 = Math.random() * 0.025;
-        fd.push({
-          x: Math.cos(a0) * r0, y: 2.98 + Math.random() * 0.12, z: Math.sin(a0) * r0,
-          dx: _v1.x, dy: _v1.y, dz: _v1.z,
-          v: 1.7 + Math.random() * 0.6, s: 9.5 + Math.random() * 3.5,
-          life: 1.7, w: Math.random() * Math.PI * 2, pop: false
-        });
+        var sl = poolTake(this._fizzPool, fd);
+        if (sl) {
+          sl.x = Math.cos(a0) * r0; sl.y = 2.98 + Math.random() * 0.12; sl.z = Math.sin(a0) * r0;
+          sl.dx = _v1.x; sl.dy = _v1.y; sl.dz = _v1.z;
+          sl.v = 1.7 + Math.random() * 0.6; sl.s = 9.5 + Math.random() * 3.5;
+          sl.life = 1.7; sl.w = Math.random() * Math.PI * 2; sl.pop = false;
+        }
       }
       // the train: bubbles shed off the slug as it tears up the neck
       var n = 3 + Math.floor(Math.random() * 4);
       for (var i = 0; i < n && fd.length < cap; i++) {
         var ang = Math.random() * Math.PI * 2, rr = Math.random() * 0.075;
-        fd.push({
-          x: Math.cos(ang) * rr, y: 2.55 + Math.random() * 0.45, z: Math.sin(ang) * rr,
-          dx: _v1.x, dy: _v1.y, dz: _v1.z,
-          v: 1.0 + Math.random() * 0.9, s: 2.0 + Math.random() * 2.2,
-          life: 1.4, w: Math.random() * Math.PI * 2, pop: false
-        });
+        var tb = poolTake(this._fizzPool, fd);
+        if (!tb) break;
+        tb.x = Math.cos(ang) * rr; tb.y = 2.55 + Math.random() * 0.45; tb.z = Math.sin(ang) * rr;
+        tb.dx = _v1.x; tb.dy = _v1.y; tb.dz = _v1.z;
+        tb.v = 1.0 + Math.random() * 0.9; tb.s = 2.0 + Math.random() * 2.2;
+        tb.life = 1.4; tb.w = Math.random() * Math.PI * 2; tb.pop = false;
       }
     }
 
@@ -1429,12 +1499,12 @@
       for (var i = 0; i < nn && fd.length < cap; i++) {
         var off = 0.055 + Math.random() * 0.055;        // ride the channel, offset to one wall
         var jit = (Math.random() - 0.5) * 0.05;         // slight spread across the channel
-        fd.push({
-          x: sx * off - sz * jit, y: 2.86 + Math.random() * 0.24, z: sz * off + sx * jit,
-          dx: _v1.x, dy: _v1.y, dz: _v1.z,
-          v: 1.2 + Math.random() * 0.5, s: 1.3 + Math.random() * 1.1,
-          life: 1.3, w: Math.random() * Math.PI * 2, pop: false
-        });
+        var ab = poolTake(this._fizzPool, fd);
+        if (!ab) break;
+        ab.x = sx * off - sz * jit; ab.y = 2.86 + Math.random() * 0.24; ab.z = sz * off + sx * jit;
+        ab.dx = _v1.x; ab.dy = _v1.y; ab.dz = _v1.z;
+        ab.v = 1.2 + Math.random() * 0.5; ab.s = 1.3 + Math.random() * 1.1;
+        ab.life = 1.3; ab.w = Math.random() * Math.PI * 2; ab.pop = false;
       }
     }
 
@@ -1454,13 +1524,13 @@
           var wall = Math.random() < 0.72;
           var y = wall ? 0.15 + Math.random() * Math.max(0.2, wl - 0.5) : 0.10 + Math.random() * 0.25;
           var ang = Math.random() * Math.PI * 2;
-          var rr = radiusAt(y) * (wall ? 0.80 + Math.random() * 0.08 : Math.random() * 0.5);
-          fd.push({
-            x: Math.cos(ang) * rr, y: y, z: Math.sin(ang) * rr,
-            dx: 0, dy: 1, dz: 0,
-            v: 0.5 + Math.random() * 0.8, s: 1.0 + Math.random() * 1.6,
-            life: 6, w: Math.random() * Math.PI * 2, pop: true
-          });
+          var rr = radiusAtFast(y) * (wall ? 0.80 + Math.random() * 0.08 : Math.random() * 0.5);
+          var nb = poolTake(this._fizzPool, fd);
+          if (!nb) break;
+          nb.x = Math.cos(ang) * rr; nb.y = y; nb.z = Math.sin(ang) * rr;
+          nb.dx = 0; nb.dy = 1; nb.dz = 0;
+          nb.v = 0.5 + Math.random() * 0.8; nb.s = 1.0 + Math.random() * 1.6;
+          nb.life = 6; nb.w = Math.random() * Math.PI * 2; nb.pop = true;
         }
       }
       var wrap = Math.min(this._waterLocalY || 2.28, 2.30);
@@ -1474,13 +1544,13 @@
         b.z += (b.dz * b.v + Math.cos(b.w * 0.9) * 0.06) * dt;
         // glass is a wall: hold every bubble inside the profile, which also
         // funnels the swarm through the shoulder as the neck narrows
-        var rMax = radiusAt(Math.min(Math.max(b.y, 0), H)) * 0.84;
+        var rMax = radiusAtFast(Math.min(Math.max(b.y, 0), H)) * 0.84;
         var rr = Math.sqrt(b.x * b.x + b.z * b.z);
         if (rr > rMax && rr > 0) { b.x *= rMax / rr; b.z *= rMax / rr; }
         // once the bottle tilts to pour, any lingering cap-off bubbles are
         // culled fast so the pour is clean water (no fizz in the bottle)
         b.life -= dt * (1 + 60 * smoothstep(0.34, 0.60, this._tiltT || 0));
-        if (b.life <= 0 || (b.pop && b.y >= wrap)) { fd.splice(i, 1); continue; }
+        if (b.life <= 0 || (b.pop && b.y >= wrap)) { fd[i] = fd[fd.length - 1]; fd.pop(); continue; }
       }
       mesh.count = fd.length;
       for (var m = 0; m < fd.length; m++) {
@@ -1501,6 +1571,7 @@
       var stream = this._stream, core = this._streamCore;
       if (!pouring) {
         _pourHandoff.live = false;
+        this._tubeWarm = false; this._lastBk = null; // the next pour's first frame always re-solves
         stream.material.opacity = Math.max(0, stream.material.opacity - 0.08);
         core.material.opacity = Math.max(0, core.material.opacity - 0.12);
         if (stream.material.opacity <= 0.01) { stream.visible = false; core.visible = false; }
@@ -1536,6 +1607,20 @@
       // splitting"). A committed pour now rides coherent past the frame
       // bottom (the edgeY kill), and only a thinning flow pinches on-screen.
       var Lb = Math.min(6.5, Math.max(0.14, 26 * v0 * Math.pow(r0, 0.75)));
+
+      // the tube re-solves at HALF rate: the pour evolves slowly enough that
+      // a 30Hz ribbon reads identical to 60Hz, and this skips the ring solve
+      // + three buffer uploads every other frame. Opacity/visibility still
+      // ramp every frame and droplet integration is untouched — the breakup
+      // hand-off just reuses the last solved point for one frame.
+      this._tubeFlip = !this._tubeFlip;
+      if (this._tubeFlip && this._tubeWarm) {
+        stream.visible = true; core.visible = true;
+        var kf = Math.min(1, 0.3 + ps * 4);
+        stream.material.opacity = Math.min(0.55 * kf, stream.material.opacity + 0.06);
+        core.material.opacity = Math.min(0.5 * kf, core.material.opacity + 0.08);
+        return this._lastBk;
+      }
 
       var posA = stream.geometry.attributes.position.array;
       var norA = stream.geometry.attributes.normal.array;
@@ -1602,7 +1687,7 @@
         var lt = (RINGS - 1) * TSTEP;
         bk = { x: ex + vx * lt, y: ey + vy * lt - 0.5 * GP * lt * lt, z: ez + vz * lt, vx: vx, vy: vy - GP * lt, vz: vz, r: 0.003 };
       }
-      if (nr < 2) { stream.visible = false; core.visible = false; return bk; }
+      if (nr < 2) { stream.visible = false; core.visible = false; this._tubeWarm = false; this._lastBk = bk; return bk; }
       stream.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
       core.geometry.setDrawRange(0, (nr - 1) * SEG * 6);
       stream.geometry.attributes.position.needsUpdate = true;
@@ -1614,6 +1699,8 @@
       var k = Math.min(1, 0.3 + ps * 4);
       stream.material.opacity = Math.min(0.55 * k, stream.material.opacity + 0.06);
       core.material.opacity = Math.min(0.5 * k, core.material.opacity + 0.08);
+      this._tubeWarm = true;   // half-rate rebuilds may now reuse this tube
+      this._lastBk = bk;
       return bk;
     }
   }
@@ -1717,6 +1804,18 @@
       var self = this;
       this._ro = new ResizeObserver(function () { self._resize(); });
       this._ro.observe(this);
+      // re-measure the cached layout rects when the document can shift without
+      // an element resize: full load, late-loading images (capture-phase load
+      // sees every <img>), webfonts, and documentElement class flips
+      // (bottle3d-on changes the pin/highball svh heights)
+      window.addEventListener('load', function () { self._measureRects(); }, { once: true });
+      this._onDocLoad = function () { self._measureRects(); };
+      document.addEventListener('load', this._onDocLoad, true);
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () { if (self._started) self._measureRects(); });
+      }
+      this._classMO = new MutationObserver(function () { self._measureRects(); });
+      this._classMO.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
       this._onVis = function () { self._hidden = document.hidden; };
       document.addEventListener('visibilitychange', this._onVis);
       this._io = new IntersectionObserver(function (entries) {
@@ -1820,7 +1919,7 @@
       installWaterTopShader(top.material, 1.0, this);
 
       // the falling jet — the same rewritten-in-place tube as the bottle's pour
-      var RINGS = this._strRings = 96, SEG = this._strSeg = 12; // max LOD, matching the bottle's jet
+      var RINGS = this._strRings = 64, SEG = this._strSeg = 8; // pour LOD, matched to the bottle's jet at a third of the old cost
       function tubeGeo(withNormals) {
         var geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
@@ -2298,6 +2397,73 @@
       old.dispose();
     }
 
+    /* layout rects CACHED in document space: getBoundingClientRect forces
+       layout, and _tick used to call it up to 4x/frame. Everything the scene
+       needs is a pure function of window.scrollY plus these offsets — they
+       are re-measured on resize, full load, late image/font loads, and
+       documentElement class flips (bottle3d-on changes section svh heights),
+       never per frame. _syncRects derives this frame's viewport rects from
+       scrollY + the cache. */
+    _measureRects() {
+      var sy = window.scrollY;
+      var r = this.getBoundingClientRect();
+      /* phones pin this canvas to the VIEWPORT (position:fixed — the <=760px
+         rule in style.css/mobile.css): its screen top never moves with
+         scroll, so the document-space replay (top = docTop - scrollY) would
+         drag the cup and decanter off-screen until the next incidental
+         re-measure — the "cup disappears / teleports" glitch. Remember the
+         mode and keep the viewport-space top for the fixed case. */
+      this._grFixed = window.getComputedStyle(this).position === 'fixed';
+      this._grTopV = r.top;
+      this._grTopDoc = r.top + sy; this._grLeftDoc = r.left;
+      this._grW = r.width; this._grH = r.height;
+      if (this.parentElement) {
+        var pr = this.parentElement.getBoundingClientRect();
+        this._parTopDoc = pr.top + sy; this._parH = pr.height;
+      }
+      if (this._hb) {
+        var hr = this._hb.getBoundingClientRect();
+        this._hbTopDoc = hr.top + sy; this._hbH = hr.height;
+      }
+      var box = this._heroBox || (this._heroBox = document.querySelector('.herowords .hero__copy'));
+      if (box) {
+        // the copy rides a data-speed parallax (script.js choreograph):
+        // transform = (base + h/2 - (sy + vh/2)) * sp, so its measured top is
+        //   top = (base - sy) * (1 + sp) + (h/2 - vh/2) * sp
+        // invert to the UNTRANSFORMED document top and replay it per frame.
+        // reduced-motion gets no transform; phones get the attribute stripped.
+        var sp = this._reduce ? 0 : (parseFloat(box.dataset.speed) || 0);
+        var br = box.getBoundingClientRect();
+        this._boxSp = sp;
+        this._boxH = br.height;
+        this._boxTopDoc = (br.top - (br.height / 2 - window.innerHeight / 2) * sp) / (1 + sp) + sy;
+        this._boxLeft = br.left; this._boxW = br.width; // the parallax is translateY-only — x is scroll- and transform-independent
+      }
+    }
+
+    /* this frame's viewport-space rects from scrollY + the cached document
+       offsets — same numbers getBoundingClientRect would have returned */
+    _syncRects(sy) {
+      if (this._grTopDoc === undefined) this._measureRects();
+      var vh2 = window.innerHeight;
+      var g = this._grA || (this._grA = { top: 0, left: 0, width: 1, height: 1, bottom: 0 });
+      g.top = this._grFixed ? this._grTopV : this._grTopDoc - sy; g.left = this._grLeftDoc;
+      g.width = this._grW; g.height = this._grH; g.bottom = g.top + g.height;
+      var pr = this._parR || (this._parR = { top: 0, height: 1, bottom: 0 });
+      pr.top = (this._parTopDoc || 0) - sy; pr.height = this._parH || 1; pr.bottom = pr.top + pr.height;
+      var hb = this._hbR || (this._hbR = { top: 0, height: 1, bottom: 0 });
+      hb.top = (this._hbTopDoc || 0) - sy; hb.height = this._hbH || 1; hb.bottom = hb.top + hb.height;
+      var bx = this._boxR || (this._boxR = { top: 0, height: 0, bottom: 0, left: 0, width: 0 });
+      if (this._boxTopDoc !== undefined) {
+        var sp = this._boxSp || 0;
+        bx.height = this._boxH;
+        bx.top = (this._boxTopDoc - sy) * (1 + sp) + (this._boxH / 2 - vh2 / 2) * sp;
+        bx.bottom = bx.top + bx.height;
+        bx.left = this._boxLeft; bx.width = this._boxW;
+      }
+      return g;
+    }
+
     _resize() {
       var w = this.clientWidth || 1, h = this.clientHeight || 1;
       // full dpr on phones too: the viewport-fixed canvas is ~10x smaller
@@ -2351,6 +2517,7 @@
       var basePx = E + baseFrac * secH;
       this._glass.position.set((this._fx - 0.5) * 2 * halfW, (0.5 - basePx / h) * 2 * halfH, 0);
       this._topY = (0.5 - E / h) * 2 * halfH + 0.4; // default jet entry: just above the section
+      this._measureRects(); // refresh the cached document-space layout (resize path)
     }
 
     _tick() {
@@ -2360,7 +2527,11 @@
       _pourHandoff.beat = performance.now(); // heartbeat: the bottle resumes its own jet if this scene ever stalls
       // tell the bottle whether the CUP itself is on screen — the full
       // transfer is held until the user can actually watch it
-      var grA = this.getBoundingClientRect();
+      // cached layout: getBoundingClientRect forces layout, so document-space
+      // rects are re-measured on resize/load/class-flip (_measureRects) and
+      // replayed against scrollY here — never read per frame
+      var sy = window.scrollY;
+      var grA = this._syncRects(sy);
       var cupPxY = grA.top + (0.5 - this._glass.position.y / (2 * this._halfH)) * grA.height;
       _pourHandoff.cupSeen = cupPxY > -60 && cupPxY < window.innerHeight + 60;
       // the bottle sized (or resized) after us: retake our ratio from it
@@ -2384,15 +2555,16 @@
       // fill is gated ENTIRELY on the jet: water only accumulates while the
       // stream is visibly delivering it, at a rate the jet's flux can supply,
       // on the same clock as the bottle's ~2.5s drain
-      var sy = window.scrollY;
       var goingUp = this._lastSy !== undefined && sy < this._lastSy - 1;
       this._lastSy = sy;
       // THE MIRROR: the cup simply holds whatever the bottle has poured so
       // far — arrive after the pour and it is full; rewind and it empties as
       // the bottle refills. No stream to break, nothing to desynchronize.
+      var settleGap = Math.abs(diff); // how far the fill is from rest — the mirror path measures against ITS target
       if (_pourHandoff.hasBottle) {
         var t2 = (1 - _pourHandoff.bLevel) / 0.8 * 0.85;
         if (t2 < 0) t2 = 0; else if (t2 > 0.85) t2 = 0.85;
+        settleGap = Math.abs(t2 - this._level);
         this._level += (t2 - this._level) * (1 - Math.pow(0.15, dt));
       } else {
         if (diff > 0) this._level += Math.min(diff, dt * 0.38 * pour); // standalone: scroll-driven fill
@@ -2409,14 +2581,14 @@
       this._hbRide = false;
       if (this._hb && _pourHandoff.hasBottle && this.parentElement) {
         this._hbRide = true;
-        var hb = this._hb.getBoundingClientRect();
+        var hb = this._hbR; // cached rect — measured on resize/load, replayed against scrollY (no per-frame layout read)
         // phones: use the CANVAS height (100lvh, stable) as the viewport
         // height — window.innerHeight breathes ±60-100px with the iOS URL
         // bar, which made every vh-derived target (lock point, gates, fades)
         // drift mid-scroll
         var vh = this._narrow ? (grA.height || window.innerHeight) : window.innerHeight;
         var cupPx = this._cupPx || 269;
-        var pr2 = this.parentElement.getBoundingClientRect();
+        var pr2 = this._parR; // cached parent (herowords) rect — replayed against scrollY
         // phones: the canvas is viewport-FIXED (style.css) — it must vanish
         // outside the cup's chapters or it would sit over every later
         // section. Generous range + hysteresis (below): show instantly,
@@ -2446,9 +2618,10 @@
         //    title is framed the cup sits EXACTLY on title-mid + drop; its
         //    placement never lags or floats during a scroll, and the old ~140px
         //    teleport at the title→stage handoff is smoothed out.
+        this._fxClamp = undefined; // refreshed each tick while the title box is on stage (desktop horizontal guard below)
         var box = this._heroBox || (this._heroBox = document.querySelector(".herowords .hero__copy"));
         if (box) {
-          var brr = box.getBoundingClientRect();
+          var brr = this._boxR; // cached copy-box rect — its data-speed parallax transform is replayed analytically in _syncRects
           if (brr.height && brr.top < vh && brr.bottom > 0) {
             var boxMid = brr.top + brr.height * 0.5;                    // the whole copy block's vertical centre — NOT just the title
             if (this._narrow) {
@@ -2472,6 +2645,19 @@
               // 0 (centre-follow) as the box's centre rises past the top.
               var wt = smoothstep(-0.05 * vh, 0.30 * vh, boxMid);
               baseScr = baseScr + (baseOn - baseScr) * wt;
+              // horizontal guard: the cup rides the fixed 0.30 pour line, but
+              // below ~1150px viewport that line lands INSIDE the centred copy
+              // block (the reported "cup overlaps Two ancient islands"). While
+              // the title is framed (wt→1), slide the cup left just enough to
+              // keep a clear gap to the box's left edge — and never off the
+              // screen's left edge. Position-blended → smooth, rewinds clean.
+              if (brr.left !== undefined) {
+                var cupHalfPx = 0.213 * cupPx; // rendered half-width: 0.213 per unit of cup px-height (see _resize)
+                var safeFx = (brr.left - 36 - cupHalfPx) / Math.max(1, grA.width);
+                var minFx = (cupHalfPx + 12) / Math.max(1, grA.width);
+                var fxGuard = Math.max(minFx, Math.min(this._fxDefault, safeFx));
+                this._fxClamp = this._fxDefault + (fxGuard - this._fxDefault) * wt;
+              }
             }
           }
         }
@@ -2519,13 +2705,24 @@
         // phone doesn't have at centre), and returns to centre as the
         // decanter exits — both framed stills show a centred cup. All
         // position/scrub-driven, so every move rewinds.
-        var fxRide = this._fxDefault;
+        var fxRide = (this._fxClamp === undefined) ? this._fxDefault : this._fxClamp;
         if (this._narrow) {
           var walk = Math.min(1, Math.max(0, (-pr2.top - 0.15 * vh) / (1.1 * vh))); // progress through the (shortened) herowords run-up — completes ~1.25 screens in
           var centred = Math.max(walk * (1 - smoothstep(0.02, 0.20, w0)), smoothstep(0.88, 0.985, w0));
           fxRide += (0.5 - this._fxDefault) * smoothstep(0, 1, centred);
+          this._glass.position.x = (fxRide - 0.5) * 2 * this._halfW;
+        } else {
+          // desktop: glide the longitude too — the title guard engages as the
+          // copy box walks on stage, and a clamp that SNAPS would teleport the
+          // cup sideways (same time constant as the vertical __cupGlide)
+          var tauX = Math.max(20, (typeof window.__cupGlide === "number" ? window.__cupGlide : 280)) / 1000;
+          if (this._rideFx === undefined) this._rideFx = fxRide;
+          else {
+            this._rideFx += (fxRide - this._rideFx) * (1 - Math.exp(-dt / tauX));
+            if (Math.abs(fxRide - this._rideFx) < 0.0006) this._rideFx = fxRide;
+          }
+          this._glass.position.x = (this._rideFx - 0.5) * 2 * this._halfW;
         }
-        this._glass.position.x = (fxRide - 0.5) * 2 * this._halfW;
         // whisky timeline, scrubbed by how deep the stage has been ridden —
         // asleep until the user's decanter file gives us _wb. The decanter
         // drops in ABOVE the pinned cup with the lid ON, the lid lifts off to
@@ -2580,9 +2777,10 @@
               var off = smoothstep(0.28, 0.44, w);
               this._wb.updateMatrixWorld(true);
               // seated pose: where the cork sits ON the vessel (follows its tilt)
-              var seatM = new THREE.Matrix4().multiplyMatrices(
+              // (cached matrices — two fresh Matrix4 per frame used to churn here)
+              var seatM = (this._corkM1 || (this._corkM1 = new THREE.Matrix4())).multiplyMatrices(
                 this._wbHolder.matrixWorld,
-                new THREE.Matrix4().makeTranslation(this._corkSeat.x, this._corkSeat.y, this._corkSeat.z));
+                (this._corkM2 || (this._corkM2 = new THREE.Matrix4())).makeTranslation(this._corkSeat.x, this._corkSeat.y, this._corkSeat.z));
               var _sp = this._corkSP || (this._corkSP = new THREE.Vector3());
               var _sq = this._corkSQ || (this._corkSQ = new THREE.Quaternion());
               var _ss = this._corkSS || (this._corkSS = new THREE.Vector3());
@@ -2689,10 +2887,40 @@
       }
       if (this._waterTopUniforms) this._waterTopUniforms.uTime.value = t;
 
-      // reduced-motion is a still-life: once settled with no particles alive,
-      // skip the render entirely — a second WebGL context costs nothing idle
-      if (this._reduce && Math.abs(diff) < 0.001 && !this._splashData.length &&
-          !this._bubData.length && !this._needsRender) return;
+      // phones: hide the viewport-fixed canvas (and skip the GPU) outside
+      // the cup's chapters — desktop's canvas is section-bound and self-clips.
+      // HYSTERESIS: show instantly, hide only after 12 consecutive off-story
+      // ticks — a boundary jitter (URL bar, bursty rects) must never strobe it.
+      // This runs BEFORE the idle gate: an idle early-return must never be
+      // able to skip the hide (stale canvas parked over later sections) or
+      // the un-hide (cup never coming back) on the fixed mobile canvas.
+      if (this._narrow && this._storyLive === false) {
+        this._storyOff = (this._storyOff || 0) + 1;
+        if (this._storyOff >= 12) {
+          if (!this._cvsHidden) { this._cvsHidden = true; this._renderer.domElement.style.visibility = 'hidden'; }
+          return;
+        }
+      } else this._storyOff = 0;
+      if (this._cvsHidden) { this._cvsHidden = false; this._renderer.domElement.style.visibility = ''; }
+
+      // idle gate (EVERY visitor, not just reduced-motion): with no jet, no
+      // particles, a settled fill and no recent input, the scene is a still
+      // life — skip the GPU frame entirely. A ~18MP canvas re-rendered 60x/s
+      // while nothing moves was the single biggest constant drain. Any input
+      // change (scroll, fill-target shift, resize) re-arms a short settle
+      // window so every ease/fade completes before the gate closes; a cup
+      // holding water keeps its ambient bubbles, and they keep it live.
+      if (this._settle === undefined) { this._settle = 45; this._lastIdleSy = -1; }
+      var levelMoving = Math.abs(this._level - (this._lastLevel === undefined ? this._level : this._lastLevel)) > 0.0005;
+      var targetMoved = this._lastTarget === undefined || Math.abs(target - this._lastTarget) > 0.0005;
+      this._lastLevel = this._level; this._lastTarget = target;
+      if (sy !== this._lastIdleSy || targetMoved || this._needsRender) this._settle = 45;
+      this._lastIdleSy = sy;
+      if (this._settle > 0) this._settle--;
+      if (pour <= 0 && wp <= 0 && settleGap < 0.001 && (!levelMoving || settleGap < 0.01) &&
+          !this._splashData.length && !this._bubData.length &&
+          this._settle <= 0 && !this._needsRender &&
+          this._stream.material.opacity <= 0.011 && this._core.material.opacity <= 0.011) return;
       this._needsRender = false;
 
       // the jet IS the bottle's jet: its exit state arrives in viewport px,
@@ -2701,7 +2929,7 @@
       var jet = this._jet || (this._jet = {});
       var covers = !live; // the default frame-top jet needs no coverage test
       if (live) {
-        var gr = this.getBoundingClientRect();
+        var gr = grA; // same element — reuse this frame's cached rect (no second layout read)
         _pourHandoff.glassTop = gr.top;
         // only take the stream over once this canvas actually COVERS the
         // bottle's mouth — WITH HYSTERESIS: the mouth bobs, and a hard
@@ -2753,18 +2981,6 @@
       this._updateSplash(dt, Math.max(pour, wp), jx, waterY);
       this._updateBubbles(dt, Math.max(pour, wp), jx, waterY, rIn);
 
-      // phones: hide the viewport-fixed canvas (and skip the GPU) outside
-      // the cup's chapters — desktop's canvas is section-bound and self-clips.
-      // HYSTERESIS: show instantly, hide only after 12 consecutive off-story
-      // ticks — a boundary jitter (URL bar, bursty rects) must never strobe it
-      if (this._narrow && this._storyLive === false) {
-        this._storyOff = (this._storyOff || 0) + 1;
-        if (this._storyOff >= 12) {
-          if (!this._cvsHidden) { this._cvsHidden = true; this._renderer.domElement.style.visibility = 'hidden'; }
-          return;
-        }
-      } else this._storyOff = 0;
-      if (this._cvsHidden) { this._cvsHidden = false; this._renderer.domElement.style.visibility = ''; }
       this._renderer.render(this._scene, this._camera);
     }
 
@@ -2775,9 +2991,21 @@
       var stream = this._stream, core = this._core;
       if (pour <= 0.01) {
         this._jetBk = null;
+        this._tubeWarm = false; // the next pour's first frame always re-solves
         stream.material.opacity = Math.max(0, stream.material.opacity - 0.08);
         core.material.opacity = Math.max(0, core.material.opacity - 0.12);
         if (stream.material.opacity <= 0.01) { stream.visible = false; core.visible = false; }
+        return;
+      }
+      // half-rate tube solve (mirrors the bottle's jet): the pour evolves
+      // slowly enough that a 30Hz ribbon reads identical to 60Hz — this skips
+      // the ring solve + four buffer uploads every other frame. Opacity still
+      // ramps every frame and droplet integration is untouched.
+      this._tubeFlip = !this._tubeFlip;
+      if (this._tubeFlip && this._tubeWarm) {
+        stream.visible = true; core.visible = true;
+        stream.material.opacity = WATER_JET_OP * Math.min(1, 0.35 + pour * 3);
+        core.material.opacity = WATER_CORE_OP * Math.min(1, 0.35 + pour * 3);
         return;
       }
       var posA = stream.geometry.attributes.position.array;
@@ -2865,6 +3093,7 @@
       // full presence instantly — the fade-in ramp read as transparency
       stream.material.opacity = WATER_JET_OP * Math.min(1, 0.35 + pour * 3);
       core.material.opacity = WATER_CORE_OP * Math.min(1, 0.35 + pour * 3);
+      this._tubeWarm = true;   // half-rate solves may now reuse this tube
     }
 
     _updateSplash(dt, pour, x, waterY) {

@@ -341,9 +341,11 @@
     var bubbles = [];
     var running = true;
 
+    var dpr2 = 1;
     function resize() {
-      canvas.width = canvas.offsetWidth * devicePixelRatio;
-      canvas.height = canvas.offsetHeight * devicePixelRatio;
+      dpr2 = Math.min(1.5, window.devicePixelRatio || 1); // a 2x backing store for a few faint rings isn't worth the raster
+      canvas.width = canvas.offsetWidth * dpr2;
+      canvas.height = canvas.offsetHeight * dpr2;
     }
     resize();
     window.addEventListener("resize", resize);
@@ -353,9 +355,9 @@
       return {
         x: w * (0.3 + Math.random() * 0.4),
         y: canvas.height + 10,
-        r: (1 + Math.random() * 2.6) * devicePixelRatio,
-        v: (0.35 + Math.random() * 0.75) * devicePixelRatio,
-        drift: (Math.random() - 0.5) * 0.35 * devicePixelRatio,
+        r: (1 + Math.random() * 2.6) * dpr2,
+        v: (0.35 + Math.random() * 0.75) * dpr2,
+        drift: (Math.random() - 0.5) * 0.35 * dpr2,
         a: 0.12 + Math.random() * 0.25
       };
     }
@@ -684,7 +686,7 @@
     var HOLD_MS = 1000, DRAIN_MAX_MS = 6000;   // each still holds ~1s (user-set "scroll disable time")
     var state = "wait";          // wait | tween | hold | done
     var released = false;
-    var timer = 0, lastT = 0, tweenTo = 0, tweenTau = 900, tweenKind = "";
+    var timer = 0, raf = 0, lastT = 0, tweenTo = 0, tweenTau = 900, tweenKind = "";
     var lockY = window.scrollY;  // the one-way gate: never below this without an activation
     var idleT = 0, idleCueT = 0, idleOff = false;   // idle assist: gently leads an IDLE/new reader on; killed for the whole session by the first up-gesture
     var IDLE_MS = 5000, CUE_MS = 2500;              // 2.5s of silence -> show the "keep scrolling" cue · 5s -> gently advance one beat
@@ -725,7 +727,7 @@
     function release() {
       if (released) return;
       released = true; setState("done");
-      clearTimeout(timer);
+      clearTimeout(timer); cancelAnimationFrame(raf);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
@@ -741,7 +743,9 @@
       if (!next) { release(); return; } // already past the last checkpoint
       setState("tween"); tweenTo = next.y; tweenTau = next.tau; tweenKind = next.kind;
       lastT = performance.now();
-      clearTimeout(timer); timer = setTimeout(step, 16);
+      /* rAF, not setTimeout(16): timeouts drift off vsync and the glide's
+         frame pacing read as micro-judder; rAF lands every step ON a frame */
+      cancelAnimationFrame(raf); raf = requestAnimationFrame(step);
     }
     function step() {
       var now = performance.now(), dt = Math.min(120, now - lastT); lastT = now;
@@ -757,7 +761,7 @@
       window.__anchorGlide = Date.now(); // THE WALL stands down while the conductor drives
       if (Math.abs(tweenTo - ny) < 1.5) { snapTo(tweenTo); lockY = tweenTo; arrive(); return; }
       snapTo(ny); lockY = ny;
-      timer = setTimeout(step, 16);
+      raf = requestAnimationFrame(step);
     }
     function arrive() {
       setState("hold");
@@ -782,7 +786,7 @@
     }
     function abortToFree() { // an up-gesture: hand control straight back
       idleOff = true;        // ...and never auto-assist again this session (an up-scroller wants to browse)
-      clearTimeout(timer);
+      clearTimeout(timer); cancelAnimationFrame(raf);
       if (tweenKind === "exit") { release(); return; } // up during the exit lead: the story's over, hand back HERE
       setState("wait");
     }
@@ -876,7 +880,7 @@
       if (!coarsePointer && state === "wait") activate(); // ...and on desktop it still ADVANCES — as a glide (touch keeps its gesture-driven activation)
     }
     function arm() {
-      released = false; idleOff = false; clearTimeout(timer); lockY = window.scrollY;
+      released = false; idleOff = false; clearTimeout(timer); cancelAnimationFrame(raf); lockY = window.scrollY;
       // identical listener refs → addEventListener dedupes, so arm() is safe to
       // call again (used by the bfcache pageshow re-arm below)
       window.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -905,7 +909,7 @@
     document.addEventListener("mastry:loaderdone", armIdle);
     // tab hidden mid-glide: land the tween instantly, keep the machine sane
     document.addEventListener("visibilitychange", function () {
-      if (document.hidden && state === "tween") { clearTimeout(timer); snapTo(tweenTo); lockY = tweenTo; arrive(); }
+      if (document.hidden && state === "tween") { clearTimeout(timer); cancelAnimationFrame(raf); snapTo(tweenTo); lockY = tweenTo; arrive(); }
     });
     window.__conductor = { get state() { return state; }, get lockY() { return lockY; }, checkpoints: checkpoints, activate: activate, release: release };
   })();

@@ -49,10 +49,9 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=20260714manual49" />
+<link rel="stylesheet" href="style.css?v=20260718min1" />
 <!-- hero-model preloads are injected CONDITIONALLY by the tier script above:
      FAST warms bottle.glb + glass.glb; LITE (slow) warms only label-full.jpg. -->
-<script type="module" fetchpriority="low" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 </head>
 <body>
 
@@ -71,10 +70,7 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
 <header class="nav" id="nav">
   <a class="nav__logo" href="#top">MASTRY<span class="nav__logo-jp">マストリー</span></a>
   <nav class="nav__links" id="navLinks" aria-label="Main">
-    <a href="#story">Story</a>
     <a href="#flavours">Flavours</a>
-    <a href="#seal">The Seal</a>
-    <a href="#ritual">Ritual</a>
     <a href="merch.html">Merch</a>
   </nav>
   <div class="nav__lang" aria-label="Language">
@@ -136,7 +132,6 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
     carbonated and bottled with Japanese precision.</p>
     <div class="hero__actions reveal">
       <a class="btn btn--solid" href="#flavours">Explore the flavours</a>
-      <a class="btn btn--ghost" href="#story">Why mastic?</a>
     </div>
     <p class="hero__foot reveal">ΧΙΟΣ — 日本 &nbsp;·&nbsp; est. on two shores</p>
   </div>
@@ -152,210 +147,35 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
   </div>
 </section>
 
-<!-- ══ Marquee ══ -->
-<div class="marquee" aria-hidden="true">
-  <div class="marquee__track">
-    <span>Sparkling water with mastic · <em class="mk-jp">炭酸水</em> · <em class="mk-gr">ΧΙΟΣ</em> · zero sugar · <em class="mk-craft">職人技</em> · since antiquity · <em class="mk-resin">マスティック</em> ·&nbsp;</span>
-    <span>Sparkling water with mastic · <em class="mk-jp">炭酸水</em> · <em class="mk-gr">ΧΙΟΣ</em> · zero sugar · <em class="mk-craft">職人技</em> · since antiquity · <em class="mk-resin">マスティック</em> ·&nbsp;</span>
-  </div>
-</div>
-
-<!-- ══ Story ══ -->
-<section class="story section" id="story">
-  <p class="section__eyebrow reveal">The collaboration — 協業</p>
-  <h2 class="section__title reveal" data-progress>A resin the Aegean has guarded<br /><em>for three thousand years.</em></h2>
-
-  <div class="story__grid">
-    <article class="story__col reveal--fade" data-speed="0.045">
-      <p class="story__label">Χίος — Greece</p>
-      <h3 class="story__head">The tears of Chios</h3>
-      <p>When the bark of the mastic tree is scored, it weeps slow drops of resin
-      that harden into fragrant crystals — the islanders call them <em>tears</em>.
-      Harvested by hand in the groves of southern Chios since antiquity,
-      mastic tastes like nothing else: cool pine, cedar, a whisper of the sea.</p>
-    </article>
-    <div class="story__divider" aria-hidden="true">
-      <span class="story__divider-line"></span>
-      <img src="images/m/seal-transparent.png" alt="" class="story__divider-seal" data-rotate="55" loading="lazy" decoding="async" />
-      <span class="story__divider-line"></span>
-    </div>
-    <article class="story__col reveal--fade" data-speed="-0.045">
-      <p class="story__label story__label--jp">日本 — Japan</p>
-      <h3 class="story__head">The craft of clarity</h3>
-      <p>Soft Japanese water, fine persistent carbonation, and the restraint to
-      leave things out — no sugar, no sweeteners, nothing that clouds the glass.
-      Each bottle is finished in Japan, its label painted in the quiet
-      tradition of sumi-e landscape.</p>
-    </article>
-  </div>
-
-  <ul class="stats reveal--fade" data-speed="0.06" aria-label="What's inside">
-    <li><span class="stats__num" data-count="0">0</span><span class="stats__cap">sugar</span></li>
-    <li><span class="stats__num" data-count="0">0</span><span class="stats__cap">calories</span></li>
-    <li><span class="stats__num" data-count="3">0</span><span class="stats__cap">ingredients</span></li>
-    <li><span class="stats__num" data-count="2">0</span><span class="stats__cap">islands</span></li>
+<!-- ══ The essence — one line, one row of facts. Nothing moves down here. ══ -->
+<section class="essence section" id="story">
+  <p class="essence__line">Mastic from Chios. Water from Japan.<br /><em>Nothing else.</em></p>
+  <ul class="stats" aria-label="What's inside">
+    <li><span class="stats__n">0</span><span class="stats__cap">sugar</span></li>
+    <li><span class="stats__n">0</span><span class="stats__cap">calories</span></li>
+    <li><span class="stats__n">3</span><span class="stats__cap">ingredients</span></li>
+    <li><span class="stats__n">2</span><span class="stats__cap">islands</span></li>
   </ul>
 </section>
 
-<!-- ══ Driftline ══ -->
-<div class="driftline" aria-hidden="true">
-  <span data-drift="-160">Mastic · Χίος · マスティック · Mastic · Χίος · マスティック</span>
-  <span data-drift="130">Sparkling · 炭酸水 · Ύδωρ · Sparkling · 炭酸水 · 水</span>
-</div>
-
-<!-- ══ Flavours ══ -->
-<section class="flavours section" id="flavours">
-  <div class="flavours__head">
-    <p class="section__eyebrow reveal">The line — 味</p>
-    <h2 class="section__title reveal" data-progress>Four waters. <em>One resin.</em></h2>
-  </div>
-
-  <div class="flavours__stage">
-    <div class="flavours__bottlewrap" data-speed="-0.045" data-zoom="0.93">
-      <div class="flavours__halo" aria-hidden="true"></div>
-      <img class="flavours__bottle is-active" src="images/brand%20new%20original%20catalog.png" srcset="images/m/brand%20new%20original%20catalog.png 512w, images/brand%20new%20original%20catalog.png 1024w" sizes="(max-width: 760px) 30vw, 420px" alt="Mastry Original Mastic bottle" data-flavour="original" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/Mastry%20ad%20yuzu.png" srcset="images/m/Mastry%20ad%20yuzu.jpg 640w, images/Mastry%20ad%20yuzu.png 1024w" sizes="(max-width: 760px) 30vw, 420px" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/Ume%20mastry%20Ad.png" srcset="images/m/Ume%20mastry%20Ad.jpg 640w, images/Ume%20mastry%20Ad.png 1024w" sizes="(max-width: 760px) 30vw, 420px" alt="Mastry Ume Mastic bottle" data-flavour="ume" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/hinoki%20mastry%20ad.png" srcset="images/m/hinoki%20mastry%20ad.jpg 640w, images/hinoki%20mastry%20ad.png 1024w" sizes="(max-width: 760px) 30vw, 420px" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" loading="lazy" decoding="async" />
-    </div>
-
-    <div class="flavours__panel" data-speed="0.03">
-      <div class="flavours__list" role="tablist" aria-label="Flavours">
-        <button class="flavours__tab is-active" role="tab" aria-selected="true" data-flavour="original">
-          <span class="flavours__no">01</span><span class="flavours__name">Original Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
-        </button>
-        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="yuzu">
-          <span class="flavours__no">02</span><span class="flavours__name">Yuzu Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
-        </button>
-        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="ume">
-          <span class="flavours__no">03</span><span class="flavours__name">Ume Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
-        </button>
-        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="hinoki">
-          <span class="flavours__no">04</span><span class="flavours__name">Hinoki Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
-        </button>
-      </div>
-
-      <div class="flavours__detail" id="flavourDetail" aria-live="polite">
-        <p class="flavours__jp" id="fJp">マスティック</p>
-        <p class="flavours__desc" id="fDesc">The unfiltered taste of Chios. Cool resin,
-        white flowers and clean sea air, carried on fine, persistent bubbles.</p>
-        <ul class="flavours__notes" id="fNotes">
-          <li>mastic resin</li><li>cedar &amp; pine</li><li>sea air</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ══ Seal ══ -->
-<section class="seal section" id="seal">
-  <div class="seal__inner">
-    <div class="seal__figure reveal">
-      <div class="seal__paper" data-speed="-0.04" data-zoom="0.9">
-        <img src="images/m/seal-transparent.png" alt="The Mastry seal — a Greek column and a torii gate above seigaiha waves" loading="lazy" decoding="async" />
-      </div>
-    </div>
-    <div class="seal__copy">
-      <p class="section__eyebrow section__eyebrow--light reveal">The seal — 印</p>
-      <h2 class="section__title section__title--light reveal" data-progress>Everything we believe,<br /><em>in one circle.</em></h2>
-      <ol class="seal__legend" data-speed="0.035">
-        <li class="reveal"><span>Ionic column</span>The Greek shore — where the resin is born.</li>
-        <li class="reveal"><span>Torii gate</span>The Japanese shore — where the water is made.</li>
-        <li class="reveal"><span>The tree</span>Pistacia lentiscus, the mastic tree of Chios.</li>
-        <li class="reveal"><span>Seigaiha waves</span>The sea that separates us — and carries the cargo.</li>
-        <li class="reveal"><span>A single drop</span>One tear of mastic in every bottle.</li>
-      </ol>
-    </div>
-  </div>
-</section>
-
-<!-- ══ Scenery ══ -->
-<section class="scenery" id="scenery" aria-label="Scenery from the label">
-  <div class="scenery__head">
-    <p class="section__eyebrow reveal">Scenery — 風景</p>
-    <h2 class="section__title reveal" data-progress>The world on <em>every label.</em></h2>
-  </div>
-  <div class="scenery__frame" id="sceneryFrame">
-    <div class="scenery__track" id="sceneryTrack">
-      <figure class="scenery__slide">
-        <img src="images/web%20hero%20half%20&amp;%20half.png" srcset="images/m/web%20hero%20half%20&amp;%20half.jpg 1000w, images/web%20hero%20half%20&amp;%20half-1600.jpg 1600w" sizes="100vw" alt="Ink drawing of a long bridge joining a Japanese pavilion to Greek temples across a bay" loading="lazy" decoding="async" />
-        <figcaption><span>01</span>橋</figcaption>
-      </figure>
-      <figure class="scenery__slide">
-        <img src="images/perfect%20web%20hero.png" srcset="images/m/perfect%20web%20hero.jpg 1000w, images/perfect%20web%20hero-1600.jpg 1600w" sizes="100vw" alt="Ink drawing of Mount Fuji with a torii gate and a boatman on still water" loading="lazy" />
-        <figcaption><span>02</span>富士</figcaption>
-      </figure>
-      <figure class="scenery__slide">
-        <img src="images/web%20hero%20new%20striking.png" srcset="images/m/web%20hero%20new%20striking.jpg 1000w, images/web%20hero%20new%20striking-1600.jpg 1600w" sizes="100vw" alt="Ink drawing of a strait between a Japanese pavilion and a Greek colonnade" loading="lazy" />
-        <figcaption><span>03</span>海峡</figcaption>
-      </figure>
-      <figure class="scenery__slide">
-        <img src="images/image%20web%20hero%20temple.png" srcset="images/m/image%20web%20hero%20temple.jpg 1000w, images/image%20web%20hero%20temple-1600.jpg 1600w" sizes="100vw" alt="Ink drawing of a ferryman rowing from a torii gate toward a Greek acropolis" loading="lazy" />
-        <figcaption><span>04</span>渡し</figcaption>
-      </figure>
-      <figure class="scenery__slide">
-        <img src="images/wider%20and%20newer%20web%20hero.png" srcset="images/m/wider%20and%20newer%20web%20hero.jpg 1000w, images/wider%20and%20newer%20web%20hero-1600.jpg 1600w" sizes="100vw" alt="A Mastry bottle on a wet rock at sunrise, Mount Fuji across the lake" loading="lazy" />
-        <figcaption><span>05</span>夜明け</figcaption>
-      </figure>
-    </div>
-    <div class="scenery__dots" id="sceneryDots" role="tablist" aria-label="Scenery slides"></div>
-  </div>
-</section>
-
-<!-- ══ Island ══ -->
-<section class="island" aria-label="The Mastry island mark, in three dimensions">
-  <p class="island__eyebrow reveal">島 — The mark, made real</p>
-  <div class="island__stage" data-speed="-0.045">
-    <model-viewer id="sealModel"
-      src="images/island_logo_holes_preserved_puffy_3d.glb"
-      alt="The Mastry island emblem floating above still water — drag to spin it"
-      auto-rotate rotation-per-second="13deg" auto-rotate-delay="0"
-      camera-controls disable-zoom disable-pan disable-tap
-      interaction-prompt="none" touch-action="pan-y"
-      shadow-intensity="0" exposure="1.08"
-      camera-orbit="0deg 85deg 108%"></model-viewer>
-  </div>
-  <div class="island__sea" aria-hidden="true">
-    <span class="island__shadow"></span>
-    <span class="island__ripple"></span>
-    <span class="island__ripple island__ripple--late"></span>
-  </div>
-  <p class="island__caption reveal">The island from every label, floating over its own water.<em>— take it for a spin.</em></p>
-</section>
-
-<!-- ══ Ritual ══ -->
-<section class="ritual section" id="ritual">
-  <div class="ritual__wrap">
-  <p class="section__eyebrow reveal">The ritual — 作法</p>
-  <h2 class="section__title reveal" data-progress>Make it <em>a moment.</em></h2>
-  <div class="ritual__grid">
-    <article class="ritual__step reveal--fade" data-speed="0.02" data-tilt="11">
-      <span class="ritual__no">01</span>
-      <h3>Chill, never freeze</h3>
-      <p>Four degrees. Cold enough to tighten the bubbles, warm enough that the resin still speaks.</p>
-    </article>
-    <article class="ritual__step reveal--fade" data-speed="0.055" data-tilt="11">
-      <span class="ritual__no">02</span>
-      <h3>Pour against the glass</h3>
-      <p>Tilt and pour slowly down the side. The carbonation is fine — treat it like something rationed.</p>
-    </article>
-    <article class="ritual__step reveal--fade" data-speed="0.09" data-tilt="11">
-      <span class="ritual__no">03</span>
-      <h3>Pair across the map</h3>
-      <p>Original with sashimi or mezze. Yuzu with anything fried. Ume before dinner, Hinoki after it.</p>
-    </article>
-  </div>
-  </div>
+<!-- ══ The line — four waters, no theatre ══ -->
+<section class="flavours flavours--plain section" id="flavours">
+  <h2 class="section__title">Four waters. <em>One resin.</em></h2>
+  <ul class="flavours__plain">
+    <li><span class="flavours__no">01</span><span class="flavours__name">Original Mastic</span></li>
+    <li><span class="flavours__no">02</span><span class="flavours__name">Yuzu Mastic</span></li>
+    <li><span class="flavours__no">03</span><span class="flavours__name">Ume Mastic</span></li>
+    <li><span class="flavours__no">04</span><span class="flavours__name">Hinoki Mastic</span></li>
+  </ul>
 </section>
 
 <!-- ══ Order / Contact ══ -->
 <section class="order section" id="find">
   <div class="order__inner">
-    <div class="order__left reveal--fade" data-speed="0.03">
+    <div class="order__left">
       <p class="section__eyebrow">Order — 注文</p>
-      <h2 class="section__title" data-progress>Order<br /><em>Mastry.</em></h2>
-      <p class="order__sub">Tell us what you'd like and where it's going.
-      We'll confirm by email within a day.</p>
+      <h2 class="section__title">Order<br /><em>Mastry.</em></h2>
+      <p class="order__sub">Tell us what you'd like and where it's going.</p>
       <dl class="order__info">
         <div><dt>Email</dt><dd>hello@mastry.jp</dd></div>
         <div><dt>Origin</dt><dd>Chios, Greece × Japan</dd></div>
@@ -363,7 +183,7 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
       </dl>
     </div>
 
-    <form class="order__form reveal--fade" data-speed="-0.035" data-tilt="6" id="orderForm" novalidate="novalidate">
+    <form class="order__form" id="orderForm" novalidate="novalidate">
       <div class="fg">
         <label for="fname">Full name</label>
         <input type="text" id="fname" placeholder="Your name" autocomplete="name" required />
@@ -406,10 +226,8 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
   <div class="footer__top">
     <a class="footer__logo" href="#top">MASTRY</a>
     <nav class="footer__links" aria-label="Footer">
-      <a href="#story">Story</a>
       <a href="#flavours">Flavours</a>
-      <a href="#seal">The Seal</a>
-      <a href="#ritual">Ritual</a>
+      <a href="#find">Order</a>
       <a href="merch.html">Merch</a>
     </nav>
   </div>
@@ -422,12 +240,12 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
     alt="Ink panorama: a pine on a cliff and Mount Fuji facing a Greek acropolis across the sea, a lone boatman between them, over a border of seigaiha waves" loading="lazy" />
 </footer>
 
-<script src="script.js?v=20260714manual49"></script>
+<script src="script.js?v=20260718min1"></script>
 <!-- self-hosted (was unpkg — a free CDN whose latency spikes made the bottle
      "sometimes take a couple of seconds"); same-origin loads are consistent -->
 <script src="vendor/three-0.147.0.min.js"></script>
 <script src="vendor/GLTFLoader-0.147.0.js"></script>
-<script src="bottle-3d.js?v=20260714manual49"></script>
+<script src="bottle-3d.js?v=20260718min1"></script>
 <script>/* measured net hint (visit-2 byte savings on API-less browsers, e.g. iOS):
   after load, time the real bottle.glb transfer and remember slow/fast. */
 addEventListener('load',function(){try{if(!window.__mastryLite){var e=performance.getEntriesByName(new URL('assets/bottle.glb',location.href).href)[0];if(e&&e.transferSize>0&&e.duration>0){localStorage.setItem('mastry-net',(e.transferSize/(e.duration/1000))<2e5?'slow':'fast');localStorage.setItem('mastry-net-ts',Date.now());}}}catch(e){}});</script>
