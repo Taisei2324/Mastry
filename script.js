@@ -914,3 +914,23 @@
     window.__conductor = { get state() { return state; }, get lockY() { return lockY; }, checkpoints: checkpoints, activate: activate, release: release };
   })();
 })();
+
+
+/* Flavours — one bottle at a time. Instant swap, no motion. */
+(function () {
+  var img = document.getElementById('flavourShot');
+  if (!img) return;
+  var btns = Array.prototype.slice.call(document.querySelectorAll('.flavours__pick button'));
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      btns.forEach(function (x) { x.classList.remove('is-active'); });
+      b.classList.add('is-active');
+      img.srcset = b.getAttribute('data-srcset');
+      img.src = b.getAttribute('data-src');
+      img.alt = b.getAttribute('data-alt');
+    });
+  });
+  window.addEventListener('load', function () {
+    btns.forEach(function (b) { var p = new Image(); p.src = b.getAttribute('data-src'); });
+  });
+})();

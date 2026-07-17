@@ -48,7 +48,7 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="mobile.css?v=20260718min2" />
+<link rel="stylesheet" href="mobile.css?v=20260718min3" />
 <style>:root{--sans:"Inter","Noto Sans JP",system-ui,sans-serif;--serif:"Cormorant Garamond","Noto Serif JP",serif;}</style>
 <!-- hero-model preloads injected conditionally by the tier script (FAST: bottle.glb+glass.glb · LITE: label-full.jpg) -->
 </head>
@@ -158,24 +158,15 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
 <!-- ══ The line — four waters, no theatre ══ -->
 <section class="flavours flavours--plain section" id="flavours">
   <h2 class="section__title">四つの水。<em>一つの樹脂。</em></h2>
-  <ul class="flavours__grid">
-    <li>
-      <span class="flavours__shot"><img src="images/brand%20new%20original%20catalog.png" srcset="images/m/brand%20new%20original%20catalog.png 512w, images/brand%20new%20original%20catalog.png 1024w" sizes="44vw" alt="マストリー オリジナル・マスティックのボトル" width="1024" height="1536" loading="lazy" decoding="async"></span>
-      <span class="flavours__cap"><span class="flavours__no">01</span><span class="flavours__name">オリジナル・マスティック</span></span>
-    </li>
-    <li>
-      <span class="flavours__shot"><img src="images/Mastry%20ad%20yuzu.png" srcset="images/m/Mastry%20ad%20yuzu.jpg 640w, images/Mastry%20ad%20yuzu.png 1024w" sizes="44vw" alt="マストリー ゆず・マスティックのボトル" width="1024" height="1536" loading="lazy" decoding="async"></span>
-      <span class="flavours__cap"><span class="flavours__no">02</span><span class="flavours__name">ゆず・マスティック</span></span>
-    </li>
-    <li>
-      <span class="flavours__shot"><img src="images/Ume%20mastry%20Ad.png" srcset="images/m/Ume%20mastry%20Ad.jpg 640w, images/Ume%20mastry%20Ad.png 1024w" sizes="44vw" alt="マストリー うめ・マスティックのボトル" width="1024" height="1536" loading="lazy" decoding="async"></span>
-      <span class="flavours__cap"><span class="flavours__no">03</span><span class="flavours__name">うめ・マスティック</span></span>
-    </li>
-    <li>
-      <span class="flavours__shot"><img src="images/hinoki%20mastry%20ad.png" srcset="images/m/hinoki%20mastry%20ad.jpg 640w, images/hinoki%20mastry%20ad.png 1024w" sizes="44vw" alt="マストリー ヒノキ・マスティックのボトル" width="1024" height="1536" loading="lazy" decoding="async"></span>
-      <span class="flavours__cap"><span class="flavours__no">04</span><span class="flavours__name">ヒノキ・マスティック</span></span>
-    </li>
-  </ul>
+  <div class="flavours__single">
+    <span class="flavours__shot"><img id="flavourShot" src="images/brand%20new%20original%20catalog.png" srcset="images/m/brand%20new%20original%20catalog.png 512w, images/brand%20new%20original%20catalog.png 1024w" sizes="74vw" alt="マストリー オリジナル・マスティックのボトル" width="1024" height="1536" decoding="async"></span>
+    <ul class="flavours__pick">
+      <li><button type="button" class="is-active" data-src="images/brand%20new%20original%20catalog.png" data-srcset="images/m/brand%20new%20original%20catalog.png 512w, images/brand%20new%20original%20catalog.png 1024w" data-alt="マストリー オリジナル・マスティックのボトル"><span class="flavours__no">01</span><span class="flavours__name">オリジナル・マスティック</span></button></li>
+      <li><button type="button" data-src="images/Mastry%20ad%20yuzu.png" data-srcset="images/m/Mastry%20ad%20yuzu.jpg 640w, images/Mastry%20ad%20yuzu.png 1024w" data-alt="マストリー ゆず・マスティックのボトル"><span class="flavours__no">02</span><span class="flavours__name">ゆず・マスティック</span></button></li>
+      <li><button type="button" data-src="images/Ume%20mastry%20Ad.png" data-srcset="images/m/Ume%20mastry%20Ad.jpg 640w, images/Ume%20mastry%20Ad.png 1024w" data-alt="マストリー うめ・マスティックのボトル"><span class="flavours__no">03</span><span class="flavours__name">うめ・マスティック</span></button></li>
+      <li><button type="button" data-src="images/hinoki%20mastry%20ad.png" data-srcset="images/m/hinoki%20mastry%20ad.jpg 640w, images/hinoki%20mastry%20ad.png 1024w" data-alt="マストリー ヒノキ・マスティックのボトル"><span class="flavours__no">04</span><span class="flavours__name">ヒノキ・マスティック</span></button></li>
+    </ul>
+  </div>
 </section>
 
 <!-- ══ Order / Contact ══ -->
@@ -249,10 +240,10 @@ window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
     alt="墨絵のパノラマ：崖の松と富士山、海の向こうのギリシャの神殿、その間を行く舟人、青海波の縁取り" loading="lazy" />
 </footer>
 
-<script src="mobile.js?v=20260718min2"></script>
+<script src="mobile.js?v=20260718min3"></script>
 <script src="vendor/three-0.147.0.min.js"></script>
 <script src="vendor/GLTFLoader-0.147.0.js"></script>
-<script src="bottle-3d.js?v=20260718min2"></script>
+<script src="bottle-3d.js?v=20260718min3"></script>
 <script>addEventListener('load',function(){try{if(!window.__mastryLite){var e=performance.getEntriesByName(new URL('assets/bottle.glb',location.href).href)[0];if(e&&e.transferSize>0&&e.duration>0){localStorage.setItem('mastry-net',(e.transferSize/(e.duration/1000))<2e5?'slow':'fast');localStorage.setItem('mastry-net-ts',Date.now());}}}catch(e){}});</script>
 <script>if('serviceWorker'in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).catch(function(){});});}</script>
 </body>
