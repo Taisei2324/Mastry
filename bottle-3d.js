@@ -175,27 +175,56 @@
       shader.uniforms.uAgitate = { value: 0.0 };
       holder._waterUniforms = shader.uniforms;
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying vec3 vWPosW;')
+        .replace('#include <common>', '#include <common>\nvarying vec3 vWPosW;\nvarying vec3 vWNorW;')
         .replace('#include <begin_vertex>',
-                 '#include <begin_vertex>\n  vWPosW = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;');
+                 '#include <begin_vertex>\n  vWPosW = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;\n  vWNorW = mat3( modelMatrix ) * normal;');
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>',
-          '#include <common>\nvarying vec3 vWPosW;\nuniform float uWaterlineY, uBaseY, uTime, uAgitate;')
+        .replace('#include <common>', [
+          '#include <common>',
+          'varying vec3 vWPosW;',
+          'varying vec3 vWNorW;',
+          'uniform float uWaterlineY, uBaseY, uTime, uAgitate;',
+          // cheap 3-octave trig noise — drifting caustic webs, no texture fetch
+          'float liqN( vec3 p ){ return sin( p.x ) * sin( p.y ) * sin( p.z ); }',
+          'float liqCaustic( vec3 p, float t ){',
+          '  float n = liqN( p * 7.0 + vec3( 0.0, -t * 1.3, t * 0.7 ) );',
+          '  n += 0.5 * liqN( p * 15.0 + vec3( t * 0.9, -t * 2.1, 0.0 ) );',
+          '  n += 0.25 * liqN( p * 29.0 + vec3( -t * 1.7, 0.0, t * 1.1 ) );',
+          '  return n;',
+          '}',
+          // two world-space studio strip lights: the vessel rotates under them,
+          // so the glare sweeps the liquid exactly as the glass tilts
+          'vec3 liqStripGlare( vec3 Nw, vec3 wpos ){',
+          '  vec3 V = normalize( cameraPosition - wpos );',
+          '  vec3 R = reflect( -V, normalize( Nw ) );',
+          '  float s1 = pow( max( dot( R, normalize( vec3( -0.45, 0.80, 0.42 ) ) ), 0.0 ), 90.0 );',
+          '  float s2 = pow( max( dot( R, normalize( vec3( 0.62, 0.30, 0.72 ) ) ), 0.0 ), 220.0 );',
+          '  return vec3( 1.0, 0.99, 0.94 ) * ( s1 * 0.9 + s2 * 0.6 );',
+          '}'
+        ].join('\n'))
         .replace('#include <output_fragment>', [
           'vec3  V     = normalize( vViewPosition );',
           'float ndv   = abs( dot( normalize( normal ), V ) );',
           'float fres  = pow( 1.0 - ndv, 3.0 );',
           'float wy    = vWPosW.y;',
-          'float d     = wy - uWaterlineY;',
+          // turbulence: the meniscus band itself wanders with the liquid
+          'float turb  = liqCaustic( vWPosW * 2.6, uTime * 1.4 );',
+          'float d     = wy - uWaterlineY + turb * 0.012 * ( 0.35 + uAgitate );',
           'float depth = clamp( ( uWaterlineY - wy ) / max( 0.05, uWaterlineY - uBaseY ), 0.0, 1.0 );',
           'float thick = depth * 0.9 + fres * 0.8;',
           'vec3  absorb = exp( -vec3( 0.42, 0.14, 0.28 ) * thick );',
           'vec3  col    = outgoingLight * mix( vec3( 1.0 ), absorb, 0.75 );',
+          // caustic light webs drifting through the body, agitation-bright
+          'float ca   = liqCaustic( vWPosW * 1.7, uTime );',
+          'float web  = smoothstep( 0.25, 1.0, 0.5 + 0.5 * ca );',
+          'col += vec3( 0.30, 0.42, 0.36 ) * web * ( 0.05 + 0.30 * uAgitate ) * ( 0.35 + depth );',
           'float line   = exp( -( d * d ) / ( 0.020 * 0.020 ) );',
           'float shim   = 0.7 + 0.3 * sin( wy * 38.0 + uTime * 5.0 );',
           'col += vec3( 0.34, 0.40, 0.36 ) * line * ( 0.35 + 0.5 * uAgitate ) * shim;',
           'col += vec3( 0.30, 0.36, 0.33 ) * line * fres * 0.5;',
-          'float a = clamp( diffuseColor.a + fres * 0.42 + line * 0.30 + depth * 0.10, 0.0, 0.72 );',
+          // strip-light glare — moves with the tilt, hottest at the silhouette
+          'col += liqStripGlare( vWNorW, vWPosW ) * ( 0.30 + 0.70 * fres ) * ( 0.45 + 0.55 * min( 1.0, uAgitate + 0.35 ) );',
+          'float a = clamp( diffuseColor.a + fres * 0.42 + line * 0.30 + depth * 0.10 + web * 0.05, 0.0, 0.72 );',
           'gl_FragColor = vec4( col, a );'
         ].join('\n'));
     };
@@ -210,23 +239,106 @@
     mat.onBeforeCompile = function (shader) {
       shader.uniforms.uTime = { value: 0.0 };
       shader.uniforms.uDiscR = { value: discR };
+      shader.uniforms.uRipAmp = { value: 0.0 };  // impact ripple strength (pour/glug-fed)
+      shader.uniforms.uRipPh = { value: 0.0 };   // ripple phase, advanced per frame
       holder._waterTopUniforms = shader.uniforms;
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying float vR;\nuniform float uDiscR;')
+        .replace('#include <common>', '#include <common>\nvarying float vR;\nvarying vec2 vP;\nvarying vec3 vWW;\nvarying vec3 vWN;\nuniform float uDiscR;')
         .replace('#include <begin_vertex>',
-                 '#include <begin_vertex>\n  vR = length( position.xy ) / uDiscR;');
+                 '#include <begin_vertex>\n  vR = length( position.xy ) / uDiscR;\n  vP = position.xy / uDiscR;\n  vWW = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;\n  vWN = mat3( modelMatrix ) * normal;');
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying float vR;\nuniform float uTime;')
+        .replace('#include <common>', [
+          '#include <common>',
+          'varying float vR;',
+          'varying vec2 vP;',
+          'varying vec3 vWW;',
+          'varying vec3 vWN;',
+          'uniform float uTime, uRipAmp, uRipPh;',
+          'vec3 topStripGlare( vec3 Nw, vec3 wpos ){',
+          '  vec3 V = normalize( cameraPosition - wpos );',
+          '  vec3 R = reflect( -V, normalize( Nw ) );',
+          '  float s1 = pow( max( dot( R, normalize( vec3( -0.45, 0.80, 0.42 ) ) ), 0.0 ), 110.0 );',
+          '  float s2 = pow( max( dot( R, normalize( vec3( 0.62, 0.30, 0.72 ) ) ), 0.0 ), 260.0 );',
+          '  return vec3( 1.0, 0.99, 0.94 ) * ( s1 + s2 * 0.7 );',
+          '}'
+        ].join('\n'))
         .replace('#include <output_fragment>', [
           'vec3  V    = normalize( vViewPosition );',
           'float fres = pow( 1.0 - abs( dot( normalize( normal ), V ) ), 4.0 );',
           'float rim  = smoothstep( 0.80, 0.99, vR );',
           'float rip  = 0.5 + 0.5 * sin( vR * 24.0 - uTime * 2.2 );',
+          // impact ripple train — expanding rings off the strike point,
+          // amplitude follows the pour; two wavelengths read as real ripples
+          'float rr    = length( vP );',
+          'float ring  = sin( rr * 30.0 - uRipPh * 7.0 ) * exp( -rr * 2.2 ) * uRipAmp;',
+          'float ring2 = sin( rr * 14.0 - uRipPh * 4.2 ) * exp( -rr * 1.4 ) * uRipAmp * 0.5;',
+          // sparkling micro-boiling — the surface never sits dead still
+          'float boil = sin( vP.x * 34.0 + uTime * 3.3 ) * sin( vP.y * 31.0 - uTime * 2.7 );',
+          'boil = ( 0.5 + 0.5 * boil ) * 0.5;',
           'vec3  col  = outgoingLight;',
           'col += vec3( 0.42, 0.52, 0.47 ) * fres * 0.28;',
-          'col += vec3( 0.72, 0.84, 0.78 ) * rim * ( 0.22 + 0.10 * rip );',
-          'float a = clamp( diffuseColor.a + fres * 0.30 + rim * 0.35, 0.0, 0.72 );',
+          'col += vec3( 0.72, 0.84, 0.78 ) * rim * ( 0.22 + 0.10 * rip + abs( ring ) * 0.30 );',
+          'col += vec3( 0.55, 0.68, 0.60 ) * ( ring * 0.5 + ring2 * 0.3 );',
+          'col += vec3( 0.60, 0.72, 0.66 ) * boil * 0.10;',
+          // sky/studio glare lying ON the surface, sweeping with any tilt
+          'col += topStripGlare( vWN, vWW ) * ( 0.35 + 0.65 * fres + uRipAmp * 0.4 );',
+          'float a = clamp( diffuseColor.a + fres * 0.30 + rim * 0.35 + abs( ring ) * 0.22 + boil * 0.04, 0.0, 0.78 );',
           'gl_FragColor = vec4( col, a );'
+        ].join('\n'));
+    };
+    mat.needsUpdate = true;
+  }
+
+  /* the hero pour's LIT stream: world-space strip glare that slides down the
+     swaying jet (normals turn under fixed lights) — the wet highlight a real
+     falling column catches from the room */
+  function installStreamGlareShader(mat) {
+    mat.onBeforeCompile = function (shader) {
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vSWPos;\nvarying vec3 vSWNor;')
+        .replace('#include <begin_vertex>',
+                 '#include <begin_vertex>\n  vSWPos = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;\n  vSWNor = mat3( modelMatrix ) * normal;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>',
+          '#include <common>\nvarying vec3 vSWPos;\nvarying vec3 vSWNor;')
+        .replace('#include <output_fragment>', [
+          'vec3 sV = normalize( cameraPosition - vSWPos );',
+          'vec3 sR = reflect( -sV, normalize( vSWNor ) );',
+          'float sg1 = pow( max( dot( sR, normalize( vec3( -0.45, 0.80, 0.42 ) ) ), 0.0 ), 70.0 );',
+          'float sg2 = pow( max( dot( sR, normalize( vec3( 0.62, 0.30, 0.72 ) ) ), 0.0 ), 170.0 );',
+          'gl_FragColor = vec4( outgoingLight + vec3( 1.0, 0.99, 0.94 ) * ( sg1 * 0.9 + sg2 * 0.55 ), diffuseColor.a );'
+        ].join('\n'));
+    };
+    mat.needsUpdate = true;
+  }
+
+  /* the decanter's contained whisky: slow amber currents ("inner fire") and
+     strip-light glare that sweeps the spirit as the vessel tips. Uniforms are
+     collected on holder._wbShaderU and fed per frame from the act's tick. */
+  function installWhiskyLiquidShader(mat, holder) {
+    mat.onBeforeCompile = function (shader) {
+      shader.uniforms.uTime = { value: 0.0 };
+      shader.uniforms.uAgitate = { value: 0.0 };
+      (holder._wbShaderU = holder._wbShaderU || []).push(shader.uniforms);
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vWkPos;\nvarying vec3 vWkNor;')
+        .replace('#include <begin_vertex>',
+                 '#include <begin_vertex>\n  vWkPos = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;\n  vWkNor = mat3( modelMatrix ) * normal;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>',
+          '#include <common>\nvarying vec3 vWkPos;\nvarying vec3 vWkNor;\nuniform float uTime, uAgitate;')
+        .replace('#include <output_fragment>', [
+          'vec3 wV = normalize( cameraPosition - vWkPos );',
+          'vec3 wR = reflect( -wV, normalize( vWkNor ) );',
+          'float ws1 = pow( max( dot( wR, normalize( vec3( -0.45, 0.80, 0.42 ) ) ), 0.0 ), 60.0 );',
+          'float ws2 = pow( max( dot( wR, normalize( vec3( 0.62, 0.30, 0.72 ) ) ), 0.0 ), 140.0 );',
+          // slow amber currents rolling through the spirit — alive, never flat
+          'float fire = sin( vWkPos.y * 9.0 + uTime * 1.6 + sin( vWkPos.x * 7.0 - uTime * 1.1 ) * 1.5 );',
+          'fire = 0.5 + 0.5 * fire;',
+          'vec3 wcol = outgoingLight;',
+          'wcol += vec3( 0.55, 0.26, 0.05 ) * fire * ( 0.10 + 0.28 * uAgitate );',
+          'wcol += vec3( 1.0, 0.93, 0.78 ) * ( ws1 * 0.8 + ws2 * 0.5 ) * ( 0.45 + 0.55 * uAgitate );',
+          'gl_FragColor = vec4( wcol, diffuseColor.a );'
         ].join('\n'));
     };
     mat.needsUpdate = true;
@@ -251,12 +363,27 @@
   function waterSheenMesh(geo) {
     // fresnel definition pass: a CONSTANT sage edge (normal blend can never
     // fall darker than this authored colour — no env, no black) plus a white
-    // hot sparkle toward pure grazing
+    // hot sparkle toward pure grazing, PLUS two world-space strip lights so
+    // the glare slides down the jet as it sways (the tube's normals turn
+    // under the fixed lights — the sheen moves like real wet glass)
     var m = new THREE.Mesh(geo, new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: THREE.NormalBlending, side: THREE.FrontSide,
       uniforms: { uK: { value: 0 } },
-      vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
-      fragmentShader: 'uniform float uK; varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.0); float hot = pow(d, 7.0); gl_FragColor = vec4(mix(vec3(0.47, 0.58, 0.51), vec3(1.0), hot), (f * 0.62 + hot * 0.35) * uK); }'
+      vertexShader: 'varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW; void main(){ vN = normalize(normalMatrix * normal); vWN = mat3(modelMatrix) * normal; vec4 wp = modelMatrix * vec4(position, 1.0); vWW = wp.xyz; vec4 mv = viewMatrix * wp; vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+      fragmentShader: [
+        'uniform float uK; varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW;',
+        'void main(){',
+        '  float d = 1.0 - abs(dot(normalize(vN), normalize(vV)));',
+        '  float f = pow(d, 2.0); float hot = pow(d, 7.0);',
+        '  vec3 V = normalize(cameraPosition - vWW);',
+        '  vec3 R = reflect(-V, normalize(vWN));',
+        '  float s1 = pow(max(dot(R, normalize(vec3(-0.45, 0.80, 0.42))), 0.0), 70.0);',
+        '  float s2 = pow(max(dot(R, normalize(vec3(0.62, 0.30, 0.72))), 0.0), 180.0);',
+        '  vec3 spec = vec3(1.0, 0.99, 0.94) * (s1 + s2 * 0.7);',
+        '  vec3 base = mix(vec3(0.47, 0.58, 0.51), vec3(1.0), hot);',
+        '  gl_FragColor = vec4(base + spec * 1.2, (f * 0.62 + hot * 0.35 + (s1 + s2) * 0.30) * uK);',
+        '}'
+      ].join('\n')
     }));
     m.visible = false;
     m.frustumCulled = false;
@@ -468,8 +595,24 @@
       parent.add(front);
       var fresnel = new THREE.Mesh(glassGeo, new THREE.ShaderMaterial({
         transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide,
-        vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
-        fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.4); float hot = pow(d, 6.5); vec3 tint = vec3(0.62, 0.88, 0.72); gl_FragColor = vec4(tint * f * 0.78 + vec3(1.0) * hot * 0.62, f * 0.72 + hot * 0.5); }'
+        // world-space strip lights: the bottle spins/tilts under them, so the
+        // glare travels the glass exactly like a studio softbox would paint it
+        vertexShader: 'varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW; void main(){ vN = normalize(normalMatrix * normal); vWN = mat3(modelMatrix) * normal; vec4 wp = modelMatrix * vec4(position, 1.0); vWW = wp.xyz; vec4 mv = viewMatrix * wp; vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+        fragmentShader: [
+          'varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW;',
+          'void main(){',
+          '  float d = 1.0 - abs(dot(normalize(vN), normalize(vV)));',
+          '  float f = pow(d, 2.4); float hot = pow(d, 6.5);',
+          '  vec3 tint = vec3(0.62, 0.88, 0.72);',
+          '  vec3 V = normalize(cameraPosition - vWW);',
+          '  vec3 R = reflect(-V, normalize(vWN));',
+          '  float s1 = pow(max(dot(R, normalize(vec3(-0.45, 0.80, 0.42))), 0.0), 60.0);',
+          '  float s2 = pow(max(dot(R, normalize(vec3(0.62, 0.30, 0.72))), 0.0), 160.0);',
+          '  float streak = pow(max(dot(normalize(vWN), normalize(vec3(-0.45, 0.80, 0.42))), 0.0), 18.0);',
+          '  vec3 col = tint * f * 0.78 + vec3(1.0) * hot * 0.62 + vec3(1.0, 0.99, 0.95) * (s1 * 0.9 + s2 * 0.55) + tint * streak * 0.30;',
+          '  gl_FragColor = vec4(col, f * 0.72 + hot * 0.5 + (s1 + s2) * 0.45 + streak * 0.10);',
+          '}'
+        ].join('\n')
       }));
       fresnel.renderOrder = 6;
       parent.add(fresnel);
@@ -916,6 +1059,7 @@
         color: 0xdceede, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.0,
         envMapIntensity: 2.0, clearcoat: 1, clearcoatRoughness: 0.06, depthWrite: false
       }));
+      installStreamGlareShader(stream.material);
       stream.renderOrder = 7;
       stream.visible = false;
       stream.frustumCulled = false;
@@ -1242,7 +1386,17 @@
         this._waterUniforms.uAgitate.value =
           Math.min(1, Math.abs(vel) * 0.008 + tiltT * 0.8 + this._fizzBurst * 0.8 + (this._glugKick || 0) * 0.6);
       }
-      if (this._waterTopUniforms) this._waterTopUniforms.uTime.value = t;
+      if (this._waterTopUniforms) {
+        this._waterTopUniforms.uTime.value = t;
+        // the surface speaks: glug heaves, the fizz burst and any tilt send
+        // ripple rings across it; phase advances faster the harder it's hit
+        var ripH = this._waterTopUniforms.uRipAmp;
+        var ripT = Math.min(1, (this._glugKick || 0) * 0.9 + this._fizzBurst * 0.6 +
+                               Math.abs(this._surfBob || 0) * 6.0 + tiltT * 0.15);
+        ripH.value += (ripT - ripH.value) * (1 - Math.pow(0.12, dt));
+        this._waterTopUniforms.uRipPh.value =
+          (this._waterTopUniforms.uRipPh.value + dt * (3 + 5 * ripH.value)) % 100;
+      }
 
       // bubbles — 2x speed and 2x count once the cap is off, plus a hard
       // surge while the cap-off fizz burst is live. But once the bottle
@@ -2155,6 +2309,7 @@
               transparent: true, opacity: 0.9, envMapIntensity: 0.35, depthWrite: false,
               side: THREE.DoubleSide, clippingPlanes: [self._wbLiquidPlane]
             });
+            installWhiskyLiquidShader(lm, self);
             var lmesh = new THREE.Mesh(lgeo, lm);
             lmesh.renderOrder = 3;
             holder.add(lmesh);
@@ -2222,8 +2377,23 @@
       var fres = new THREE.Mesh(geo, new THREE.ShaderMaterial({
         transparent: true, depthWrite: false, blending: THREE.NormalBlending, side: THREE.FrontSide,
         uniforms: { uOp: { value: 1 } },
-        vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
-        fragmentShader: 'uniform float uOp; varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.2); float hot = pow(d, 9.0); vec3 edge = vec3(0.33, 0.42, 0.37); gl_FragColor = vec4(mix(edge, vec3(1.0), hot), (f * 0.6 + hot * 0.4) * uOp); }'
+        // world-space strip lights: the decanter tips under them mid-act, so
+        // the glare rakes across the cut crystal exactly as the pour happens
+        vertexShader: 'varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW; void main(){ vN = normalize(normalMatrix * normal); vWN = mat3(modelMatrix) * normal; vec4 wp = modelMatrix * vec4(position, 1.0); vWW = wp.xyz; vec4 mv = viewMatrix * wp; vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+        fragmentShader: [
+          'uniform float uOp; varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW;',
+          'void main(){',
+          '  float d = 1.0 - abs(dot(normalize(vN), normalize(vV)));',
+          '  float f = pow(d, 2.2); float hot = pow(d, 9.0);',
+          '  vec3 edge = vec3(0.33, 0.42, 0.37);',
+          '  vec3 V = normalize(cameraPosition - vWW);',
+          '  vec3 R = reflect(-V, normalize(vWN));',
+          '  float s1 = pow(max(dot(R, normalize(vec3(-0.45, 0.80, 0.42))), 0.0), 55.0);',
+          '  float s2 = pow(max(dot(R, normalize(vec3(0.62, 0.30, 0.72))), 0.0), 150.0);',
+          '  vec3 col = mix(edge, vec3(1.0), hot) + vec3(1.0, 0.99, 0.94) * (s1 * 0.85 + s2 * 0.5);',
+          '  gl_FragColor = vec4(col, (f * 0.6 + hot * 0.4 + (s1 + s2) * 0.40) * uOp);',
+          '}'
+        ].join('\n')
       }));
       fres.renderOrder = 6; parent.add(fres);
       Object.defineProperty(fres.material, 'opacity', {
@@ -2330,10 +2500,24 @@
       front.renderOrder = 5; parent.add(front);
       var fresnel = new THREE.Mesh(geo, new THREE.ShaderMaterial({
         transparent: true, depthWrite: false, blending: THREE.NormalBlending, side: THREE.FrontSide,
-        vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
         // normal blending with a DARK edge colour: reads as the thick wall of
-        // real glass against light paper; the hot term still sparkles white
-        fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float d = 1.0 - abs(dot(normalize(vN), normalize(vV))); float f = pow(d, 2.2); float hot = pow(d, 9.0); vec3 edge = vec3(0.33, 0.42, 0.37); gl_FragColor = vec4(mix(edge, vec3(1.0), hot), f * 0.6 + hot * 0.4); }'
+        // real glass against light paper; the hot term still sparkles white.
+        // World-space strip lights add the moving studio glare on top.
+        vertexShader: 'varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW; void main(){ vN = normalize(normalMatrix * normal); vWN = mat3(modelMatrix) * normal; vec4 wp = modelMatrix * vec4(position, 1.0); vWW = wp.xyz; vec4 mv = viewMatrix * wp; vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+        fragmentShader: [
+          'varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW;',
+          'void main(){',
+          '  float d = 1.0 - abs(dot(normalize(vN), normalize(vV)));',
+          '  float f = pow(d, 2.2); float hot = pow(d, 9.0);',
+          '  vec3 edge = vec3(0.33, 0.42, 0.37);',
+          '  vec3 V = normalize(cameraPosition - vWW);',
+          '  vec3 R = reflect(-V, normalize(vWN));',
+          '  float s1 = pow(max(dot(R, normalize(vec3(-0.45, 0.80, 0.42))), 0.0), 60.0);',
+          '  float s2 = pow(max(dot(R, normalize(vec3(0.62, 0.30, 0.72))), 0.0), 160.0);',
+          '  vec3 col = mix(edge, vec3(1.0), hot) + vec3(1.0, 0.99, 0.94) * (s1 * 0.8 + s2 * 0.45);',
+          '  gl_FragColor = vec4(col, f * 0.6 + hot * 0.4 + (s1 + s2) * 0.38);',
+          '}'
+        ].join('\n')
       }));
       fresnel.renderOrder = 6; parent.add(fresnel);
       return [back, front, fresnel];
@@ -2754,11 +2938,11 @@
               var fill = this._wbFillRest + (this._wbFillLow - this._wbFillRest) * drain;
               var dw = w - (this._wLast == null ? w : this._wLast); this._wLast = w;
               var sv = (this._sloshV || 0);
-              sv += dw * 45;                                                       // scrub speed kicks the surface
+              sv += dw * 62;                                                       // scrub speed kicks the surface — harder, the spirit has weight
               sv -= (this._sloshA || 0) * 0.20;                                    // spring back to level
-              sv *= 0.80;                                                          // damping
+              sv *= 0.83;                                                          // lighter damping: a longer, wetter settle
               var sa = (this._sloshA || 0) + sv * Math.min(1, dt * 60);
-              sa = Math.max(-0.06, Math.min(0.06, sa));                            // clamp <= ~3.5deg (never pokes the wall)
+              sa = Math.max(-0.085, Math.min(0.085, sa));                          // clamp <= ~5deg (still never pokes the wall)
               if (Math.abs(dw) < 0.0004) sa *= 0.86;                              // settle to level when the scroll stops
               this._sloshV = sv; this._sloshA = sa;
               var n = this._wbLiquidPlane.normal.set(sa, -1, 0); n.normalize();
@@ -2885,7 +3069,25 @@
         this._waterUniforms.uTime.value = t;
         this._waterUniforms.uAgitate.value = Math.max(pour, wp);
       }
-      if (this._waterTopUniforms) this._waterTopUniforms.uTime.value = t;
+      if (this._waterTopUniforms) {
+        this._waterTopUniforms.uTime.value = t;
+        // impact ripples: the falling jet (water or whisky) drives expanding
+        // rings; stray splash droplets keep the surface talking after
+        var ripC = this._waterTopUniforms.uRipAmp;
+        var ripTarget = Math.min(1, Math.max(pour, wp) * 1.1 + Math.min(0.35, this._splashData.length * 0.012));
+        ripC.value += (ripTarget - ripC.value) * (1 - Math.pow(0.10, dt));
+        this._waterTopUniforms.uRipPh.value =
+          (this._waterTopUniforms.uRipPh.value + dt * (4 + 6 * ripC.value)) % 100;
+      }
+      // the decanter's spirit: time + agitation (pour strength and the
+      // surface slosh) feed its inner fire and glare
+      if (this._wbShaderU) {
+        var wAg = Math.min(1, wp + Math.abs(this._sloshA || 0) * 8);
+        for (var wu = 0; wu < this._wbShaderU.length; wu++) {
+          this._wbShaderU[wu].uTime.value = t;
+          this._wbShaderU[wu].uAgitate.value = wAg;
+        }
+      }
 
       // phones: hide the viewport-fixed canvas (and skip the GPU) outside
       // the cup's chapters — desktop's canvas is section-bound and self-clips.
@@ -3099,17 +3301,22 @@
     _updateSplash(dt, pour, x, waterY) {
       var mesh = this._splash, data = this._splashData, dummy = this._dummy;
       if (pour > 0.05) {
-        this._splashClock += dt * 55 * pour;
+        this._splashClock += dt * 68 * pour;
         var n = Math.floor(this._splashClock);
         this._splashClock -= n;
         for (var k = 0; k < n && data.length < mesh.instanceMatrix.count; k++) {
           var ang = Math.random() * Math.PI * 2;
-          var sp = 0.15 + Math.random() * 0.5 * pour;
-          var rs = 0.03 + Math.random() * 0.02; // the ejecta sheet starts at the jet's rim, not its core
+          var sp = 0.18 + Math.random() * 0.6 * pour;
+          var rs = 0.026 + Math.random() * 0.026; // the ejecta sheet crowns at the jet's rim
+          var vy0 = 1.7 + Math.random() * 2.2 * pour;
+          var life0 = 0.55, s0 = 0.5 + Math.random() * 0.9;
+          if (Math.random() < 0.22) { // fine spray haze riding above the crown
+            s0 *= 0.45; vy0 *= 0.55; life0 = 0.95;
+          }
           data.push({
             x: x + Math.cos(ang) * rs, y: waterY + 0.005, z: Math.sin(ang) * rs,
-            vx: Math.cos(ang) * sp, vy: 1.5 + Math.random() * 1.8 * pour, vz: Math.sin(ang) * sp,
-            life: 0.55, s: 0.5 + Math.random() * 0.9
+            vx: Math.cos(ang) * sp, vy: vy0, vz: Math.sin(ang) * sp,
+            life: life0, s: s0
           });
         }
       }
@@ -3134,6 +3341,9 @@
       for (var i = data.length - 1; i >= 0; i--) {
         var q = data[i];
         q.vy -= 12.5 * dt; // same stylized gravity as the jet
+        // turbulent air: droplets wobble off their perfect arcs
+        q.vx += Math.sin(q.y * 26.0 + q.life * 31.0) * 0.30 * dt;
+        q.vz += Math.cos(q.y * 23.0 + q.life * 27.0) * 0.30 * dt;
         q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
         q.life -= dt;
         // the glass is a wall: droplets that reach it wet it and die there
@@ -3181,12 +3391,25 @@
       // glass floor and lower walls and climb whenever the cup holds any —
       // slower and smaller than the pour churn, champagne-style
       if (!this._reduce && wyr - floorY > 0.04) {
-        this._fizzClock = (this._fizzClock || 0) + dt * 13;
+        this._fizzClock = (this._fizzClock || 0) + dt * 17;
         var nf = Math.floor(this._fizzClock);
         this._fizzClock -= nf;
+        // persistent nucleation sites: real sparkling water beads climb in
+        // visible TRAINS off the same specks on the glass, not from everywhere
+        var sites = this._fizzSites || (this._fizzSites = [
+          { a: 0.8, r: 0.58 }, { a: 2.5, r: 0.50 }, { a: 4.3, r: 0.62 }
+        ]);
         for (var kf = 0; kf < nf && data.length < mesh.instanceMatrix.count; kf++) {
-          var fa = Math.random() * Math.PI * 2;
-          var fr = Math.sqrt(Math.random()) * rIn * 0.85;
+          this._fizzN = (this._fizzN || 0) + 1;
+          var fa, fr;
+          if (this._fizzN % 5 < 3) { // most beads come from the trains
+            var st = sites[this._fizzN % sites.length];
+            fa = st.a + (Math.random() - 0.5) * 0.14;
+            fr = rIn * (st.r + (Math.random() - 0.5) * 0.10);
+          } else {
+            fa = Math.random() * Math.PI * 2;
+            fr = Math.sqrt(Math.random()) * rIn * 0.85;
+          }
           data.push({
             x: Math.cos(fa) * fr,
             y: floorY + Math.random() * Math.max(0.02, (wyr - floorY) * 0.5),
