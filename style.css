@@ -976,7 +976,19 @@ html.cutscene .hero__scrollcue{opacity:0!important;}
 .flavours__shot img{
   width:100%;height:100%;object-fit:cover;display:block;
   mix-blend-mode:multiply;filter:saturate(.97) contrast(1.02);
+  transform-origin:50% 46.1%; /* the bottles' shared centre line (measured) */
 }
+/* the four shots frame their bottle DIFFERENTLY — measured from pixels:
+   the original catalog is an alpha-cut render ~6% smaller and a touch higher
+   (bottle h .753 of frame vs the ads' .797), ume drifts ~1% left-and-low.
+   Normalised per-source so the bottle lands on the SAME spot at the SAME size
+   whichever flavour is picked — without this the swap visibly jumped. The
+   src attribute keeps the authored data-src value, so substring selectors
+   survive the srcset's responsive pick. */
+.flavours__shot img[src*="catalog"]{transform:translate(0,-0.68%) scale(1.059);}
+.flavours__shot img[src*="yuzu"]{transform:translate(0.39%,0);}
+.flavours__shot img[src*="Ume"]{transform:translate(0.77%,-0.39%) scale(0.99);}
+.flavours__shot img[src*="hinoki"]{transform:translate(0.2%,0);}
 .flavours__pick{
   list-style:none;display:flex;flex-wrap:wrap;justify-content:center;
   gap:14px clamp(20px,3vw,38px);margin:26px 0 0;padding:0;

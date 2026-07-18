@@ -49,7 +49,7 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=20260718fab11" />
+<link rel="stylesheet" href="style.css?v=20260718fab12" />
 <!-- hero-model preloads are injected CONDITIONALLY by the tier script above:
      FAST warms bottle.glb + glass.glb; LITE (slow) warms only label-full.jpg. -->
 </head>
@@ -251,12 +251,12 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
     alt="Ink panorama: a pine on a cliff and Mount Fuji facing a Greek acropolis across the sea, a lone boatman between them, over a border of seigaiha waves" loading="lazy" />
 </footer>
 
-<script src="script.js?v=20260718fab11"></script>
+<script src="script.js?v=20260718fab12"></script>
 <!-- self-hosted (was unpkg — a free CDN whose latency spikes made the bottle
      "sometimes take a couple of seconds"); same-origin loads are consistent -->
 <script src="vendor/three-0.147.0.min.js"></script>
 <script src="vendor/GLTFLoader-0.147.0.js"></script>
-<script src="bottle-3d.js?v=20260718fab11"></script>
+<script src="bottle-3d.js?v=20260718fab12"></script>
 <script>/* measured net hint (visit-2 byte savings on API-less browsers, e.g. iOS):
   after load, time the real bottle.glb transfer and remember slow/fast. */
 addEventListener('load',function(){try{if(!window.__mastryLite){var e=performance.getEntriesByName(new URL('assets/bottle.glb',location.href).href)[0];if(e&&e.transferSize>0&&e.duration>0){localStorage.setItem('mastry-net',(e.transferSize/(e.duration/1000))<2e5?'slow':'fast');localStorage.setItem('mastry-net-ts',Date.now());}}}catch(e){}});</script>
