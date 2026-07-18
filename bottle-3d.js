@@ -97,6 +97,20 @@
   // down while one is in flight or the glide dies mid-pour (script.js stamps
   // __anchorGlide on every in-page link click)
   function anchorGlideActive() { return window.__anchorGlide && Date.now() - window.__anchorGlide < 1500; }
+  // Is the script.js CONDUCTOR still GOVERNING the page? When a conductor is
+  // live (wait | tween | hold) it owns the pour cut-scene itself — it tweens to
+  // the very same wallY and runs its own drain-hold there — so our lock must
+  // stand aside for its ENTIRE run, not just its tween: engaging in its wake
+  // (the sliver between its drain threshold 0.25 and ours 0.245) would stack a
+  // second ~1.2s freeze on the guided reader. The lock is the keeper only when
+  // NO conductor governs: the conductor is 'done' (End key / nav / the final
+  // hand-off retired it), or there is no conductor at all (?noguide, a
+  // deep-linked hash load, reduced-motion). Then every native descent past the
+  // pour is ours to catch.
+  function conductorLive() {
+    var c = window.__conductor;
+    return !!(c && c.state !== 'done');
+  }
 
   // Bottle silhouette: [radius, y] pairs, base y=0, top y≈3.26.
   // Sampled from the user's Blender model ("bottle only reset .blend"):
@@ -477,6 +491,7 @@
 
     disconnectedCallback() {
       _pourHandoff.hasBottle = false; _pourHandoff.live = false;
+      if (this._lockActive) this._releaseLock(); // detached mid-cut-scene: drop the capture listeners + html.cutscene
       cancelAnimationFrame(this._raf);
       if (this._glbTimer) { clearTimeout(this._glbTimer); this._glbTimer = null; } // a pending GLB-timeout must not fire onto a disposed renderer
       if (this._ro) this._ro.disconnect();
@@ -1191,18 +1206,53 @@
     _bindEvents() {
       var self = this;
       this._noWall = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      // ── CUT-SCENE LOCK input handlers, bound ONCE here, attached/detached by
+      //    _engageLock/_releaseLock only for the lock's brief duration. Capture
+      //    phase + passive:false so the preventDefault actually kills the scroll
+      //    (a passive listener can't). While locked, every scroll gesture is
+      //    swallowed — but we still READ its direction: a clear UPWARD push
+      //    after the minimum hold is an escape request (a trapped-feeling reader
+      //    is worse than a broken cut scene), tallied into _lockUpIntent and
+      //    consumed in _tick.
+      this._lockUpIntent = 0; this._lockTouchY = null;
+      this._lockWheel = function (e) {
+        if (e.cancelable) e.preventDefault();
+        if (e.deltaY < 0) self._lockUpIntent += -e.deltaY;      // wheel up = escape intent
+      };
+      this._lockTouch = function (e) {
+        if (e.cancelable) e.preventDefault();
+        var t = e.touches && e.touches[0]; if (!t) return;
+        if (self._lockTouchY != null) {
+          var d = t.clientY - self._lockTouchY;                 // finger sliding DOWN = scroll-up intent
+          if (d > 0) self._lockUpIntent += d;
+        }
+        self._lockTouchY = t.clientY;
+      };
+      this._lockKey = function (e) {
+        // never hijack a key meant for a focused control (mirrors the conductor)
+        var tgt = e.target;
+        if (tgt && (/^(INPUT|TEXTAREA|SELECT)$/.test(tgt.tagName) || tgt.isContentEditable)) return;
+        var k = e.key;
+        var up = (k === 'ArrowUp' || k === 'PageUp' || k === 'Home');
+        var down = (k === 'ArrowDown' || k === 'PageDown' || k === 'End' || k === ' ' || k === 'Spacebar');
+        if (up || down) { e.preventDefault(); if (up) self._lockUpIntent += 999; } // an up-key is an unambiguous escape
+      };
       this._onScroll = function () {
         var y = window.scrollY;
-        // THE WALL, scroll-event side: arms here too, so a violent flick that
-        // outruns the ticker (or lands while the bottle is offscreen) still
-        // hits it — same conditions as _tick, including the 12s release.
-        // The clamp is an INSTANT snap (snapScroll) — an animated scrollTo
-        // re-fires scroll events that re-clamp: a rubber-band feedback loop.
-        if (!anchorGlideActive() && !window.__conducted && self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
-            (!self._wallT || self._clock.elapsedTime - self._wallT < 12)) {
-          var end = (self._pinTop || 0) + 0.88 * Math.max(1, (self._pinH || 1) - window.innerHeight);
-          if (y > end) self._holdY = end;
+        // CUT-SCENE LOCK, scroll-event side: a violent flick can outrun the
+        // ticker (or land while the bottle is briefly offscreen), so pre-arm the
+        // lock here too — same gate as _tick, idempotent (_engageLock no-ops if
+        // already locked). Snapping onto wallY here catches the overshoot the
+        // instant it arrives; the ticker then owns the hold.
+        if (!self._lockActive && self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
+            !anchorGlideActive() && !conductorLive() &&
+            (!self._wallT || self._clock.elapsedTime - self._wallT < 8)) {
+          var wy = (self._pinTop || 0) + 0.88 * Math.max(1, (self._pinH || 1) - window.innerHeight);
+          if (y >= wy - 2) { self._engageLock(self._clock.elapsedTime); y = window.scrollY; }
         }
+        // backstop clamp: while the lock holds, kill every leak (scrollbar drag,
+        // iOS momentum) INSTANTLY onto the composition — a snap, never a glide,
+        // so it never re-fires into a rubber-band loop.
         if (self._holdY != null && y > self._holdY && !anchorGlideActive()) {
           snapScroll(self._holdY);
           y = self._holdY;
@@ -1255,6 +1305,41 @@
         if (entries[0]) self._offscreen = !entries[0].isIntersecting;
       });
       this._io.observe(this);
+    }
+
+    /* ---------- THE CUT-SCENE LOCK ---------- */
+    // Owner's order: "its the cut scene — dont allow the user to scroll for a
+    // second so they are forced to watch the animation." When a reader crosses
+    // the pour line coming DOWN with the bottle still holding water, we don't
+    // rubber-band their scroll position — we take their INPUT away outright for
+    // a cinematic beat, so the tilt-and-pour plays out in front of them, then
+    // hand scrolling straight back. _engageLock arms the capture-phase input
+    // trap; _releaseLock tears it down and restores the page. _holdY stays
+    // published throughout (script.js's freeze gate reads it: "never freeze
+    // while the WALL holds") and html.cutscene is a styling/telemetry hook.
+    _engageLock(t) {
+      if (this._lockActive) return;
+      this._lockActive = true;
+      this._lockT0 = t || 0.001;                 // clock seconds — the minimum-hold anchor
+      this._lockUpIntent = 0; this._lockTouchY = null;
+      if (!this._wallT) this._wallT = t || 0.001; // reuse the failsafe timer (was 12s, now 8s)
+      // publish the hold NOW (not next frame) so a scroll event landing before
+      // the next _tick already has a clamp target
+      this._holdY = (this._pinTop || 0) + 0.88 * Math.max(1, (this._pinH || 1) - window.innerHeight);
+      snapScroll(this._holdY);                   // pull a fast flinger's overshoot back onto the composition
+      window.addEventListener('wheel', this._lockWheel, { passive: false, capture: true });
+      window.addEventListener('touchmove', this._lockTouch, { passive: false, capture: true });
+      window.addEventListener('keydown', this._lockKey, true);
+      document.documentElement.classList.add('cutscene');
+    }
+    _releaseLock() {
+      if (!this._lockActive) return;
+      this._lockActive = false;
+      window.removeEventListener('wheel', this._lockWheel, true);
+      window.removeEventListener('touchmove', this._lockTouch, true);
+      window.removeEventListener('keydown', this._lockKey, true);
+      document.documentElement.classList.remove('cutscene');
+      this._holdY = null;                        // scroll feels normal again immediately
     }
 
     /* pin geometry cached: offsetTop/offsetHeight force layout, so they are
@@ -1332,33 +1417,55 @@
       }
 
       if (p < 0.7) { this._sawHero = true; if (this._level > 0.9) this._wallT = 0; }
-      var wall = !anchorGlideActive() && !window.__conducted && this._sawHero && !this._noWall && this._pin && this._level > 0.245;
-      if (wall) {
-        var wallY = (this._pinTop || 0) + 0.88 * Math.max(1, (this._pinH || 1) - window.innerHeight);
-        wall = window.scrollY >= wallY - 2;
-        if (wall) {
-          if (!this._wallT) this._wallT = t || 0.001;
-          if (t - this._wallT > 12) wall = false;
-        }
+      // THE CUT-SCENE LOCK, ticker side. Engagement is INDEPENDENT of
+      // __conducted now (the old wall dropped the moment any reader touched the
+      // wheel — they lost both the guide AND the hold and scrubbed straight
+      // through). It stands under the same POSITIONAL truth as before — a reader
+      // who came down through the hero (_sawHero) is at/over the pour line
+      // (wallY) with the bottle still pouring (_level > 0.245) — but now it
+      // seizes INPUT rather than clamping position. It stays out of the
+      // conductor's way: while a conductor is LIVE it owns the pour hold itself,
+      // so conductorLive() keeps us out for its whole run (anchorGlideActive()
+      // is the extra belt for its tween + any nav glide). We keep only when the
+      // conductor is retired or absent. Reduced-motion (_noWall) is exempt.
+      // Mobile pages have no .heropin → _pin null → never runs.
+      var wallY = (this._pinTop || 0) + 0.88 * Math.max(1, (this._pinH || 1) - window.innerHeight);
+      if (!this._lockActive) {
+        var canArm = this._sawHero && !this._noWall && this._pin && this._level > 0.245 &&
+                     !anchorGlideActive() && !conductorLive() &&
+                     (!this._wallT || t - this._wallT < 8);   // 8s failsafe: once it fires, no re-trap until refill re-zeroes _wallT
+        if (canArm && window.scrollY >= wallY - 2) this._engageLock(t);
+      } else {
+        // HELD — release when the cut scene has done its job. BOTH a cinematic
+        // minimum (~1.2s, the owner's "for a second") AND the pour has drained;
+        // OR the hard 8s failsafe; OR, once the minimum has passed, the reader
+        // pushes clearly UPWARD (escape hatch — never trap them). Also bail
+        // instantly if reduced-motion flipped on mid-hold.
+        var held = t - this._lockT0;
+        var minGone = held >= 1.2;
+        var drained = this._level <= 0.245;
+        var escaped = minGone && this._lockUpIntent > 40;      // a deliberate up-push, tallied by the locked input handlers
+        var failed = this._wallT && (t - this._wallT > 8);
+        if (this._noWall || (minGone && drained) || escaped || failed) this._releaseLock();
       }
-      // _holdY is PUBLISHED (script.js reads it to gate the frame freeze) but
-      // NOT enforced here: the per-frame clamp animated under
-      // scroll-behavior:smooth and fought the reader in a rubber-band loop.
-      // The scroll handler clamps every leak the instant it arrives.
-      this._holdY = wall ? wallY : null;
+      // _holdY mirrors the lock every frame (also absorbs a resize that shifts
+      // wallY) — script.js's freeze gate keeps reading it; the scroll handler's
+      // backstop clamp keys off it.
+      this._holdY = this._lockActive ? wallY : null;
 
-      // RELOAD-ON-RE-ENTRY: once the guided run retires the WALL (__conducted),
-      // a reader who scrolls back UP to the full bottle should be able to watch
-      // the whole pour again. When they genuinely return to the very top with
-      // the bottle refilled, clear that one-shot so the WALL can hold the pour
-      // once more. STATE ONLY — never a scroll write, and the conductor's own
-      // auto-glide stays retired (re-arming it could hijack a returning reader).
+      // RELOAD-ON-RE-ENTRY: after a pour cycle the failsafe timer (_wallT) is
+      // spent, so the cut-scene lock won't re-arm. A reader who scrolls back UP
+      // to the full bottle should get to watch the whole pour again — when they
+      // genuinely return to the very top with the bottle refilled, re-zero
+      // _wallT so the lock can catch the next descent. STATE ONLY — never a
+      // scroll write. __conducted is cleared alongside so the conductor's guide
+      // is available again too (the lock itself no longer reads it).
       if (p > 0.85) this._leftHero = true;                       // they went through the hero
       if (this._leftHero && p < 0.08 && this._level > 0.9 &&
           !anchorGlideActive() && !this._noWall) {               // back at the full-bottle top, invisibly
         this._leftHero = false;                                  // one re-arm per genuine round-trip
-        window.__conducted = false;                              // WALL can hold again (its timer re-zeroed above)
-        this._wallT = 0;
+        window.__conducted = false;                              // guide available again
+        this._wallT = 0;                                         // cut-scene lock re-armed for the next pour
       }
 
       // twist: scroll up → twist right, scroll down → twist left (reversed)

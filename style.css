@@ -440,6 +440,11 @@ html[data-conduct-idle] .hero__scrollcue{opacity:0;}
 @keyframes guidebob{0%,100%{transform:rotate(45deg) translate(-1px,-1px);}50%{transform:rotate(45deg) translate(2px,2px);}}
 html[data-conduct="wait"][data-conduct-idle] .guidecue{opacity:.72;transform:translateX(-50%) translateY(0);}
 html[data-conduct="done"] .guidecue{opacity:0!important;}
+/* CUT-SCENE LOCK (bottle-3d.js toggles html.cutscene while the pour hold seizes
+   input): telling a reader to "scroll" while we're forcing them to watch is a
+   contradiction — pull every scroll nudge for the duration of the hold. */
+html.cutscene .guidecue,
+html.cutscene .hero__scrollcue{opacity:0!important;}
 @media (prefers-reduced-motion:reduce){.guidecue__chev{animation:none;}}
 
 /* ═══ MARQUEE ═══ */
