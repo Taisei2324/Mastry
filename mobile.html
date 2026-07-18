@@ -2,17 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<script>/* device routing — phones go to the dedicated mobile site (mobile.html).
-  ?mobile forces it (sticky), ?desktop pins desktop (sticky). Runs before
-  render so there's no flash. */(function(){try{var M='mobile.html',q=location.search;
-if(/[?&]desktop\b/.test(q)){try{localStorage.setItem('mastry-view','desktop');}catch(e){}return;}
-if(/[?&]mobile\b/.test(q)){try{localStorage.setItem('mastry-view','mobile');}catch(e){}location.replace(M);return;}
-var pref=null;try{pref=localStorage.getItem('mastry-view');}catch(e){}
-if(pref==='desktop')return;
-var small=matchMedia('(max-width:760px)').matches,coarse=matchMedia('(pointer:coarse)').matches,ua=/Android|iPhone|iPod|IEMobile|BlackBerry|Opera Mini|webOS|Windows Phone/i.test(navigator.userAgent);
-if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='desktop')location.replace(M);
-}catch(e){}})();</script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script>/* device routing — this is the DEDICATED MOBILE SITE. Non-phones go back
+  to the desktop index; ?desktop forces desktop (sticky), ?mobile forces this
+  (sticky). Runs before render so there's no flash. */(function(){try{var D='index.html',q=location.search;
+if(/[?&]mobile\b/.test(q)){try{localStorage.setItem('mastry-view','mobile');}catch(e){}}
+else if(/[?&]desktop\b/.test(q)){try{localStorage.setItem('mastry-view','desktop');}catch(e){}location.replace(D);return;}
+else{var pref=null;try{pref=localStorage.getItem('mastry-view');}catch(e){}
+if(pref!=='mobile'){var small=matchMedia('(max-width:760px)').matches,coarse=matchMedia('(pointer:coarse)').matches,ua=/Android|iPhone|iPod|IEMobile|BlackBerry|Opera Mini|webOS|Windows Phone/i.test(navigator.userAgent);
+if(!(small||ua||(coarse&&matchMedia('(max-width:900px)').matches))){location.replace(D);return;}}}
+window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <script>/* Mastry TIER: persist a ?slow/?fast override, set window.__mastryLite
   (LITE=slow) before the engine boots, and inject the RIGHT preloads — FAST warms
   the 3.97MB bottle.glb; LITE skips it and warms only the label the lathe needs
@@ -49,9 +48,10 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=20260718min5" />
-<!-- hero-model preloads are injected CONDITIONALLY by the tier script above:
-     FAST warms bottle.glb + glass.glb; LITE (slow) warms only label-full.jpg. -->
+<link rel="stylesheet" href="mobile.css?v=20260718min5" />
+<!-- the hero bottle model starts downloading WITH the page, not after the script
+     chain boots — this is what makes the 3D bottle appear promptly -->
+<!-- hero-model preloads injected conditionally by the tier script (FAST: bottle.glb+glass.glb · LITE: label-full.jpg) -->
 </head>
 <body>
 
@@ -162,7 +162,7 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
 <section class="flavours flavours--plain section" id="flavours">
   <h2 class="section__title">Four waters. <em>One resin.</em></h2>
   <div class="flavours__single">
-    <span class="flavours__shot"><img id="flavourShot" src="images/brand%20new%20original%20catalog.png" srcset="images/m/brand%20new%20original%20catalog.png 512w, images/brand%20new%20original%20catalog.png 1024w" sizes="(max-width: 700px) 74vw, 340px" alt="Mastry Original Mastic bottle" width="1024" height="1536" decoding="async"></span>
+    <span class="flavours__shot"><img id="flavourShot" src="images/brand%20new%20original%20catalog.png" srcset="images/m/brand%20new%20original%20catalog.png 512w, images/brand%20new%20original%20catalog.png 1024w" sizes="74vw" alt="Mastry Original Mastic bottle" width="1024" height="1536" decoding="async"></span>
     <ul class="flavours__pick">
       <li><button type="button" class="is-active" data-src="images/brand%20new%20original%20catalog.png" data-srcset="images/m/brand%20new%20original%20catalog.png 512w, images/brand%20new%20original%20catalog.png 1024w" data-alt="Mastry Original Mastic bottle"><span class="flavours__no">01</span><span class="flavours__name">Original Mastic</span></button></li>
       <li><button type="button" data-src="images/Mastry%20ad%20yuzu.png" data-srcset="images/m/Mastry%20ad%20yuzu.jpg 640w, images/Mastry%20ad%20yuzu.png 1024w" data-alt="Mastry Yuzu Mastic bottle"><span class="flavours__no">02</span><span class="flavours__name">Yuzu Mastic</span></button></li>
@@ -237,21 +237,19 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
   <div class="footer__bottom">
     <p>Mastic from Chios, Greece · Assembled in Japan</p>
     <p>© 2026 Mastry. Sparkling water with mastic.</p>
-    <p><a class="viewswitch" href="?mobile">View mobile site →</a></p>
+    <p><a class="viewswitch" href="?desktop">View desktop site →</a></p>
   </div>
   <img class="footer__art" src="images/m/footer-panorama.jpg"
     alt="Ink panorama: a pine on a cliff and Mount Fuji facing a Greek acropolis across the sea, a lone boatman between them, over a border of seigaiha waves" loading="lazy" />
 </footer>
 
-<script src="script.js?v=20260718min5"></script>
+<script src="mobile.js?v=20260718min5"></script>
 <!-- self-hosted (was unpkg — a free CDN whose latency spikes made the bottle
      "sometimes take a couple of seconds"); same-origin loads are consistent -->
 <script src="vendor/three-0.147.0.min.js"></script>
 <script src="vendor/GLTFLoader-0.147.0.js"></script>
 <script src="bottle-3d.js?v=20260718min5"></script>
-<script>/* measured net hint (visit-2 byte savings on API-less browsers, e.g. iOS):
-  after load, time the real bottle.glb transfer and remember slow/fast. */
-addEventListener('load',function(){try{if(!window.__mastryLite){var e=performance.getEntriesByName(new URL('assets/bottle.glb',location.href).href)[0];if(e&&e.transferSize>0&&e.duration>0){localStorage.setItem('mastry-net',(e.transferSize/(e.duration/1000))<2e5?'slow':'fast');localStorage.setItem('mastry-net-ts',Date.now());}}}catch(e){}});</script>
-<script>/* repeat-visit cache + offline layer (one SW at /Mastry/ controls every page) */if('serviceWorker'in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).catch(function(){});});}</script>
+<script>addEventListener('load',function(){try{if(!window.__mastryLite){var e=performance.getEntriesByName(new URL('assets/bottle.glb',location.href).href)[0];if(e&&e.transferSize>0&&e.duration>0){localStorage.setItem('mastry-net',(e.transferSize/(e.duration/1000))<2e5?'slow':'fast');localStorage.setItem('mastry-net-ts',Date.now());}}}catch(e){}});</script>
+<script>if('serviceWorker'in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).catch(function(){});});}</script>
 </body>
 </html>

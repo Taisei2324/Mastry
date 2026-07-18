@@ -1,0 +1,4 @@
+.claude/
+
+# local tooling, never ship
+/blender/

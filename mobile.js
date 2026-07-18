@@ -3,17 +3,11 @@
   "use strict";
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  /* phones get a calmer page: no scroll-driven transforms, ambient animation only */
-  var calmScroll = reduceMotion || window.matchMedia("(max-width: 760px)").matches;
-
-  /* THE CONDUCTOR now drives DESKTOP too (user: "apply the same automation
-     scroll from the mobile to PC"). It runs whenever motion is allowed — on
-     phones it always did; here it also takes over the wide viewport, replacing
-     the manual catch-the-frame freeze. `?guide` forces it on (also under the
-     preview's forced reduced-motion), `?noguide` kills it and falls back to the
-     manual freeze. The mobile CONDUCTOR block itself already handles wheel +
-     keyboard input, so no input rewrite is needed. */
-  var conduct = (!reduceMotion || /[?&]guide/.test(location.search)) && !/[?&]noguide/.test(location.search);
+  /* phones get a calmer page: no scroll-driven transforms, ambient animation
+     only. THIS IS THE MOBILE SITE (mobile.js) — __forceMobile pins mobile
+     behaviour on even if it's viewed on a wide screen (?mobile / dev), so the
+     conductor and phone layout always match. */
+  var calmScroll = reduceMotion || window.__forceMobile || window.matchMedia("(max-width: 760px)").matches;
 
   /* Windows desktops scroll in big discrete wheel notches (a Mac trackpad tick
      is a few px; a mouse notch is ~100+), so the same choreography plays much
@@ -145,10 +139,9 @@
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
 
-  /* ── HUD reveal: the top bar pops up when the pointer nears the top edge,
-     even mid-hero-sequence (html.heroseq otherwise pins it out of view). A
-     mouse feature only — phones have no hover. Hysteresis (summon ≤78px, only
-     dismiss past 140px after a beat) so a quick dip can't strobe it. ── */
+  /* ── HUD reveal: the top bar pops up when a pointer nears the top edge, even
+     mid-hero-sequence. Gated on a fine pointer, so it's inert on real phones
+     (no hover) and only lights up for a mouse. Hysteresis prevents strobing. ── */
   if (nav && window.matchMedia("(pointer: fine)").matches) {
     var peekHide = 0;
     window.addEventListener("mousemove", function (e) {
@@ -341,11 +334,9 @@
     var bubbles = [];
     var running = true;
 
-    var dpr2 = 1;
     function resize() {
-      dpr2 = Math.min(1.5, window.devicePixelRatio || 1); // a 2x backing store for a few faint rings isn't worth the raster
-      canvas.width = canvas.offsetWidth * dpr2;
-      canvas.height = canvas.offsetHeight * dpr2;
+      canvas.width = canvas.offsetWidth * devicePixelRatio;
+      canvas.height = canvas.offsetHeight * devicePixelRatio;
     }
     resize();
     window.addEventListener("resize", resize);
@@ -355,9 +346,9 @@
       return {
         x: w * (0.3 + Math.random() * 0.4),
         y: canvas.height + 10,
-        r: (1 + Math.random() * 2.6) * dpr2,
-        v: (0.35 + Math.random() * 0.75) * dpr2,
-        drift: (Math.random() - 0.5) * 0.35 * dpr2,
+        r: (1 + Math.random() * 2.6) * devicePixelRatio,
+        v: (0.35 + Math.random() * 0.75) * devicePixelRatio,
+        drift: (Math.random() - 0.5) * 0.35 * devicePixelRatio,
         a: 0.12 + Math.random() * 0.25
       };
     }
@@ -537,7 +528,7 @@
      is preventDefault'd during the hold and the clamp catches any iOS momentum
      that ignores it. Off only for reduced-motion and via ?nofreeze.
      Tunable: window.__frameHold (ms; 0 = off). ──────────────────── */
-  if (!reduceMotion || /[?&]guide/.test(location.search)) (function () { // always exports window.__mastryFreeze (the conductor consumes it); ?guide keeps it alive under forced reduced-motion. ?nofreeze now only disables the MANUAL catch-listeners (below), not this whole block.
+  if ((!reduceMotion || /[?&]guide/.test(location.search)) && !/[?&]nofreeze/.test(location.search)) (function () { // ?guide keeps the frame formulas alive under forced reduced-motion (preview pane testing)
     var box = document.querySelector(".herowords .hero__copy");
     var hbSec = document.querySelector(".highball");
     if (!box) return;
@@ -560,8 +551,15 @@
     // freeze it") — box flush with the viewport bottom, centred cup above.
     function cupFrameY() {
       if (calmScroll) {
+        // PHONES: freeze with the title text directly UNDER the screen-centred
+        // cup (user: "text right under the cup, a little higher"). The box top
+        // lands just below the cup's bottom edge (cup centred → bottom = vh/2 +
+        // cupHalf), instead of the old box-bottom-flush-with-viewport-bottom.
         var br = box.getBoundingClientRect();
-        return Math.round(br.top + window.scrollY + br.height - vh());
+        var gEl = document.querySelector("glass-3d");
+        var cupHalf = (gEl && gEl._cupPx) ? gEl._cupPx / 2 : innerWidth * 0.29;
+        var underCupTop = vh() * 0.5 + cupHalf + 22; // 22px gap beneath the cup
+        return Math.round(br.top + window.scrollY - underCupTop);
       }
       var r = box.getBoundingClientRect(), y = window.scrollY;
       var raw = r.top + y + r.height / 2 - 0.5 * vh();
@@ -614,12 +612,10 @@
       }
       clearTimeout(holdTimer); holdTimer = setTimeout(endHold, ms);
     }
-    // DESKTOP fallback ONLY: the catch-the-frame listeners. The CONDUCTOR below
-    // now supersedes them on desktop too (it drives the scroll itself and pauses
-    // on these exact frames); they only run when the conductor is OFF (?noguide
-    // or reduced-motion). Either way the frame formulas exported underneath are
-    // shared with the conductor.
-    if (!calmScroll && !conduct && !/[?&]nofreeze/.test(location.search)) {
+    // DESKTOP ONLY: the catch-the-frame listeners. On phones the CONDUCTOR
+    // below supersedes them — it drives the scroll itself and pauses on these
+    // exact frames; only the frame formulas (exported underneath) are shared.
+    if (!calmScroll) {
       window.addEventListener("scroll", function () {
         var y = window.scrollY, prevY = lastY, down = y > prevY; lastY = y;
         if (holding) {
@@ -668,40 +664,35 @@
      watch the automation take place"); an up-gesture aborts any glide/hold
      into native scrolling, and the next down-swipe re-engages toward the
      next checkpoint below. One-shot: after the final still everything is
-     released until reload. Force with ?guide, kill with ?noguide. Runs on
-     desktop AND phones now (see `conduct` up top). ─────── */
-  if (conduct) (function () {
+     released until reload. Force with ?guide, kill with ?noguide. ─────── */
+  if (((calmScroll && !reduceMotion) || /[?&]guide/.test(location.search)) &&
+      !/[?&]noguide/.test(location.search)) (function () {
     var pin = document.querySelector(".heropin");
     var bottle = document.querySelector(".heropin bottle-3d");
     var F = window.__mastryFreeze;
     if (!pin || !F) return;
-    // deep-linked load (merch → index.html#find): the browser's async hash jump
-    // fires AFTER arm(), and the gate (which now clamps ALL desktop leaks)
-    // would read it as a downward leak and yank the reader back to the top.
-    // A hash reader chose a destination — no conducting this load at all.
+    // deep-linked load (#find etc.): the browser's async hash jump fires AFTER
+    // the listeners arm, and the gate would read it as a downward leak and
+    // yank the reader back up. A hash reader chose a destination — stand down.
     if (location.hash) return;
     // negative-exponential time constants per segment (ms): ~95% of the
     // travel lands within 3τ — tune the feel here
     var TAU_POUR = 900, TAU_TITLE = 600, TAU_WHISKY = 1500;   // one smooth (no-stop) whisky glide — slow enough not to blow by
-    var HOLD_MS = 1000, DRAIN_MAX_MS = 6000;   // each still holds ~1s (user-set "scroll disable time")
+    var HOLD_MS = 1000, DRAIN_MAX_MS = 6000;   // each still holds ~1s (user-set "scroll disable time"), matching desktop
     var state = "wait";          // wait | tween | hold | done
     var released = false;
-    var timer = 0, raf = 0, lastT = 0, tweenTo = 0, tweenTau = 900, tweenKind = "";
+    var timer = 0, lastT = 0, tweenTo = 0, tweenTau = 900, tweenKind = "";
     var lockY = window.scrollY;  // the one-way gate: never below this without an activation
     var idleT = 0, idleCueT = 0, idleOff = false;   // idle assist: gently leads an IDLE/new reader on; killed for the whole session by the first up-gesture
-    var IDLE_MS = 5000, CUE_MS = 2500;              // 2.5s of silence -> show the "keep scrolling" cue · 5s -> gently advance one beat
+    var IDLE_MS = 5000, CUE_MS = 2500;              // 2.5s silence -> "keep scrolling" cue · 5s -> gently advance one beat
     var marqueeEl = document.querySelector(".marquee");
     var docEl = document.documentElement;
     function vh() { return window.innerHeight; }
-    function holdMs() { return (typeof window.__frameHold === "number" && window.__frameHold >= 0) ? window.__frameHold : HOLD_MS; }
-    // idle assist — armed ONLY while state=="wait", never after an up-gesture,
-    // never before the loader clears; ANY input resets it; it fires the EXACT
-    // activate() a wheel notch calls, so it can never snap past a beat.
     function armIdle() {
       clearTimeout(idleT); clearTimeout(idleCueT); docEl.removeAttribute("data-conduct-idle");
       if (state !== "wait" || idleOff || released) return;
       var ld = document.getElementById("loader");
-      var pad = (ld && !ld.classList.contains("done")) ? 3600 : 0;   // don't count idle time spent behind the loader
+      var pad = (ld && !ld.classList.contains("done")) ? 3600 : 0;   // don't count idle time behind the loader
       idleCueT = setTimeout(function () { if (state === "wait" && !idleOff && !released) docEl.setAttribute("data-conduct-idle", ""); }, pad + CUE_MS);
       idleT = setTimeout(function () { if (state === "wait" && !idleOff && !released && !document.hidden) { docEl.removeAttribute("data-conduct-idle"); activate(); } }, pad + IDLE_MS);
     }
@@ -727,7 +718,7 @@
     function release() {
       if (released) return;
       released = true; setState("done");
-      clearTimeout(timer); cancelAnimationFrame(raf);
+      clearTimeout(timer);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
@@ -743,9 +734,7 @@
       if (!next) { release(); return; } // already past the last checkpoint
       setState("tween"); tweenTo = next.y; tweenTau = next.tau; tweenKind = next.kind;
       lastT = performance.now();
-      /* rAF, not setTimeout(16): timeouts drift off vsync and the glide's
-         frame pacing read as micro-judder; rAF lands every step ON a frame */
-      cancelAnimationFrame(raf); raf = requestAnimationFrame(step);
+      clearTimeout(timer); timer = setTimeout(step, 16);
     }
     function step() {
       var now = performance.now(), dt = Math.min(120, now - lastT); lastT = now;
@@ -761,7 +750,7 @@
       window.__anchorGlide = Date.now(); // THE WALL stands down while the conductor drives
       if (Math.abs(tweenTo - ny) < 1.5) { snapTo(tweenTo); lockY = tweenTo; arrive(); return; }
       snapTo(ny); lockY = ny;
-      raf = requestAnimationFrame(step);
+      timer = setTimeout(step, 16);
     }
     function arrive() {
       setState("hold");
@@ -777,16 +766,16 @@
       } else if (tweenKind === "final") {
         // hold the "Splits beautifully" still ~1s, then auto-LEAD the reader
         // down to the content ("since antiquity") — the designed hand-off
-        timer = setTimeout(function () { if (state === "hold") { setState("wait"); activate(); } }, holdMs());
+        timer = setTimeout(function () { if (state === "hold") { setState("wait"); activate(); } }, HOLD_MS);
       } else if (tweenKind === "exit") {
         release(); // landed on the content at the top — hand the page over, no hold
       } else {
-        timer = setTimeout(function () { setState("wait"); }, holdMs());
+        timer = setTimeout(function () { setState("wait"); }, HOLD_MS);
       }
     }
     function abortToFree() { // an up-gesture: hand control straight back
       idleOff = true;        // ...and never auto-assist again this session (an up-scroller wants to browse)
-      clearTimeout(timer); cancelAnimationFrame(raf);
+      clearTimeout(timer);
       if (tweenKind === "exit") { release(); return; } // up during the exit lead: the story's over, hand back HERE
       setState("wait");
     }
@@ -834,70 +823,29 @@
     }
     function onKey(e) {
       armIdle();                            // any keypress resets the idle-assist countdown
-      // never hijack a key meant for a FOCUSED control — form fields, buttons,
-      // links, tabs, menu items keep their native Space/Enter/arrow behaviour
-      // (onKey runs in capture phase, so it would otherwise pre-empt them)
-      var tgt = e.target;
-      if (tgt && (/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(tgt.tagName) || tgt.isContentEditable ||
-          (tgt.closest && tgt.closest('a[href],button,[role="button"],[role="tab"],[tabindex],summary,label')))) return;
       var k = e.key;
-      // ArrowDown / PageDown / Space advance one chapter. Home stays NATIVE
-      // (upward is always free). End = the keyboard ESCAPE: the gate now clamps
-      // native downward motion (Windows driver-scroll fix), so an End jump
-      // RELEASES the conductor first — a keyboard reader is never trapped.
-      if (k === "ArrowDown" || k === "PageDown" || k === " " || k === "Spacebar") { e.preventDefault(); activate(); }
-      else if (k === "End") { release(); }
-      else if (k === "ArrowUp" || k === "PageUp") {
+      if (k === "ArrowDown" || k === "PageDown" || k === "End" || k === " " || k === "Spacebar") { e.preventDefault(); activate(); }
+      else if (k === "ArrowUp" || k === "PageUp" || k === "Home") {
         if (window.scrollY > 4) { idleOff = true; clearTimeout(idleT); clearTimeout(idleCueT); docEl.removeAttribute("data-conduct-idle"); }
         if (state !== "wait" && state !== "done") abortToFree();
       }
     }
-    // the one-way gate's backstop now catches EVERY pointer. It was touch-only
-    // (desktop native scroll passed freely for scrollbar/middle-click/Ctrl+F),
-    // but on Windows many mouse wheels scroll WITHOUT wheel events — vendor
-    // drivers (Logitech/Razer "smooth scroll", free-spin wheels) and scrollbar
-    // messages move scrollY directly, so onWheel never fired and the wheel
-    // BLASTED past every checkpoint (user: "windows has a bypass through the
-    // animation because of the mouse scroll — make the windows user go through
-    // the animation with checkpoints"). Desktop leaks now snap back and CONVERT
-    // into a proper activation, so any downward intent still advances — through
-    // the checkpoints, never past them. UP stays native and free, always.
-    // Escape hatches: End key = skip the story (release), nav/anchor clicks
-    // release (below), ?noguide kills the conductor entirely.
-    var coarsePointer = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    // the one-way gate's backstop: native motion may only ever DECREASE
+    // scrollY. If a gesture that committed upward hooks back down (iOS keeps
+    // a gesture native once granted), clamp it straight back.
     function onScrollGate() {
-      if (state === "tween") return;                     // the conductor is driving (its own writes land here)
+      if (state === "tween" || state === "hold") return; // the conductor is driving/holding
       var y = window.scrollY;
-      if (state === "hold") {
-        // desktop: enforce the hold against driver-scroll/scrollbar leaks.
-        // (touch path unchanged — momentum dies inside the tween on phones)
-        if (!coarsePointer && y > lockY + 2) snapTo(lockY);
-        return;
-      }
-      if (y < lockY) { lockY = y; return; }              // riding up freely: the gate follows
-      if (y <= lockY + 2) return;                        // settled on the gate
-      snapTo(lockY);                                     // downward leak: back to the checkpoint...
-      if (!coarsePointer && state === "wait") activate(); // ...and on desktop it still ADVANCES — as a glide (touch keeps its gesture-driven activation)
+      if (y < lockY) lockY = y;              // riding up freely: the gate follows
+      else if (y > lockY + 2) snapTo(lockY); // native downward leak: clamp
     }
-    function arm() {
-      released = false; idleOff = false; clearTimeout(timer); cancelAnimationFrame(raf); lockY = window.scrollY;
-      // identical listener refs → addEventListener dedupes, so arm() is safe to
-      // call again (used by the bfcache pageshow re-arm below)
-      window.addEventListener("touchstart", onTouchStart, { passive: true });
-      window.addEventListener("touchmove", onTouchMove, { passive: false });
-      window.addEventListener("touchend", onTouchEnd, { passive: true });
-      window.addEventListener("wheel", onWheel, { passive: false });
-      window.addEventListener("keydown", onKey, true);
-      window.addEventListener("scroll", onScrollGate, { passive: true });
-      setState("wait");   // stamps html[data-conduct] + arms the idle assist
-    }
-    arm();
-    // bfcache Back/Forward restores this closure as 'released' with its listeners
-    // gone, while the engine (bottle-3d) re-primes a fresh hero on pageshow — so
-    // re-arm the conductor too, or the guided story silently vanishes on a return.
-    window.addEventListener("pageshow", function (e) {
-      if (e.persisted && released) { window.__conducted = false; arm(); }
-    });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("scroll", onScrollGate, { passive: true });
+    setState("wait");   // stamps html[data-conduct] + arms the idle assist
     // reader taps a nav/anchor link: they chose to skip the story — stand down
     document.addEventListener("click", function (e) {
       var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
@@ -909,7 +857,7 @@
     document.addEventListener("mastry:loaderdone", armIdle);
     // tab hidden mid-glide: land the tween instantly, keep the machine sane
     document.addEventListener("visibilitychange", function () {
-      if (document.hidden && state === "tween") { clearTimeout(timer); cancelAnimationFrame(raf); snapTo(tweenTo); lockY = tweenTo; arrive(); }
+      if (document.hidden && state === "tween") { clearTimeout(timer); snapTo(tweenTo); lockY = tweenTo; arrive(); }
     });
     window.__conductor = { get state() { return state; }, get lockY() { return lockY; }, checkpoints: checkpoints, activate: activate, release: release };
   })();

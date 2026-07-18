@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<script>/* device routing — DEDICATED MOBILE SITE (JP). Non-phones go back to the
+  desktop JP index; ?desktop forces desktop (sticky), ?mobile forces this. */(function(){try{var D='index-ja.html',q=location.search;
+if(/[?&]mobile\b/.test(q)){try{localStorage.setItem('mastry-view','mobile');}catch(e){}}
+else if(/[?&]desktop\b/.test(q)){try{localStorage.setItem('mastry-view','desktop');}catch(e){}location.replace(D);return;}
+else{var pref=null;try{pref=localStorage.getItem('mastry-view');}catch(e){}
+if(pref!=='mobile'){var small=matchMedia('(max-width:760px)').matches,coarse=matchMedia('(pointer:coarse)').matches,ua=/Android|iPhone|iPod|IEMobile|BlackBerry|Opera Mini|webOS|Windows Phone/i.test(navigator.userAgent);
+if(!(small||ua||(coarse&&matchMedia('(max-width:900px)').matches))){location.replace(D);return;}}}
+window.__forceMobile=true;}catch(e){window.__forceMobile=true;}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<script>/* Mastry TIER: persist a ?slow/?fast override, set window.__mastryLite
+  (LITE=slow) before the engine boots, and inject the RIGHT preloads — FAST warms
+  the 3.97MB bottle.glb; LITE skips it and warms only the label the lathe needs
+  ("lower gibs on slow wifi"). Auto-detect only downgrades phones. */
+(function(){var lite=false;try{var q=location.search;
+  if(/[?&]slow\b/.test(q))localStorage.setItem('mastry-tier','slow');
+  else if(/[?&]fast\b/.test(q))localStorage.setItem('mastry-tier','fast');
+  var t=localStorage.getItem('mastry-tier');
+  if(t==='slow')lite=true;else if(t==='fast')lite=false;
+  else if(window.__forceMobile||matchMedia('(max-width:760px)').matches){
+    var ts=+localStorage.getItem('mastry-net-ts')||0;
+    if(localStorage.getItem('mastry-net')==='slow'&&Date.now()-ts<6048e5)lite=true;
+    else{var c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+    if(c){if(c.saveData)lite=true;else if(/(^|-)2g$|(^|-)3g$/.test(c.effectiveType||''))lite=true;
+    else if(c.downlink>0&&c.downlink<4.5)lite=true;else if(c.rtt>300&&c.effectiveType!=='4g')lite=true;}}}
+  }catch(e){}window.__mastryLite=lite;
+  try{var h=document.head,mk=function(rel,href,as,co){var l=document.createElement('link');l.rel=rel;l.href=href;if(as)l.as=as;if(co)l.setAttribute('crossorigin','anonymous');h.appendChild(l);};
+  if(lite)mk('preload','assets/label-full.jpg','image');
+  else{mk('preload','assets/bottle.glb','fetch',1);mk('prefetch','assets/glass.glb','fetch',1);}}catch(e){}})();</script>
+<title>MASTRY — マスティック炭酸水 · ヒオス島 × 日本</title>
+<meta name="description" content="マストリーは、ギリシャ・ヒオス島の樹脂の結晶「マスティック」を、日本の精密なものづくりで仕立てた炭酸水。砂糖ゼロ。原材料は3つ。二つの古き島から。" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="MASTRY — マスティック炭酸水 · ヒオス島 × 日本" />
+<meta property="og:description" content="ギリシャ・ヒオス島の樹脂の結晶「マスティック」を、日本の精密なものづくりで仕立てた炭酸水。砂糖ゼロ。原材料は3つ。" />
+<meta property="og:image" content="https://taisei2324.github.io/Mastry/images/m/wider%20and%20newer%20web%20hero.jpg" />
+<meta property="og:url" content="https://taisei2324.github.io/Mastry/index-ja.html" />
+<meta property="og:locale" content="ja_JP" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="images/favicon-64.png" type="image/png" />
+<link rel="apple-touch-icon" href="images/favicon-180.png" />
+<link rel="alternate" hreflang="en" href="https://taisei2324.github.io/Mastry/" />
+<link rel="alternate" hreflang="ja" href="https://taisei2324.github.io/Mastry/index-ja.html" />
+<link rel="alternate" hreflang="x-default" href="https://taisei2324.github.io/Mastry/" />
+<link rel="canonical" href="https://taisei2324.github.io/Mastry/index-ja.html" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="mobile.css?v=20260718min5" />
+<style>:root{--sans:"Inter","Noto Sans JP",system-ui,sans-serif;--serif:"Cormorant Garamond","Noto Serif JP",serif;}</style>
+<!-- hero-model preloads injected conditionally by the tier script (FAST: bottle.glb+glass.glb · LITE: label-full.jpg) -->
+</head>
+<body>
+
+<div id="progress" aria-hidden="true"></div>
+
+<!-- ══ Loader ══ -->
+<div id="loader" aria-hidden="true">
+  <img src="images/m/seal-transparent.png" alt="" />
+  <span class="loader__word">MASTRY</span>
+</div>
+
+<!-- guided-scroll cue: shows only when a guided reader sits idle in a hold -->
+<div class="guidecue" aria-hidden="true"><span class="guidecue__txt">scroll</span><span class="guidecue__chev"></span></div>
+
+<!-- ══ Nav ══ -->
+<header class="nav" id="nav">
+  <a class="nav__logo" href="#top">MASTRY<span class="nav__logo-jp">マストリー</span></a>
+  <nav class="nav__links" id="navLinks" aria-label="メイン">
+    <a href="#flavours">フレーバー</a>
+    <a href="merch-ja.html">グッズ</a>
+  </nav>
+  <div class="nav__lang" aria-label="言語">
+    <a href="index.html" lang="en" hreflang="en">EN</a><span aria-hidden="true">·</span><a href="index-ja.html" class="is-active" aria-current="true">JP</a>
+  </div>
+  <a class="nav__cta" href="#find">ご注文</a>
+  <button class="nav__burger" id="burger" aria-label="メニューを開く" aria-expanded="false">
+    <span></span><span></span>
+  </button>
+</header>
+
+<main id="top">
+
+<!-- ══ Hero: pinned bottle — three screens of scroll open and pour it, then the words arrive ══ -->
+<section class="heropin" aria-label="マストリーのボトル — スクロールで栓を開けて注ぐ">
+  <div class="heropin__sticky">
+    <div class="heropin__stage">
+      <span class="hero__vertical" aria-hidden="true">ギリシャと日本の出会い</span>
+      <div class="hero__blob" aria-hidden="true"></div>
+      <canvas id="bubbles" aria-hidden="true"></canvas>
+      <img class="hero__bottle" id="heroBottle" src="images/m/brand%20new%20original%20catalog.png" fetchpriority="low" alt="マストリー炭酸水 — オリジナル・マスティックのボトル" />
+    </div>
+    <bottle-3d class="hero__bottle3d" bottle-src="assets/bottle.glb"
+      label-src="assets/label-full.jpg" cap-src="assets/cap.obj"
+      condensation="0" spin-speed="1" offset-x="0" aria-hidden="true"></bottle-3d>
+    <div class="hero__scrollcue" aria-hidden="true"><span></span></div>
+  </div>
+</section>
+
+<!-- ══ Hero words: the pour falls from the hero above into a waiting glass
+     on the left while the copy stands to the right ══ -->
+<section class="herowords">
+  <glass-3d class="herowords__glass3d" glass-src="assets/glass.glb" whisky-src="assets/decanter.glb" data-progress aria-hidden="true"></glass-3d>
+  <div class="herowords__pour" data-progress aria-hidden="true">
+    <span class="herowords__stream"></span>
+    <svg class="herowords__glass" viewBox="0 0 120 150">
+      <defs>
+        <linearGradient id="gwgrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#cfe6d8" stop-opacity=".95"/>
+          <stop offset=".16" stop-color="#b5d4c2" stop-opacity=".55"/>
+          <stop offset="1" stop-color="#9cc4ac" stop-opacity=".7"/>
+        </linearGradient>
+        <clipPath id="gcut"><path d="M16 10 L23 138 Q23 145 31 145 L89 145 Q97 145 97 138 L104 10 Z"/></clipPath>
+      </defs>
+      <g clip-path="url(#gcut)"><rect class="herowords__water" x="0" width="120" y="145" height="0"/></g>
+      <path d="M16 10 L23 138 Q23 145 31 145 L89 145 Q97 145 97 138 L104 10"
+        fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="60" cy="10" rx="44" ry="5.5" fill="none" stroke="currentColor" stroke-width="2.5"/>
+    </svg>
+  </div>
+  <div class="hero__copy" data-speed="0.22">
+    <p class="kicker reveal"><span class="kicker__gr">ギリシャ・ヒオス島</span>のマスティック <span class="kicker__dot">·</span> <span class="kicker__jp">日本</span>で仕上げ</p>
+    <h1 class="hero__title">
+      <span class="line"><em>二つの古き島。</em></span>
+      <span class="line">一つの澄んだ水。</span>
+    </h1>
+    <p class="hero__sub reveal">南ヒオスにしか育たない木から滴る、樹脂の結晶「マスティック」。
+    その香りを、日本の精密なものづくりで、きめ細かな炭酸水に閉じ込めました。</p>
+    <div class="hero__actions reveal">
+      <a class="btn btn--solid" href="#flavours">フレーバーを見る</a>
+    </div>
+    <p class="hero__foot reveal">ΧΙΟΣ — 日本 &nbsp;·&nbsp; 二つの岸辺から</p>
+  </div>
+</section>
+
+<!-- ══ ハイボールの間: カップが画面中央に留まったまま滑り込む余白の頁。
+     ウイスキーが少し注がれる。3Dは上のglass-3dキャンバスが描く。 ══ -->
+<section class="highball" aria-label="マスティック・ハイボール">
+  <div class="highball__copy">
+    <p class="highball__line">少しのウイスキーで、<br /><em>ハイボール</em>に。</p>
+    <p class="highball__sub">ウイスキー 1 · MASTRY 4 · 氷はたっぷり</p>
+  </div>
+</section>
+
+<!-- ══ The essence — one line, one row of facts. Nothing moves down here. ══ -->
+<section class="essence section" id="story">
+  <p class="essence__line">ヒオスのマスティック。日本の水。<br /><em>それだけ。</em></p>
+  <ul class="stats" aria-label="中身について">
+    <li><span class="stats__n">0</span><span class="stats__cap">砂糖</span></li>
+    <li><span class="stats__n">0</span><span class="stats__cap">カロリー</span></li>
+    <li><span class="stats__n">3</span><span class="stats__cap">原材料</span></li>
+    <li><span class="stats__n">2</span><span class="stats__cap">島</span></li>
+  </ul>
+</section>
+
+<!-- ══ The line — four waters, no theatre ══ -->
+<section class="flavours flavours--plain section" id="flavours">
+  <h2 class="section__title">四つの水。<em>一つの樹脂。</em></h2>
+  <div class="flavours__single">
+    <span class="flavours__shot"><img id="flavourShot" src="images/brand%20new%20original%20catalog.png" srcset="images/m/brand%20new%20original%20catalog.png 512w, images/brand%20new%20original%20catalog.png 1024w" sizes="74vw" alt="マストリー オリジナル・マスティックのボトル" width="1024" height="1536" decoding="async"></span>
+    <ul class="flavours__pick">
+      <li><button type="button" class="is-active" data-src="images/brand%20new%20original%20catalog.png" data-srcset="images/m/brand%20new%20original%20catalog.png 512w, images/brand%20new%20original%20catalog.png 1024w" data-alt="マストリー オリジナル・マスティックのボトル"><span class="flavours__no">01</span><span class="flavours__name">オリジナル・マスティック</span></button></li>
+      <li><button type="button" data-src="images/Mastry%20ad%20yuzu.png" data-srcset="images/m/Mastry%20ad%20yuzu.jpg 640w, images/Mastry%20ad%20yuzu.png 1024w" data-alt="マストリー ゆず・マスティックのボトル"><span class="flavours__no">02</span><span class="flavours__name">ゆず・マスティック</span></button></li>
+      <li><button type="button" data-src="images/Ume%20mastry%20Ad.png" data-srcset="images/m/Ume%20mastry%20Ad.jpg 640w, images/Ume%20mastry%20Ad.png 1024w" data-alt="マストリー うめ・マスティックのボトル"><span class="flavours__no">03</span><span class="flavours__name">うめ・マスティック</span></button></li>
+      <li><button type="button" data-src="images/hinoki%20mastry%20ad.png" data-srcset="images/m/hinoki%20mastry%20ad.jpg 640w, images/hinoki%20mastry%20ad.png 1024w" data-alt="マストリー ヒノキ・マスティックのボトル"><span class="flavours__no">04</span><span class="flavours__name">ヒノキ・マスティック</span></button></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══ Order / Contact ══ -->
+<section class="order section" id="find">
+  <div class="order__inner">
+    <div class="order__left">
+      <p class="section__eyebrow">注文 — Order</p>
+      <h2 class="section__title">マストリーを<br /><em>注文する。</em></h2>
+      <p class="order__sub">ご希望の品とお届け先をお知らせください。</p>
+      <dl class="order__info">
+        <div><dt>メール</dt><dd>hello@mastry.jp</dd></div>
+        <div><dt>産地</dt><dd>ギリシャ・ヒオス島 × 日本</dd></div>
+        <div><dt>発送</dt><dd>日本より · 3〜5営業日</dd></div>
+      </dl>
+    </div>
+
+    <form class="order__form" id="orderForm" novalidate="novalidate">
+      <div class="fg">
+        <label for="fname">お名前</label>
+        <input type="text" id="fname" placeholder="山田 太郎" autocomplete="name" required />
+      </div>
+      <div class="fg">
+        <label for="femail">メールアドレス</label>
+        <input type="email" id="femail" placeholder="your@email.com" autocomplete="email" required />
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label for="fproduct">フレーバー</label>
+          <select id="fproduct" required>
+            <option value="">選択してください</option>
+            <option>オリジナル・マスティック</option>
+            <option>ゆず・マスティック</option>
+            <option>うめ・マスティック</option>
+            <option>ヒノキ・マスティック</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="fqty">数量</label>
+          <input type="number" id="fqty" min="1" max="48" value="1" required />
+        </div>
+      </div>
+      <div class="fg">
+        <label for="faddress">お届け先</label>
+        <textarea id="faddress" rows="3" placeholder="都道府県、市区町村、番地" required></textarea>
+      </div>
+      <button class="btn btn--solid" type="submit">注文する</button>
+      <p class="order__note">海外への発送も承ります。</p>
+      <p class="order__ok" id="orderOk" hidden>ありがとうございます — ご注文を受け付けました。hello@mastry.jp よりご連絡いたします。</p>
+    </form>
+  </div>
+</section>
+
+</main>
+
+<!-- ══ Footer ══ -->
+<footer class="footer">
+  <div class="footer__top">
+    <a class="footer__logo" href="#top">MASTRY</a>
+    <nav class="footer__links" aria-label="フッター">
+      <a href="#flavours">フレーバー</a>
+      <a href="#find">注文</a>
+      <a href="merch-ja.html">グッズ</a>
+    </nav>
+  </div>
+  <div class="footer__bottom">
+    <p>ギリシャ・ヒオス島のマスティック · 日本で仕上げ</p>
+    <p>© 2026 Mastry. マスティック炭酸水。</p>
+    <p><a class="viewswitch" href="?desktop">デスクトップ版を表示 →</a></p>
+  </div>
+  <img class="footer__art" src="images/m/footer-panorama.jpg"
+    alt="墨絵のパノラマ：崖の松と富士山、海の向こうのギリシャの神殿、その間を行く舟人、青海波の縁取り" loading="lazy" />
+</footer>
+
+<script src="mobile.js?v=20260718min5"></script>
+<script src="vendor/three-0.147.0.min.js"></script>
+<script src="vendor/GLTFLoader-0.147.0.js"></script>
+<script src="bottle-3d.js?v=20260718min5"></script>
+<script>addEventListener('load',function(){try{if(!window.__mastryLite){var e=performance.getEntriesByName(new URL('assets/bottle.glb',location.href).href)[0];if(e&&e.transferSize>0&&e.duration>0){localStorage.setItem('mastry-net',(e.transferSize/(e.duration/1000))<2e5?'slow':'fast');localStorage.setItem('mastry-net-ts',Date.now());}}}catch(e){}});</script>
+<script>if('serviceWorker'in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).catch(function(){});});}</script>
+</body>
+</html>
