@@ -1623,12 +1623,13 @@
       var surfFrac = 0.712 * lvl + 0.141 * smoothstep(0.90, 1.0, lvl);
       var h = lerp(minY, maxY, surfFrac) + (this._surfBob || 0); // pooled water height, heaving with the glug
       // PHYSICS CLAMP (pour): while liquid is leaving, the free surface pins
-      // at the pour lip — air gulps back along the neck's upper wall, so the
-      // surface can never ride ABOVE the lip. Unclamped, the span mapping put
-      // the waterline over the entire tilted neck and it rendered as a solid
-      // slug of water out to the cap seat — impossible mid-pour, and the most
-      // visible water in the shot. (_v3 still holds the mouth world position.)
-      if (tiltT > 0.05) h = Math.min(h, _v3.y + 0.015);
+      // just above the pour lip — a flowing depth fills most of the bore and
+      // stays CONNECTED to the stream's neck run, while an air channel rides
+      // the neck's upper wall. Unclamped, the span mapping put the waterline
+      // over the entire tilted neck and it rendered as a solid slug of water
+      // out to the cap seat — impossible mid-pour, and the most visible water
+      // in the shot. (_v3 still holds the mouth world position.)
+      if (tiltT > 0.05) h = Math.min(h, _v3.y + 0.10);
       this._waterPlane.constant = h;
       // surface disc rides the waterline along the bottle axis, always world-level
       if (dyPer > 0.25) { // upright-ish ONLY: inverted, the disc escaped the silhouette as a floating bar
@@ -2070,12 +2071,34 @@
       var RINGS = this._strRings, SEG = this._strSeg, TSTEP = 0.011; // finer rings, same reach
       var edgeY = -(this._camera.position.z * 0.2867 + 1.0); // just past the frame bottom
       var s = 0, nr = 0, bk = null;
+      // ══ NECK RUN — ALWAYS CONNECTED ══ The column is born at the SHOULDER
+      // and runs the bore up to the lip BEFORE the ballistic fall, so the
+      // falling jet and the bottle's pooled water are one continuous liquid at
+      // every drain level (late in the drain the clip-plane surface sits below
+      // the neck — the flow still spans the bore, so there is never a gap
+      // between the water and the bottle). Arclength s stays 0 inside the
+      // glass: the LIPWRAP flare below then holds every neck ring at the
+      // wetted-bore radius, and all downstream physics (taper, varicose wave,
+      // gargle, breakup) starts at the lip exactly as before.
+      var NR = Math.max(6, Math.round(RINGS * 0.14));
+      _v4.set(0, 2.46, 0);                     // shoulder/neck junction, local
+      this._bottle.localToWorld(_v4);
+      var nsx = _v4.x, nsy = _v4.y, nsz = _v4.z;
+      var ndx = ex - nsx, ndy = ey - nsy, ndz = ez - nsz;
+      var nlen = Math.sqrt(ndx * ndx + ndy * ndy + ndz * ndz) || 1;
       for (var i = 0; i < RINGS; i++) {
-        var tt = i * TSTEP;
-        var wx = ex + vx * tt, wy = ey + vy * tt - 0.5 * GP * tt * tt, wz = ez + vz * tt;
-        var cvx = vx, cvy = vy - GP * tt, cvz = vz;
+        var wx, wy, wz, cvx, cvy, cvz;
+        if (i < NR) {                          // inside the bore: straight run
+          var fN = i / NR;
+          wx = nsx + ndx * fN; wy = nsy + ndy * fN; wz = nsz + ndz * fN;
+          cvx = ndx / nlen * v0; cvy = ndy / nlen * v0; cvz = ndz / nlen * v0;
+        } else {                               // past the lip: ballistic fall
+          var tt = (i - NR) * TSTEP;
+          wx = ex + vx * tt; wy = ey + vy * tt - 0.5 * GP * tt * tt; wz = ez + vz * tt;
+          cvx = vx; cvy = vy - GP * tt; cvz = vz;
+        }
         var spd = Math.sqrt(cvx * cvx + cvy * cvy + cvz * cvz);
-        if (i > 0) s += spd * TSTEP;
+        if (i > NR) s += spd * TSTEP;
         // mass conservation: the jet thins as gravity stretches it
         var rBase = r0 * Math.sqrt(v0 / Math.max(v0, spd));
         var frac = s / Lb;
