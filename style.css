@@ -1000,3 +1000,120 @@ html.cutscene .hero__scrollcue{opacity:0!important;}
 .flavours__pick button.is-active{opacity:1;}
 .flavours__pick .flavours__no{transition:none;}
 .flavours__pick .flavours__name{font-size:clamp(.95rem,1.05vw,1.08rem);}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DAY THEME — the pre-speakeasy rice-paper studio, restored as a switchable
+   mode. The candlelit espresso room above stays the DEFAULT (night); a
+   data-theme="light" attribute on <html> (set by the head boot script from
+   local time, or by the sun/moon toggle) flips the page back to daylight.
+   Tokens flip first; the handful of rules the retoken re-pointed "in their
+   own rules" flip below them.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root[data-theme="light"]{
+  --paper:#F9F5E9;          /* rice-paper */
+  --paper-deep:#F6F4EE;     /* stone-snow */
+  --ink:#1D2E18;            /* pine-needle */
+  --ink-soft:#30352C;       /* mountain-shadow */
+  --muted:#777061;          /* stone-taupe */
+  --hairline:#E6E0D1;       /* limestone */
+  --olive:#6B7A32;          /* olive-core */
+  --olive-deep:#46552A;     /* olive-moss */
+  --resin:#DED38E;          /* mastic-resin */
+  --resin-milk:#F7F4D8;     /* mastic-milk */
+  --dark:#1F2A1C;           /* charcoal-green */
+  --dark-2:#26341C;         /* olive-shadow */
+  --sage:#A8B88A;           /* light-sage */
+  --cream:#F4E8C1;          /* warm-cream */
+  --jp-blue:#6D9DAA;        /* mineral-blue — Japan accent */
+  --gr-olive:#91964F;       /* mastic-olive — Greece accent */
+  --clay:#C3936C;           /* clay-sun */
+  --sun:#C6A548;            /* sun-muted */
+  --creek:#659F90;          /* water-creek */
+  --mist:#EEF2D7;           /* olive-mist */
+  --wash-sage:#F4F7EF;      /* sage-wash */
+  --wash-sky:#F3FAFC;       /* sky-frost */
+  /* dark-era accent tokens re-pointed to the day accent (olive) so every
+     var(--amber) consumer reads naturally in daylight */
+  --amber:#6B7A32;
+  --amber-glow:rgba(107,122,50,.30);
+  --amber-soft:rgba(107,122,50,.10);
+  --surface-raised:#EEF2D7;
+  --fl-wash:#F7F4D8;
+  --fl-accent:#91964F;
+  --fl-deep:#596532;
+  color-scheme:light;
+  scrollbar-color:#B8C79E #F9F5E9;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb{background:#B8C79E;border:3px solid var(--paper);}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover{background:var(--olive);}
+[data-theme="light"] #progress{box-shadow:none;}
+[data-theme="light"] #loader img{mix-blend-mode:multiply;filter:none;}
+[data-theme="light"] .nav{background:rgba(249,245,233,.88);}
+[data-theme="light"] .nav__cta{
+  color:var(--paper);background:var(--ink);box-shadow:none;
+}
+[data-theme="light"] .nav__cta:hover{background:var(--olive-deep);box-shadow:none;}
+[data-theme="light"] .section__title--light{color:var(--paper);}
+[data-theme="light"] .btn--solid{background:var(--ink);color:var(--paper);box-shadow:none;}
+[data-theme="light"] .btn--solid:hover{background:var(--olive-deep);box-shadow:none;}
+[data-theme="light"] .btn--ghost{border-color:var(--ink);color:var(--ink);}
+[data-theme="light"] .btn--ghost:hover{background:var(--ink);color:var(--paper);}
+[data-theme="light"] .hero__blob{
+  background:
+    radial-gradient(circle at 34% 28%,rgba(240,250,247,.42) 0%,transparent 52%),
+    radial-gradient(circle at 52% 46%,rgba(247,244,216,.48) 0%,transparent 74%);
+}
+[data-theme="light"] .hero__bottle{
+  mix-blend-mode:multiply;
+  filter:drop-shadow(0 40px 40px rgba(38,52,28,.14));
+}
+/* daylight aurora: the slow mastic/mineral/sun ring, in place of the candle pool */
+[data-theme="light"] .heropin__stage::before{
+  background:conic-gradient(from 20deg,
+    rgba(107,122,50,.55), rgba(101,159,144,.46), rgba(109,157,170,.50),
+    rgba(70,85,42,.42), rgba(107,122,50,.55));
+  opacity:.55;
+  animation:aurora 22s linear infinite;
+}
+@keyframes aurora{to{transform:translate(-50%,-52%) rotate(360deg);}}
+[data-theme="light"] .heropin__stage::after{border-color:rgba(107,122,50,.16);}
+[data-theme="light"] .highball::before{content:none;}
+[data-theme="light"] .order{color-scheme:light;}
+[data-theme="light"] .fg select{background:transparent;color:inherit;}
+[data-theme="light"] .fg select option{background:var(--paper);color:var(--ink);}
+[data-theme="light"] .footer{background:#202C22;color:rgba(249,245,233,.6);}
+[data-theme="light"] .footer__art{filter:none;-webkit-mask-image:none;mask-image:none;}
+[data-theme="light"] .footer__top{border-bottom-color:rgba(249,245,233,.14);}
+[data-theme="light"] .footer__logo{color:var(--paper);}
+[data-theme="light"] .footer__links a{color:rgba(249,245,233,.6);}
+[data-theme="light"] .footer__links a:hover{color:var(--paper);}
+/* daylight flavour shots: plain studio frame — the parchment vitrine is a
+   dark-room device. The per-source landing transforms are geometry, not
+   theming, and stay live in both modes. */
+[data-theme="light"] .flavours__shot{
+  background:#fff;border:1px solid var(--hairline);border-radius:0;
+  box-shadow:none;
+}
+[data-theme="light"] .flavours__shot img{mix-blend-mode:normal;filter:none;}
+
+/* ── sun/moon theme toggle (top-left, before the wordmark) ─────────────── */
+.themetoggle{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:50%;flex:0 0 auto;
+  border:1px solid var(--hairline);background:transparent;color:var(--ink);
+  cursor:pointer;padding:0;transition:color .3s,border-color .3s,transform .3s;
+}
+.themetoggle:hover{color:var(--amber);border-color:var(--amber);transform:rotate(14deg);}
+.themetoggle svg{width:15px;height:15px;display:block;}
+.themetoggle .i-sun{display:block;}
+.themetoggle .i-moon{display:none;}
+[data-theme="light"] .themetoggle .i-sun{display:none;}
+[data-theme="light"] .themetoggle .i-moon{display:block;}
+
+/* ── global fixes (both themes) ─────────────────────────────────────────── */
+/* the UA [hidden] rule loses to any display declaration (e.g. .btn's
+   inline-block), so hidden-by-script elements stayed visible */
+[hidden]{display:none!important;}
+/* pages that mark the current nav link with aria-current (merch) get the
+   same emphasis script.js gives .active on index */
+.nav__links a[aria-current]{color:var(--ink);}

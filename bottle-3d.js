@@ -406,11 +406,66 @@
   // slightly-cool pale mastic (cool vs. the warm room says "water" and keeps it
   // distinct from the amber whisky act) at or below the old opacity — all the
   // visibility budget goes to the additive sheen pass, never to fill.
-  var WATER_JET_TINT = 0xbcd0c6;   // pale COOL sage — restrained body; sheen carries it (was 0xd0e1d8, milky on dark)
-  var WATER_CORE_TINT = 0xdaeae2;  // bright cool core reads as solid liquid; knocked off pure-white so it never fluoresces
-  var WATER_DROP_TINT = 0xdcebe2;  // droplets, satellites, splash, mist — brightened 0xcfe2d8->0xdcebe2 so the breakup sparkles harder on the dark stage (colour only, counts untouched)
-  var WATER_JET_OP = 0.58;         // ceiling 0.80->0.58: 0.80 over near-black composited to a solid mid-grey FILL (the ribbon read as poured pewter). Thinned so the dark shows THROUGH the column — it now reads as a see-through glass tube defined by its edges, not a matte band. uK is a RATIO (opacity/WATER_JET_OP) so the sheen strength is untouched.
-  var WATER_CORE_OP = 0.20;        // core 0.26->0.20: a darker see-through interior so the sheath + core stop reading as two flat strips; the edges carry the light
+  /* ── DAY/NIGHT MOOD ──────────────────────────────────────────────────────
+     The page now runs two themes (html[data-theme]): the candlelit espresso
+     room (dark, the values this file was last art-directed in) and the
+     rice-paper studio (light, the pre-speakeasy solve, restored from git).
+     MOOD carries every value that was re-solved between the two stages.
+     Scene lights, tints and opacity ceilings re-apply LIVE when the sun/moon
+     toggle flips the attribute (see applyMood + the MutationObserver at the
+     bottom of this closure); the handful of shader-baked constants pick once
+     at build and settle fully on the next load — a subtle, documented gap. */
+  function themeIsLight() {
+    return document.documentElement.getAttribute('data-theme') === 'light';
+  }
+  var MOOD_DARK = {
+    amb: [0xffdca8, 0.30], key: [0xffce96, 1.28], rim: [0xdfe9ff, 0.72],
+    glint: [0xffdca4, 1.0], bounce: [0xE0A458, 0.18],
+    jetTint: 0xbcd0c6, coreTint: 0xdaeae2, dropTint: 0xdcebe2,
+    jetOp: 0.58, coreOp: 0.20, streamCeil: 0.46, coreCeil: 0.34,
+    bubbleTint: 0xe0eee7, fizzTint: 0xe8f4ee, dropMatTint: 0xeff8f2, dropMatOp: 0.9,
+    sheathTint: 0xe6f0ea, glassEnv: 1.45, condEnv: 3.2, sheathEnv: 1.1,
+    crownOp: 0.92, churnTint: 0xe6f2ec, backdrop: 0x817a70, candleEmis: 1.35,
+    whiskyC1: 0xb0520f, whiskyTop: 0xd8933a, whiskyGlass: 0x8e5119,
+    /* shader-baked (strings, picked at build) */
+    absorbMix: '0.68', bodyAlpha: 'fres * 0.55 + line * 0.34', surfAlpha: 'fres * 0.38 + rim * 0.42',
+    jetFresPow: '1.7', jetEdge: 'f * 0.92 + hot * 0.40 + (s1 + s2) * 0.34', jetSpecMul: '1.5'
+  };
+  var MOOD_LIGHT = {
+    amb: [0xffffff, 0.35], key: [0xfff8ee, 1.15], rim: [0xe8f0ff, 0.4],
+    glint: [0xffffff, 0.85], bounce: [0xE0A458, 0.0],
+    jetTint: 0xd0e1d8, coreTint: 0xf0f7f2, dropTint: 0xc4dfd0,
+    jetOp: 0.85, coreOp: 0.26, streamCeil: 0.55, coreCeil: 0.5,
+    bubbleTint: 0xeaf6ef, fizzTint: 0xf3fbf6, dropMatTint: 0xf6fbf6, dropMatOp: 0.75,
+    sheathTint: 0xfbfefb, glassEnv: 1.2, condEnv: 2.4, sheathEnv: 2.0,
+    crownOp: 0.8, churnTint: 0xf2fbf5, backdrop: 0x9a9a94, candleEmis: 1.15,
+    whiskyC1: 0xa5611a, whiskyTop: 0xd39a44, whiskyGlass: 0x8a561f,
+    absorbMix: '0.75', bodyAlpha: 'fres * 0.42 + line * 0.30', surfAlpha: 'fres * 0.30 + rim * 0.35',
+    jetFresPow: '2.0', jetEdge: 'f * 0.62 + hot * 0.35 + (s1 + s2) * 0.30', jetSpecMul: '1.2'
+  };
+  var MOOD = themeIsLight() ? MOOD_LIGHT : MOOD_DARK;
+  /* live re-appliers registered by the scene builders; each runs with the new
+     MOOD when the theme flips */
+  var moodBound = [];
+  function bindMood(fn) { moodBound.push(fn); }
+  function applyMood() {
+    MOOD = themeIsLight() ? MOOD_LIGHT : MOOD_DARK;
+    WATER_JET_TINT = MOOD.jetTint; WATER_CORE_TINT = MOOD.coreTint;
+    WATER_DROP_TINT = MOOD.dropTint; WATER_JET_OP = MOOD.jetOp; WATER_CORE_OP = MOOD.coreOp;
+    for (var i = 0; i < moodBound.length; i++) { try { moodBound[i](MOOD); } catch (e) {} }
+    var els = document.querySelectorAll('bottle-3d, glass-3d');
+    for (var j = 0; j < els.length; j++) { if ('_needsRender' in els[j]) els[j]._needsRender = true; }
+  }
+  new MutationObserver(function (muts) {
+    for (var i = 0; i < muts.length; i++) {
+      if (muts[i].attributeName === 'data-theme') { applyMood(); return; }
+    }
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  var WATER_JET_TINT = MOOD.jetTint;   // water body tint (cool sage on dark, pixel-solved pale on cream)
+  var WATER_CORE_TINT = MOOD.coreTint; // solid-liquid core
+  var WATER_DROP_TINT = MOOD.dropTint; // droplets, satellites, splash, mist
+  var WATER_JET_OP = MOOD.jetOp;       // dark 0.58: see-through tube, edges carry it; light 0.85: dense on cream. uK is a RATIO (opacity/WATER_JET_OP) so sheen strength is untouched.
+  var WATER_CORE_OP = MOOD.coreOp;     // dark 0.20 / light 0.26 — core stays subtle either way
   function waterJetMaterial() {
     // toneMapped:false — ACES would compress the pale sage and, more to the
     // point, these passes must composite as authored over the transparent
@@ -557,19 +612,27 @@
       // a warm point glint for candle sparkle, and a faint low amber bounce
       // (candle pooling up from below the vessel). Kept low-ambient so the
       // glints stay the brightest thing in frame.
-      scene.add(new THREE.AmbientLight(0xffdca8, 0.30));            // warm, restrained fill
-      var key = new THREE.DirectionalLight(0xffce96, 1.28);         // candle key (was 0xfff8ee 1.15), brighter for the dark stage
+      var amb = new THREE.AmbientLight(MOOD.amb[0], MOOD.amb[1]);   // dark: warm restrained fill / light: neutral studio
+      scene.add(amb);
+      var key = new THREE.DirectionalLight(MOOD.key[0], MOOD.key[1]); // dark: candle key, brighter for the dark stage
       key.position.set(3, 5, 4);
       scene.add(key);
-      var rim = new THREE.DirectionalLight(0xdfe9ff, 0.72);         // cool pale rim, LIFTED 0.4->0.72 to edge the glass against near-black
+      var rim = new THREE.DirectionalLight(MOOD.rim[0], MOOD.rim[1]); // dark: rim lifted to edge the glass against near-black
       rim.position.set(-4, 2, -3);
       scene.add(rim);
-      var glint = new THREE.PointLight(0xffdca4, 1.0, 30);          // warm candle specular glint (was 0xffffff 0.85)
+      var glint = new THREE.PointLight(MOOD.glint[0], MOOD.glint[1], 30); // hot specular glint (candle-warm on dark)
       glint.position.set(2.4, 3.4, 3.2);
       scene.add(glint);
-      var bounce = new THREE.DirectionalLight(0xE0A458, 0.18);      // faint candle-amber bounce from below/front
+      var bounce = new THREE.DirectionalLight(MOOD.bounce[0], MOOD.bounce[1]); // candle-amber bounce; 0 in daylight
       bounce.position.set(0, -3, 3);
       scene.add(bounce);
+      bindMood(function (m) {
+        amb.color.setHex(m.amb[0]); amb.intensity = m.amb[1];
+        key.color.setHex(m.key[0]); key.intensity = m.key[1];
+        rim.color.setHex(m.rim[0]); rim.intensity = m.rim[1];
+        glint.color.setHex(m.glint[0]); glint.intensity = m.glint[1];
+        bounce.color.setHex(m.bounce[0]); bounce.intensity = m.bounce[1];
+      });
 
       // Groups: root (drift/tilt) > spin (twist) > bottle (pivot-centred)
       var root = new THREE.Group();
@@ -1559,6 +1622,13 @@
       // original 0.712 mapping, so the tuned pour/drain choreography is untouched.
       var surfFrac = 0.712 * lvl + 0.141 * smoothstep(0.90, 1.0, lvl);
       var h = lerp(minY, maxY, surfFrac) + (this._surfBob || 0); // pooled water height, heaving with the glug
+      // PHYSICS CLAMP (pour): while liquid is leaving, the free surface pins
+      // at the pour lip — air gulps back along the neck's upper wall, so the
+      // surface can never ride ABOVE the lip. Unclamped, the span mapping put
+      // the waterline over the entire tilted neck and it rendered as a solid
+      // slug of water out to the cap seat — impossible mid-pour, and the most
+      // visible water in the shot. (_v3 still holds the mouth world position.)
+      if (tiltT > 0.05) h = Math.min(h, _v3.y + 0.015);
       this._waterPlane.constant = h;
       // surface disc rides the waterline along the bottle axis, always world-level
       if (dyPer > 0.25) { // upright-ish ONLY: inverted, the disc escaped the silhouette as a floating bar
@@ -2253,15 +2323,23 @@
       scene.environment = makeStudioEnv(renderer);
       // CANDLELIT RIG — identical recipe to the hero act (warm key, lifted cool
       // rim to carve the crystal, warm glint, faint amber bounce from below)
-      scene.add(new THREE.AmbientLight(0xffdca8, 0.30));
-      var key = new THREE.DirectionalLight(0xffce96, 1.28);
+      var amb = new THREE.AmbientLight(MOOD.amb[0], MOOD.amb[1]);
+      scene.add(amb);
+      var key = new THREE.DirectionalLight(MOOD.key[0], MOOD.key[1]);
       key.position.set(3, 5, 4); scene.add(key);
-      var rim = new THREE.DirectionalLight(0xdfe9ff, 0.72);
+      var rim = new THREE.DirectionalLight(MOOD.rim[0], MOOD.rim[1]);
       rim.position.set(-4, 2, -3); scene.add(rim);
-      var glint = new THREE.PointLight(0xffdca4, 1.0, 30);
+      var glint = new THREE.PointLight(MOOD.glint[0], MOOD.glint[1], 30);
       glint.position.set(2.4, 3.4, 3.2); scene.add(glint);
-      var bounce = new THREE.DirectionalLight(0xE0A458, 0.18);
+      var bounce = new THREE.DirectionalLight(MOOD.bounce[0], MOOD.bounce[1]);
       bounce.position.set(0, -3, 3); scene.add(bounce);
+      bindMood(function (m) {
+        amb.color.setHex(m.amb[0]); amb.intensity = m.amb[1];
+        key.color.setHex(m.key[0]); key.intensity = m.key[1];
+        rim.color.setHex(m.rim[0]); rim.intensity = m.rim[1];
+        glint.color.setHex(m.glint[0]); glint.intensity = m.glint[1];
+        bounce.color.setHex(m.bounce[0]); bounce.intensity = m.bounce[1];
+      });
 
       this._waterPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0.2);
       var g = new THREE.Group();

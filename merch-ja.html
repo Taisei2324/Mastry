@@ -2,6 +2,11 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
+<script>/* day/night theme boot — before the stylesheet so there is no flash.
+  A stored choice wins; otherwise local time decides (06–18 = day). */
+(function(){var t=null;try{t=localStorage.getItem('mastry-theme');}catch(e){}
+if(t!=='light'&&t!=='dark'){var h=new Date().getHours();t=(h>=6&&h<18)?'light':'dark';}
+document.documentElement.setAttribute('data-theme',t);})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>グッズ — MASTRY</title>
 <meta name="description" content="マストリーのグッズ — アイランドTシャツ、フーディ、ハット。ヒオス島と日本の協業を、身に着ける。" />
@@ -21,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=20260718fab12" />
+<link rel="stylesheet" href="style.css?v=20260718fab13" />
 <style>
 :root{--sans:"Inter","Noto Sans JP",system-ui,sans-serif;--serif:"Cormorant Garamond","Noto Serif JP",serif;}
 /* ── merch-only styles, on the shared palette ── */
@@ -33,8 +38,11 @@
   background:var(--paper-deep);border:1px solid var(--hairline);border-radius:18px;overflow:hidden;
   cursor:pointer;transition:transform .4s var(--ease),box-shadow .4s;text-align:left;padding:0;font-family:var(--sans);
 }
-.mcard:hover{transform:translateY(-6px);box-shadow:0 24px 50px rgba(38,52,28,.12);}
-.mcard__thumb{aspect-ratio:1/1;overflow:hidden;background:#fff;}
+.mcard:hover{transform:translateY(-6px);box-shadow:0 24px 50px rgba(0,0,0,.5),0 0 30px var(--amber-soft);}
+/* dark room: product shots sit in the same parchment vitrine as the flavour
+   catalog (white studio grounds multiply into parchment instead of glaring) */
+.mcard__thumb{aspect-ratio:1/1;overflow:hidden;background:#DFD2B6;}
+.mcard__thumb img{mix-blend-mode:multiply;filter:saturate(.97) contrast(1.02);}
 .mcard__thumb img{width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease);}
 .mcard:hover .mcard__thumb img{transform:scale(1.04);}
 .mcard__body{padding:20px 22px 24px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
@@ -47,13 +55,14 @@
 
 /* lightbox */
 .lb{
-  position:fixed;inset:0;z-index:800;background:rgba(29,46,24,.55);
+  position:fixed;inset:0;z-index:800;background:rgba(10,8,6,.62);
   display:none;align-items:center;justify-content:center;padding:20px;
   -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
 }
 .lb.open{display:flex;}
 .lb__card{
-  background:var(--paper);border-radius:22px;max-width:920px;width:100%;max-height:90vh;
+  background:var(--paper-deep);border:1px solid var(--hairline);
+  box-shadow:0 30px 80px rgba(0,0,0,.55);border-radius:22px;max-width:920px;width:100%;max-height:90vh;
   overflow-y:auto;padding:clamp(20px,3vw,36px);
 }
 .lb__top{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:18px;}
@@ -65,7 +74,7 @@
 }
 .lb__close:hover{color:var(--ink);}
 .lb__imgs{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:14px;margin-bottom:22px;}
-.lb__imgs img{width:100%;border-radius:14px;border:1px solid var(--hairline);background:#fff;}
+.lb__imgs img{width:100%;border-radius:14px;border:1px solid var(--hairline);background:#DFD2B6;mix-blend-mode:multiply;}
 .lb__actions{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
 .lb__hint{font-size:.78rem;color:var(--muted);}
 .lb__ok{font-family:var(--jp);font-weight:400;color:var(--olive-deep);font-size:.95rem;}
@@ -77,6 +86,14 @@
   .merch__grid{grid-template-columns:1fr;}
   .lb__imgs{grid-template-columns:1fr;}
 }
+
+/* ── day theme: back to the bright studio treatment ── */
+[data-theme="light"] .mcard:hover{box-shadow:0 24px 50px rgba(38,52,28,.12);}
+[data-theme="light"] .mcard__thumb{background:#fff;}
+[data-theme="light"] .mcard__thumb img{mix-blend-mode:normal;filter:none;}
+[data-theme="light"] .lb{background:rgba(29,46,24,.55);}
+[data-theme="light"] .lb__card{box-shadow:0 30px 80px rgba(38,52,28,.18);}
+[data-theme="light"] .lb__imgs img{background:#fff;mix-blend-mode:normal;}
 </style>
 </head>
 <body>
@@ -85,6 +102,10 @@
 
 <!-- ══ Nav (shared look) ══ -->
 <header class="nav solid" id="nav">
+  <button class="themetoggle" id="themeToggle" type="button" aria-label="昼と夜のテーマを切り替える">
+    <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19"/></svg>
+    <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20.2 14.2A8.3 8.3 0 0 1 9.8 3.8a8.6 8.6 0 1 0 10.4 10.4Z"/></svg>
+  </button>
   <a class="nav__logo" href="index-ja.html">MASTRY<span class="nav__logo-jp">マストリー</span></a>
   <nav class="nav__links" id="navLinks" aria-label="メイン">
     <a href="index-ja.html#flavours">フレーバー</a>
@@ -229,5 +250,10 @@
 })();
 </script>
 <script>/* one SW at /Mastry/ controls every entry point */if('serviceWorker'in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).catch(function(){});});}</script>
+<script>/* sun/moon toggle — flips the theme and remembers the choice */
+(function(){var b=document.getElementById('themeToggle');if(!b)return;
+b.addEventListener('click',function(){var r=document.documentElement;
+var next=r.getAttribute('data-theme')==='light'?'dark':'light';
+r.setAttribute('data-theme',next);try{localStorage.setItem('mastry-theme',next);}catch(e){}});})();</script>
 </body>
 </html>

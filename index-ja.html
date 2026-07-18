@@ -11,6 +11,11 @@ if(pref==='desktop')return;
 var small=matchMedia('(max-width:760px)').matches,coarse=matchMedia('(pointer:coarse)').matches,ua=/Android|iPhone|iPod|IEMobile|BlackBerry|Opera Mini|webOS|Windows Phone/i.test(navigator.userAgent);
 if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='desktop')location.replace(M);
 }catch(e){}})();</script>
+<script>/* day/night theme boot — before the stylesheet so there is no flash.
+  A stored choice wins; otherwise local time decides (06–18 = day). */
+(function(){var t=null;try{t=localStorage.getItem('mastry-theme');}catch(e){}
+if(t!=='light'&&t!=='dark'){var h=new Date().getHours();t=(h>=6&&h<18)?'light':'dark';}
+document.documentElement.setAttribute('data-theme',t);})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <script>/* Mastry TIER: persist a ?slow/?fast override, set window.__mastryLite
   (LITE=slow) before the engine boots, and inject the RIGHT preloads — FAST warms
@@ -49,7 +54,7 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=20260718fab12" />
+<link rel="stylesheet" href="style.css?v=20260718fab13" />
 <style>:root{--sans:"Inter","Noto Sans JP",system-ui,sans-serif;--serif:"Cormorant Garamond","Noto Serif JP",serif;}</style>
 <!-- hero-model preloads injected conditionally by the tier script (FAST: bottle.glb+glass.glb · LITE: label-full.jpg) -->
 </head>
@@ -68,6 +73,10 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
 
 <!-- ══ Nav ══ -->
 <header class="nav" id="nav">
+  <button class="themetoggle" id="themeToggle" type="button" aria-label="昼と夜のテーマを切り替える">
+    <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19"/></svg>
+    <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20.2 14.2A8.3 8.3 0 0 1 9.8 3.8a8.6 8.6 0 1 0 10.4 10.4Z"/></svg>
+  </button>
   <a class="nav__logo" href="#top">MASTRY<span class="nav__logo-jp">マストリー</span></a>
   <nav class="nav__links" id="navLinks" aria-label="メイン">
     <a href="#flavours">フレーバー</a>
@@ -249,11 +258,16 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
     alt="墨絵のパノラマ：崖の松と富士山、海の向こうのギリシャの神殿、その間を行く舟人、青海波の縁取り" loading="lazy" />
 </footer>
 
-<script src="script.js?v=20260718fab12"></script>
+<script src="script.js?v=20260718fab13"></script>
 <script src="vendor/three-0.147.0.min.js"></script>
 <script src="vendor/GLTFLoader-0.147.0.js"></script>
-<script src="bottle-3d.js?v=20260718fab12"></script>
+<script src="bottle-3d.js?v=20260718fab13"></script>
 <script>addEventListener('load',function(){try{if(!window.__mastryLite){var e=performance.getEntriesByName(new URL('assets/bottle.glb',location.href).href)[0];if(e&&e.transferSize>0&&e.duration>0){localStorage.setItem('mastry-net',(e.transferSize/(e.duration/1000))<2e5?'slow':'fast');localStorage.setItem('mastry-net-ts',Date.now());}}}catch(e){}});</script>
 <script>if('serviceWorker'in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).catch(function(){});});}</script>
+<script>/* sun/moon toggle — flips the theme and remembers the choice */
+(function(){var b=document.getElementById('themeToggle');if(!b)return;
+b.addEventListener('click',function(){var r=document.documentElement;
+var next=r.getAttribute('data-theme')==='light'?'dark':'light';
+r.setAttribute('data-theme',next);try{localStorage.setItem('mastry-theme',next);}catch(e){}});})();</script>
 </body>
 </html>
