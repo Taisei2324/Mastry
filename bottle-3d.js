@@ -2080,8 +2080,11 @@
       // glass: the LIPWRAP flare below then holds every neck ring at the
       // wetted-bore radius, and all downstream physics (taper, varicose wave,
       // gargle, breakup) starts at the lip exactly as before.
-      var NR = Math.max(6, Math.round(RINGS * 0.14));
-      var NECK_Y0 = 2.50, NECK_Y1 = 3.12;      // bore run: shoulder pool → just under the lip plane
+      var NR = Math.max(3, Math.round(RINGS * 0.02));
+      var NECK_Y0 = 3.02, NECK_Y1 = 3.12;      // SUPER-SHORT lip inset: the jet is born a hair
+      // inside the mouth finish so its root always touches glass — NOT a column
+      // down the neck (that rendered as a glowing pipe through the glass; the
+      // neck's own water is the lathe + clip plane, nothing else)
       _v4.set(0, NECK_Y0, 0); this._bottle.localToWorld(_v4);
       var nsx = _v4.x, nsy = _v4.y, nsz = _v4.z;
       _v4.set(0, NECK_Y1, 0); this._bottle.localToWorld(_v4);
