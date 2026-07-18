@@ -250,11 +250,12 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
    user wants the sequence responsive under the wheel (THE WALL does the
    story-gating now, the pin doesn't have to) */
 @media (min-width:1001px){
-  .heropin{height:720svh;}
+  .heropin{height:630svh;} /* trimmed 720→630 (‑12.5%): a shorter pin so the pour reads a touch faster under the wheel; THE WALL still gates the story */
   /* Windows (.win-runway, stamped by script.js on non-calm Windows desktops):
      wheel notches advance far more per tick than Mac trackpads — a longer
-     runway slows the whole choreography without touching the scroll itself */
-  html.win-runway.bottle3d-on .heropin{height:1000svh;}
+     runway slows the whole choreography without touching the scroll itself.
+     Scaled by the same 0.875 as the base pin so the slowdown ratio (≈1.39×) holds */
+  html.win-runway.bottle3d-on .heropin{height:875svh;}
   html.win-runway.bottle3d-on .highball{height:230svh;}
 }
 .heropin__sticky{

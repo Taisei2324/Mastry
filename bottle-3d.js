@@ -1530,7 +1530,7 @@
         flow = 1 - 0.19 * gargle;
         // the water INSIDE heaves on the same beat — surface only, no particles
         this._surfBob = (gl - 0.5) * 0.05 * gargle;
-        this._level = Math.max(0.20, this._level - dt * (0.05 + 0.16 * ps * flow));
+        this._level = Math.max(0.20, this._level - dt * (0.055 + 0.176 * ps * flow)); // tempo +10% (was 0.05/0.16): a small drain bump on top of the shorter pin so the pour reads "a little faster", not rushed
       } else {
         this._glugAmp = 0;
         this._surfBob = (this._surfBob || 0) * Math.pow(0.02, dt); // settle when not pouring
