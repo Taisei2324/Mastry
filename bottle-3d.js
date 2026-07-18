@@ -2081,21 +2081,30 @@
       // wetted-bore radius, and all downstream physics (taper, varicose wave,
       // gargle, breakup) starts at the lip exactly as before.
       var NR = Math.max(6, Math.round(RINGS * 0.14));
-      _v4.set(0, 2.46, 0);                     // shoulder/neck junction, local
-      this._bottle.localToWorld(_v4);
+      var NECK_Y0 = 2.50, NECK_Y1 = 3.12;      // bore run: shoulder pool → just under the lip plane
+      _v4.set(0, NECK_Y0, 0); this._bottle.localToWorld(_v4);
       var nsx = _v4.x, nsy = _v4.y, nsz = _v4.z;
-      var ndx = ex - nsx, ndy = ey - nsy, ndz = ez - nsz;
+      _v4.set(0, NECK_Y1, 0); this._bottle.localToWorld(_v4);
+      var ntx = _v4.x, nty = _v4.y, ntz = _v4.z;
+      var ndx = ntx - nsx, ndy = nty - nsy, ndz = ntz - nsz;
       var nlen = Math.sqrt(ndx * ndx + ndy * ndy + ndz * ndz) || 1;
+      // crest offset: the bore run ends ON AXIS at the mouth while the fall is
+      // born at the low lip edge — that delta, eased out over the first few
+      // fall rings, rounds the handoff into a drooping crest instead of a hard
+      // pipe elbow poking out of the glass.
+      var crx = ntx - ex, cry = nty - ey, crz = ntz - ez;
       for (var i = 0; i < RINGS; i++) {
-        var wx, wy, wz, cvx, cvy, cvz;
-        if (i < NR) {                          // inside the bore: straight run
-          var fN = i / NR;
+        var wx, wy, wz, cvx, cvy, cvz, tt = 0; // tt=0 in the bore — the gargle phase reads it
+        if (i < NR) {                          // inside the bore: run the AXIS (never through the wall)
+          var fN = i / (NR - 1);
           wx = nsx + ndx * fN; wy = nsy + ndy * fN; wz = nsz + ndz * fN;
           cvx = ndx / nlen * v0; cvy = ndy / nlen * v0; cvz = ndz / nlen * v0;
         } else {                               // past the lip: ballistic fall
-          var tt = (i - NR) * TSTEP;
+          tt = (i - NR) * TSTEP;
           wx = ex + vx * tt; wy = ey + vy * tt - 0.5 * GP * tt * tt; wz = ez + vz * tt;
           cvx = vx; cvy = vy - GP * tt; cvz = vz;
+          var cw = 1 - tt / 0.055;             // crest: ease off the bore axis onto the parabola
+          if (cw > 0) { cw *= cw; wx += crx * cw; wy += cry * cw; wz += crz * cw; }
         }
         var spd = Math.sqrt(cvx * cvx + cvy * cvy + cvz * cvz);
         if (i > NR) s += spd * TSTEP;
@@ -2105,6 +2114,13 @@
         // Plateau–Rayleigh varicose wave rides down the jet and deepens;
         // wavelength ≈ 9x jet radius, travelling with the flow
         var r = rBase * (1 + (0.08 + 0.95 * frac * frac) * 0.42 * Math.sin(s * 10.5 - time * 30));
+        if (i < NR) {
+          // bore-constrained: this stretch IS the neck's water, so it hugs the
+          // glass interior — just inside the water lathe's 0.90 skin, never
+          // through the wall — and cannot wave: a full bore has no free surface.
+          var yN = NECK_Y0 + (NECK_Y1 - NECK_Y0) * (i / (NR - 1));
+          r = Math.min(radiusAtFast(yN) * 0.86, 0.135);
+        }
         // THE GARGLE: a low-frequency thickness wave that TRAVELS down the
         // column — fat runs separated by sharp pinches (big/small/big/small),
         // its phase lagging with arclength so a parcel emitted on a surge
@@ -2129,7 +2145,7 @@
         // 0 by the throat's end; the mass-conservation taper downstream is
         // untouched, and it sits BEFORE the pinch-off neck (frac>0.78, far below).
         var thr = 1 - s / 0.12; if (thr < 0) thr = 0;
-        if (thr > 0) { var wf = thr * thr; r = r * (1 - wf) + Math.max(r, LIPWRAP) * wf; }
+        if (thr > 0 && i >= NR) { var wf = thr * thr; r = r * (1 - wf) + Math.max(r, LIPWRAP) * wf; }
         if (frac > 0.78) r *= Math.max(0.10, 1 - (frac - 0.78) * 3.6); // necks into the pinch-off
         if (r < 0.003) r = 0.003;
         // lateral wander grows down-stream
