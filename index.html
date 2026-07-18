@@ -14,8 +14,22 @@ if((small||ua||(coarse&&matchMedia('(max-width:900px)').matches))&&pref!=='deskt
 }catch(e){}})();</script>
 <script>/* day/night theme boot — before the stylesheet so there is no flash.
   A stored choice wins; otherwise local time decides (06–18 = day). */
-(function(){var t=null;try{t=localStorage.getItem('mastry-theme');}catch(e){}
-if(t!=='light'&&t!=='dark'){var h=new Date().getHours();t=(h>=6&&h<18)?'light':'dark';}
+(function(){var t=null;try{t=localStorage.getItem('mastry-theme');
+  /* a manual sun/moon choice holds for 12h, then the clock decides again */
+  var ts=+localStorage.getItem('mastry-theme-ts')||0;
+  if(Date.now()-ts>432e5)t=null;
+}catch(e){}
+if(t!=='light'&&t!=='dark'){
+  /* is it bright or dark OUTSIDE right now? — seasonal daylight window from
+     the local clock: half-width swings ~9.8h (midwinter) to ~14.4h
+     (midsummer) around solar noon, temperate-latitude fit (Tokyo-accurate
+     to ~15 min). No geolocation, no permission prompt. */
+  var now=new Date();
+  var doy=Math.floor((now-new Date(now.getFullYear(),0,0))/864e5);
+  var half=6.05+1.15*Math.cos(2*Math.PI*(doy-172)/365);
+  var hr=now.getHours()+now.getMinutes()/60;
+  t=(hr>12-half&&hr<12+half)?'light':'dark';
+}
 document.documentElement.setAttribute('data-theme',t);})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <script>/* Mastry TIER: persist a ?slow/?fast override, set window.__mastryLite
@@ -54,7 +68,7 @@ document.documentElement.setAttribute('data-theme',t);})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=20260719fab17" />
+<link rel="stylesheet" href="style.css?v=20260719fab18" />
 <!-- hero-model preloads are injected CONDITIONALLY by the tier script above:
      FAST warms bottle.glb + glass.glb; LITE (slow) warms only label-full.jpg. -->
 </head>
@@ -260,17 +274,17 @@ document.documentElement.setAttribute('data-theme',t);})();</script>
     alt="Ink panorama: a pine on a cliff and Mount Fuji facing a Greek acropolis across the sea, a lone boatman between them, over a border of seigaiha waves" loading="lazy" />
 </footer>
 
-<script src="script.js?v=20260719fab17"></script>
+<script src="script.js?v=20260719fab18"></script>
 <!-- self-hosted (was unpkg — a free CDN whose latency spikes made the bottle
      "sometimes take a couple of seconds"); same-origin loads are consistent -->
 <script src="vendor/three-0.147.0.min.js"></script>
 <script src="vendor/GLTFLoader-0.147.0.js"></script>
-<script src="bottle-3d.js?v=20260719fab17"></script>
+<script src="bottle-3d.js?v=20260719fab18"></script>
 <script>/* sun/moon toggle — flips the theme and remembers the choice */
 (function(){var b=document.getElementById('themeToggle');if(!b)return;
 b.addEventListener('click',function(){var r=document.documentElement;
 var next=r.getAttribute('data-theme')==='light'?'dark':'light';
-r.setAttribute('data-theme',next);try{localStorage.setItem('mastry-theme',next);}catch(e){}});})();</script>
+r.setAttribute('data-theme',next);try{localStorage.setItem('mastry-theme',next);localStorage.setItem('mastry-theme-ts',String(Date.now()));}catch(e){}});})();</script>
 <script>/* measured net hint (visit-2 byte savings on API-less browsers, e.g. iOS):
   after load, time the real bottle.glb transfer and remember slow/fast. */
 addEventListener('load',function(){try{if(!window.__mastryLite){var e=performance.getEntriesByName(new URL('assets/bottle.glb',location.href).href)[0];if(e&&e.transferSize>0&&e.duration>0){localStorage.setItem('mastry-net',(e.transferSize/(e.duration/1000))<2e5?'slow':'fast');localStorage.setItem('mastry-net-ts',Date.now());}}}catch(e){}});</script>

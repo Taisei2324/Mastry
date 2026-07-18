@@ -4,8 +4,22 @@
 <meta charset="UTF-8" />
 <script>/* day/night theme boot — before the stylesheet so there is no flash.
   A stored choice wins; otherwise local time decides (06–18 = day). */
-(function(){var t=null;try{t=localStorage.getItem('mastry-theme');}catch(e){}
-if(t!=='light'&&t!=='dark'){var h=new Date().getHours();t=(h>=6&&h<18)?'light':'dark';}
+(function(){var t=null;try{t=localStorage.getItem('mastry-theme');
+  /* a manual sun/moon choice holds for 12h, then the clock decides again */
+  var ts=+localStorage.getItem('mastry-theme-ts')||0;
+  if(Date.now()-ts>432e5)t=null;
+}catch(e){}
+if(t!=='light'&&t!=='dark'){
+  /* is it bright or dark OUTSIDE right now? — seasonal daylight window from
+     the local clock: half-width swings ~9.8h (midwinter) to ~14.4h
+     (midsummer) around solar noon, temperate-latitude fit (Tokyo-accurate
+     to ~15 min). No geolocation, no permission prompt. */
+  var now=new Date();
+  var doy=Math.floor((now-new Date(now.getFullYear(),0,0))/864e5);
+  var half=6.05+1.15*Math.cos(2*Math.PI*(doy-172)/365);
+  var hr=now.getHours()+now.getMinutes()/60;
+  t=(hr>12-half&&hr<12+half)?'light':'dark';
+}
 document.documentElement.setAttribute('data-theme',t);})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Merch — MASTRY</title>
@@ -25,7 +39,7 @@ document.documentElement.setAttribute('data-theme',t);})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=20260719fab17" />
+<link rel="stylesheet" href="style.css?v=20260719fab18" />
 <style>
 /* ── merch-only styles, on the shared palette ── */
 .merch{max-width:1300px;margin:0 auto;padding-top:calc(var(--nav-h) + clamp(50px,8vw,90px));}
@@ -252,6 +266,6 @@ document.documentElement.setAttribute('data-theme',t);})();</script>
 (function(){var b=document.getElementById('themeToggle');if(!b)return;
 b.addEventListener('click',function(){var r=document.documentElement;
 var next=r.getAttribute('data-theme')==='light'?'dark':'light';
-r.setAttribute('data-theme',next);try{localStorage.setItem('mastry-theme',next);}catch(e){}});})();</script>
+r.setAttribute('data-theme',next);try{localStorage.setItem('mastry-theme',next);localStorage.setItem('mastry-theme-ts',String(Date.now()));}catch(e){}});})();</script>
 </body>
 </html>

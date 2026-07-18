@@ -1841,6 +1841,14 @@
       // which reads this._glugAmp + this._glugPhase). As the bottle drains
       // past ~0.62→0.40 the pulse fades and the water simply runs down
       // smoothly: air now has a clear path, so no more glug.
+      // THE POUR BEAT: the stream may already arc off the lip as the tilt
+      // completes, but the bottle HOLDS FULL until the pour has truly set in —
+      // a 1s pause at full tilt (the drink gathering itself), THEN the
+      // automated drain runs. The owner: the level must never bleed away
+      // during the tilt — it drains only when the pour drains it.
+      if (tiltT > 0.92 && pouring) { if (!this._pourT0) this._pourT0 = time; }
+      else this._pourT0 = 0;
+      var draining = !!this._pourT0 && (time - this._pourT0) > 1.0;
       var flow = 1;
       if (pouring) {
         var tiltG = smoothstep(0.72, 0.95, tiltT);
@@ -1855,7 +1863,7 @@
         flow = 1 - 0.19 * gargle;
         // the water INSIDE heaves on the same beat — surface only, no particles
         this._surfBob = (gl - 0.5) * 0.05 * gargle;
-        this._level = Math.max(0.20, this._level - dt * (0.055 + 0.176 * ps * flow)); // tempo +10% (was 0.05/0.16): a small drain bump on top of the shorter pin so the pour reads "a little faster", not rushed
+        if (draining) this._level = Math.max(0.20, this._level - dt * (0.055 + 0.176 * ps * flow)); // tempo +10% (was 0.05/0.16): a small drain bump on top of the shorter pin so the pour reads "a little faster", not rushed
       } else {
         this._glugAmp = 0;
         this._surfBob = (this._surfBob || 0) * Math.pow(0.02, dt); // settle when not pouring

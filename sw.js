@@ -15,7 +15,7 @@
 
 /* >>> bump on every deploy that changes a cached binary; keep in lockstep with the
    ?v= tag bumps on the pages. <<< */
-var SW_VERSION = '20260719sw22';
+var SW_VERSION = '20260719sw23';
 var CACHE = 'mastry-' + SW_VERSION;
 
 /* Intentionally EMPTY. Never precache bottle.glb — it would fight the LITE tier skip
