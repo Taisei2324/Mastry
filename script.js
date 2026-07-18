@@ -370,7 +370,7 @@
     function tick() {
       if (!running) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = "rgba(107,122,50,0.55)"; /* olive-core */
+      ctx.strokeStyle = "rgba(224,164,88,0.5)"; /* candle-amber — the old dark olive-core sank into the espresso stage */
       bubbles.forEach(function (b, idx) {
         b.y -= b.v;
         b.x += b.drift;

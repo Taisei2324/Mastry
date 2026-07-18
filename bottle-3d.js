@@ -162,11 +162,14 @@
      the _waterPlane clip keep working untouched. `holder` (the custom
      element instance) receives ._waterUniforms / ._waterTopUniforms
      once the program first compiles — feed them per frame from _tick.
-     Body: Beer-Lambert depth absorption with a 25% reflection floor
-     (mix(1,absorb,0.75)) so grazing env highlights never dull to mud,
+     Body: Beer-Lambert depth absorption with a lifted reflection floor
+     (mix(1,absorb,0.68)) so grazing env highlights never dull to mud —
+     re-solved UP for the espresso-dark speakeasy stage, where a full
+     Beer-Lambert body would just sink into the near-black backdrop,
      fresnel silhouette density, and a caustic band pinned to
-     uWaterlineY. Alpha is capped at 0.72 so nothing goes inky over the
-     cream page. */
+     uWaterlineY. Alpha is capped at 0.72 so the fill never goes inky
+     over the candle pool; the LIQUID now reads from its carved fresnel
+     edge + warmed strip glare, not from the body fill. */
   function installWaterBodyShader(mat, holder) {
     mat.onBeforeCompile = function (shader) {
       shader.uniforms.uWaterlineY = { value: 2.32 };
@@ -199,7 +202,9 @@
           '  vec3 R = reflect( -V, normalize( Nw ) );',
           '  float s1 = pow( max( dot( R, normalize( vec3( -0.45, 0.80, 0.42 ) ) ), 0.0 ), 90.0 );',
           '  float s2 = pow( max( dot( R, normalize( vec3( 0.62, 0.30, 0.72 ) ) ), 0.0 ), 220.0 );',
-          '  return vec3( 1.0, 0.99, 0.94 ) * ( s1 * 0.9 + s2 * 0.6 );',
+          // candle-tinted warm-white (never pure white — that reads fluorescent
+          // on the dark stage); brighter s1 key so the sheen carries the liquid
+          '  return vec3( 1.0, 0.92, 0.78 ) * ( s1 * 1.25 + s2 * 0.7 );',
           '}'
         ].join('\n'))
         .replace('#include <output_fragment>', [
@@ -213,7 +218,9 @@
           'float depth = clamp( ( uWaterlineY - wy ) / max( 0.05, uWaterlineY - uBaseY ), 0.0, 1.0 );',
           'float thick = depth * 0.9 + fres * 0.8;',
           'vec3  absorb = exp( -vec3( 0.42, 0.14, 0.28 ) * thick );',
-          'vec3  col    = outgoingLight * mix( vec3( 1.0 ), absorb, 0.75 );',
+          // lifted floor (0.75 -> 0.68): on the espresso stage a fuller absorb
+          // sank the body to mud; this keeps the cool-sage fill barely alive
+          'vec3  col    = outgoingLight * mix( vec3( 1.0 ), absorb, 0.68 );',
           // caustic light webs drifting through the body, agitation-bright
           'float ca   = liqCaustic( vWPosW * 1.7, uTime );',
           'float web  = smoothstep( 0.25, 1.0, 0.5 + 0.5 * ca );',
@@ -223,8 +230,12 @@
           'col += vec3( 0.34, 0.40, 0.36 ) * line * ( 0.35 + 0.5 * uAgitate ) * shim;',
           'col += vec3( 0.30, 0.36, 0.33 ) * line * fres * 0.5;',
           // strip-light glare — moves with the tilt, hottest at the silhouette
-          'col += liqStripGlare( vWNorW, vWPosW ) * ( 0.30 + 0.70 * fres ) * ( 0.45 + 0.55 * min( 1.0, uAgitate + 0.35 ) );',
-          'float a = clamp( diffuseColor.a + fres * 0.42 + line * 0.30 + depth * 0.10 + web * 0.05, 0.0, 0.72 );',
+          // widened the base sheen (0.30->0.45) so the glare rides even the
+          // flatter faces — the moving candle streak is the liquid's read on dark
+          'col += liqStripGlare( vWNorW, vWPosW ) * ( 0.45 + 0.70 * fres ) * ( 0.50 + 0.55 * min( 1.0, uAgitate + 0.35 ) );',
+          // carve the silhouette harder (fres 0.42->0.55): a bright rim is how
+          // the eye reads a body of water against the near-black candle pool
+          'float a = clamp( diffuseColor.a + fres * 0.55 + line * 0.34 + depth * 0.10 + web * 0.05, 0.0, 0.72 );',
           'gl_FragColor = vec4( col, a );'
         ].join('\n'));
     };
@@ -259,7 +270,8 @@
           '  vec3 R = reflect( -V, normalize( Nw ) );',
           '  float s1 = pow( max( dot( R, normalize( vec3( -0.45, 0.80, 0.42 ) ) ), 0.0 ), 110.0 );',
           '  float s2 = pow( max( dot( R, normalize( vec3( 0.62, 0.30, 0.72 ) ) ), 0.0 ), 260.0 );',
-          '  return vec3( 1.0, 0.99, 0.94 ) * ( s1 + s2 * 0.7 );',
+          // candle warm-white so the surface catches the room, not a fluorescent glint
+          '  return vec3( 1.0, 0.92, 0.78 ) * ( s1 * 1.2 + s2 * 0.75 );',
           '}'
         ].join('\n'))
         .replace('#include <output_fragment>', [
@@ -276,13 +288,13 @@
           'float boil = sin( vP.x * 34.0 + uTime * 3.3 ) * sin( vP.y * 31.0 - uTime * 2.7 );',
           'boil = ( 0.5 + 0.5 * boil ) * 0.5;',
           'vec3  col  = outgoingLight;',
-          'col += vec3( 0.42, 0.52, 0.47 ) * fres * 0.28;',
-          'col += vec3( 0.72, 0.84, 0.78 ) * rim * ( 0.22 + 0.10 * rip + abs( ring ) * 0.30 );',
+          'col += vec3( 0.42, 0.52, 0.47 ) * fres * 0.38;',
+          'col += vec3( 0.78, 0.90, 0.84 ) * rim * ( 0.30 + 0.10 * rip + abs( ring ) * 0.30 );',
           'col += vec3( 0.55, 0.68, 0.60 ) * ( ring * 0.5 + ring2 * 0.3 );',
           'col += vec3( 0.60, 0.72, 0.66 ) * boil * 0.10;',
           // sky/studio glare lying ON the surface, sweeping with any tilt
           'col += topStripGlare( vWN, vWW ) * ( 0.35 + 0.65 * fres + uRipAmp * 0.4 );',
-          'float a = clamp( diffuseColor.a + fres * 0.30 + rim * 0.35 + abs( ring ) * 0.22 + boil * 0.04, 0.0, 0.78 );',
+          'float a = clamp( diffuseColor.a + fres * 0.38 + rim * 0.42 + abs( ring ) * 0.22 + boil * 0.04, 0.0, 0.78 );',
           'gl_FragColor = vec4( col, a );'
         ].join('\n'));
     };
@@ -303,10 +315,31 @@
           '#include <common>\nvarying vec3 vSWPos;\nvarying vec3 vSWNor;')
         .replace('#include <output_fragment>', [
           'vec3 sV = normalize( cameraPosition - vSWPos );',
-          'vec3 sR = reflect( -sV, normalize( vSWNor ) );',
-          'float sg1 = pow( max( dot( sR, normalize( vec3( -0.45, 0.80, 0.42 ) ) ), 0.0 ), 70.0 );',
-          'float sg2 = pow( max( dot( sR, normalize( vec3( 0.62, 0.30, 0.72 ) ) ), 0.0 ), 170.0 );',
-          'gl_FragColor = vec4( outgoingLight + vec3( 1.0, 0.99, 0.94 ) * ( sg1 * 0.9 + sg2 * 0.55 ), diffuseColor.a );'
+          'vec3 sN = normalize( vSWNor );',
+          'vec3 sR = reflect( -sV, sN );',
+          // widened the key lobe (exp 70->52) so the wet highlight is a fatter
+          // moving band down the jet — additive over the dark stage is nearly
+          // free contrast, so this is where the pour buys its visibility
+          'float sg1 = pow( max( dot( sR, normalize( vec3( -0.45, 0.80, 0.42 ) ) ), 0.0 ), 52.0 );',
+          'float sg2 = pow( max( dot( sR, normalize( vec3( 0.62, 0.30, 0.72 ) ) ), 0.0 ), 150.0 );',
+          // THE PEWTER-RIBBON FIX, take 2 — the persistent warm rim was moved
+          // OFF this material onto an additive streamSheen pass (see _buildPour).
+          // WHY: everything written to gl_FragColor HERE is still ACES tone-mapped
+          // downstream (this is a lit MeshPhysicalMaterial, toneMapped:true), so
+          // cranking the rim did nothing — exposure 1.12 rolled a 2.6 rim onto a
+          // 1.6 rim, the neutralised hairline in the captures. The sheath now keeps
+          // only its honest job: the two moving wet lobes (its real strip glare)
+          // plus a faint self-edge. Alpha lifts under the LOBES (the wet streak
+          // stays opaque) but NOT across the whole silhouette, so the body + edge
+          // stay see-through for the additive rim to carve — no dark opaque
+          // hairline for it to fight. Grammar unchanged: transparent tube +
+          // glowing edges + moving sheen, never a solid fill.
+          'float sfr = 1.0 - abs( dot( sV, sN ) );',
+          'float sEdge = pow( sfr, 1.7 );',
+          'vec3 sWarm = vec3( 1.0, 0.92, 0.78 );',
+          'vec3 sSpec = sWarm * ( sg1 * 1.8 + sg2 * 1.1 ) + sWarm * sEdge * 0.45;',
+          'float sA = max( diffuseColor.a, ( sg1 + sg2 ) * 0.75 );',
+          'gl_FragColor = vec4( outgoingLight + sSpec, sA );'
         ].join('\n'));
     };
     mat.needsUpdate = true;
@@ -350,22 +383,34 @@
      composite as a dark outline over the transparent canvas. MeshBasic
      can never go dark; the wet sheen comes from an additive fresnel pass
      (additive only ever brightens) drawn over the same tube geometry. */
-  var WATER_JET_TINT = 0xd0e1d8;   // solved from pixels: pool renders #E9EFEA; this lands the stream on it exactly
-  var WATER_CORE_TINT = 0xf0f7f2;  // solid-liquid core, barely brighter than the sheath
-  var WATER_DROP_TINT = 0xc4dfd0;  // droplets, satellites, splash, mist
-  var WATER_JET_OP = 0.85;         // dense enough that no stretch of the stream reads transparent
-  var WATER_CORE_OP = 0.26;        // core stays subtle so it can't white-out a thin ribbon
+  // RE-SOLVED for the espresso-dark speakeasy stage. These unlit passes are
+  // compositing math over the page, NOT lit geometry — every value the old
+  // build "solved from pixels" against cream (#F9F5E9) is void. The backdrop
+  // behind the bottle is now the frozen candle pool (#201812 edges → #4A3A24
+  // centre), flat #14100C elsewhere. Water-on-dark grammar: the eye reads the
+  // liquid from bright EDGES/SHEEN/GLINTS, so the body stays a DESATURATED,
+  // slightly-cool pale mastic (cool vs. the warm room says "water" and keeps it
+  // distinct from the amber whisky act) at or below the old opacity — all the
+  // visibility budget goes to the additive sheen pass, never to fill.
+  var WATER_JET_TINT = 0xbcd0c6;   // pale COOL sage — restrained body; sheen carries it (was 0xd0e1d8, milky on dark)
+  var WATER_CORE_TINT = 0xdaeae2;  // bright cool core reads as solid liquid; knocked off pure-white so it never fluoresces
+  var WATER_DROP_TINT = 0xdcebe2;  // droplets, satellites, splash, mist — brightened 0xcfe2d8->0xdcebe2 so the breakup sparkles harder on the dark stage (colour only, counts untouched)
+  var WATER_JET_OP = 0.58;         // ceiling 0.80->0.58: 0.80 over near-black composited to a solid mid-grey FILL (the ribbon read as poured pewter). Thinned so the dark shows THROUGH the column — it now reads as a see-through glass tube defined by its edges, not a matte band. uK is a RATIO (opacity/WATER_JET_OP) so the sheen strength is untouched.
+  var WATER_CORE_OP = 0.20;        // core 0.26->0.20: a darker see-through interior so the sheath + core stop reading as two flat strips; the edges carry the light
   function waterJetMaterial() {
-    // toneMapped:false — ACES would compress the pale sage toward the page
-    // cream and the whole stream washes out (user-reported overexposure)
+    // toneMapped:false — ACES would compress the pale sage and, more to the
+    // point, these passes must composite as authored over the transparent
+    // canvas regardless of the scene's candle relight
     return new THREE.MeshBasicMaterial({ color: WATER_JET_TINT, transparent: true, opacity: 0.0, depthWrite: false, toneMapped: false, vertexColors: true });
   }
   function waterSheenMesh(geo) {
-    // fresnel definition pass: a CONSTANT sage edge (normal blend can never
-    // fall darker than this authored colour — no env, no black) plus a white
-    // hot sparkle toward pure grazing, PLUS two world-space strip lights so
-    // the glare slides down the jet as it sways (the tube's normals turn
-    // under the fixed lights — the sheen moves like real wet glass)
+    // fresnel definition pass — THE lever on the dark stage: a CONSTANT bright
+    // cool-sage edge (normal blend can never fall darker than this authored
+    // colour — no env, no black) plus a candle hot sparkle toward grazing, PLUS
+    // two world-space strip lights so the glare slides down the jet as it sways
+    // (the tube's normals turn under the fixed lights — wet glass moving). On
+    // near-black this additive-ish edge is nearly free contrast, so it is
+    // brightened and widened here to make the water stream unmistakable.
     var m = new THREE.Mesh(geo, new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: THREE.NormalBlending, side: THREE.FrontSide,
       uniforms: { uK: { value: 0 } },
@@ -374,14 +419,19 @@
         'uniform float uK; varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW;',
         'void main(){',
         '  float d = 1.0 - abs(dot(normalize(vN), normalize(vV)));',
-        '  float f = pow(d, 2.0); float hot = pow(d, 7.0);',
+        '  float f = pow(d, 1.7); float hot = pow(d, 7.0);',   // widened fresnel band (2.0->1.7) — fatter bright edge on dark
         '  vec3 V = normalize(cameraPosition - vWW);',
         '  vec3 R = reflect(-V, normalize(vWN));',
-        '  float s1 = pow(max(dot(R, normalize(vec3(-0.45, 0.80, 0.42))), 0.0), 70.0);',
-        '  float s2 = pow(max(dot(R, normalize(vec3(0.62, 0.30, 0.72))), 0.0), 180.0);',
-        '  vec3 spec = vec3(1.0, 0.99, 0.94) * (s1 + s2 * 0.7);',
-        '  vec3 base = mix(vec3(0.47, 0.58, 0.51), vec3(1.0), hot);',
-        '  gl_FragColor = vec4(base + spec * 1.2, (f * 0.62 + hot * 0.35 + (s1 + s2) * 0.30) * uK);',
+        '  float s1 = pow(max(dot(R, normalize(vec3(-0.45, 0.80, 0.42))), 0.0), 60.0);',
+        '  float s2 = pow(max(dot(R, normalize(vec3(0.62, 0.30, 0.72))), 0.0), 170.0);',
+        '  vec3 warm = vec3(1.0, 0.92, 0.78);',
+        '  vec3 spec = warm * (s1 + s2 * 0.7);',   // candle warm-white glints, not fluorescent white
+        // cool-sage fresnel edge (water identity) PLUS a persistent candle-warm
+        // rim scaled by the same fresnel f — now that the body is thinned this
+        // rim is what makes a STILL frame read "lit water": a fine warm line on
+        // the tube silhouette that is always present, not just under the moving lobe
+        '  vec3 base = mix(vec3(0.62, 0.76, 0.69), vec3(1.0), hot) + warm * f * 0.45;',
+        '  gl_FragColor = vec4(base + spec * 1.5, (f * 0.92 + hot * 0.40 + (s1 + s2) * 0.34) * uK);',   // firmer persistent edge (f 0.85->0.92) so the thinned tube keeps a defined lit silhouette
         '}'
       ].join('\n')
     }));
@@ -471,7 +521,7 @@
       renderer.setClearColor(0x000000, 0);
       renderer.outputEncoding = THREE.sRGBEncoding;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.05;
+      renderer.toneMappingExposure = 1.12;   // lifted 1.05->1.12: the lit glass + water fill must read against the near-black candlelit stage
       renderer.localClippingEnabled = true; // waterline = world-horizontal clip plane
       this._renderer = renderer;
       this._waterPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2.32);
@@ -487,16 +537,24 @@
       // Environment: soft studio light-box for glass/metal reflections
       scene.environment = makeStudioEnv(renderer);
 
-      scene.add(new THREE.AmbientLight(0xffffff, 0.35));
-      var key = new THREE.DirectionalLight(0xfff8ee, 1.15);
+      // CANDLELIT RIG (re-solved for the espresso stage). Warm amber key,
+      // a LIFTED cool-pale rim to carve the glass silhouette out of the dark,
+      // a warm point glint for candle sparkle, and a faint low amber bounce
+      // (candle pooling up from below the vessel). Kept low-ambient so the
+      // glints stay the brightest thing in frame.
+      scene.add(new THREE.AmbientLight(0xffdca8, 0.30));            // warm, restrained fill
+      var key = new THREE.DirectionalLight(0xffce96, 1.28);         // candle key (was 0xfff8ee 1.15), brighter for the dark stage
       key.position.set(3, 5, 4);
       scene.add(key);
-      var rim = new THREE.DirectionalLight(0xe8f0ff, 0.4);
+      var rim = new THREE.DirectionalLight(0xdfe9ff, 0.72);         // cool pale rim, LIFTED 0.4->0.72 to edge the glass against near-black
       rim.position.set(-4, 2, -3);
       scene.add(rim);
-      var glint = new THREE.PointLight(0xffffff, 0.85, 30); // hot specular glint
+      var glint = new THREE.PointLight(0xffdca4, 1.0, 30);          // warm candle specular glint (was 0xffffff 0.85)
       glint.position.set(2.4, 3.4, 3.2);
       scene.add(glint);
+      var bounce = new THREE.DirectionalLight(0xE0A458, 0.18);      // faint candle-amber bounce from below/front
+      bounce.position.set(0, -3, 3);
+      scene.add(bounce);
 
       // Groups: root (drift/tilt) > spin (twist) > bottle (pivot-centred)
       var root = new THREE.Group();
@@ -599,7 +657,7 @@
       var front = new THREE.Mesh(glassGeo, new THREE.MeshPhysicalMaterial({
         color: 0x649a7c, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.5,
         clearcoat: 1, clearcoatRoughness: 0.05, side: THREE.FrontSide,
-        envMapIntensity: 1.2, depthWrite: false
+        envMapIntensity: 1.45, depthWrite: false   // 1.2->1.45: hotter clearcoat glints so the glass sparkles on the candle stage
       }));
       front.renderOrder = 5;
       parent.add(front);
@@ -612,15 +670,16 @@
           'varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW;',
           'void main(){',
           '  float d = 1.0 - abs(dot(normalize(vN), normalize(vV)));',
-          '  float f = pow(d, 2.4); float hot = pow(d, 6.5);',
+          '  float f = pow(d, 2.0); float hot = pow(d, 6.5);',   // widened rim band (2.4->2.0): additive over dark carves the glass edge for free
           '  vec3 tint = vec3(0.62, 0.88, 0.72);',
           '  vec3 V = normalize(cameraPosition - vWW);',
           '  vec3 R = reflect(-V, normalize(vWN));',
           '  float s1 = pow(max(dot(R, normalize(vec3(-0.45, 0.80, 0.42))), 0.0), 60.0);',
           '  float s2 = pow(max(dot(R, normalize(vec3(0.62, 0.30, 0.72))), 0.0), 160.0);',
           '  float streak = pow(max(dot(normalize(vWN), normalize(vec3(-0.45, 0.80, 0.42))), 0.0), 18.0);',
-          '  vec3 col = tint * f * 0.78 + vec3(1.0) * hot * 0.62 + vec3(1.0, 0.99, 0.95) * (s1 * 0.9 + s2 * 0.55) + tint * streak * 0.30;',
-          '  gl_FragColor = vec4(col, f * 0.72 + hot * 0.5 + (s1 + s2) * 0.45 + streak * 0.10);',
+          // green rim glow brightened (0.78->1.05); speculars candle-tinted, not pure white
+          '  vec3 col = tint * f * 1.05 + vec3(1.0, 0.94, 0.82) * hot * 0.62 + vec3(1.0, 0.92, 0.78) * (s1 * 1.1 + s2 * 0.7) + tint * streak * 0.38;',
+          '  gl_FragColor = vec4(col, f * 0.92 + hot * 0.5 + (s1 + s2) * 0.48 + streak * 0.12);',
           '}'
         ].join('\n')
       }));
@@ -929,7 +988,7 @@
     _buildBubbles(parent) {
       var COUNT = this._fast ? 320 : 180; // fast desktop: fat headroom for the cap-off surge; LITE/narrow keep 180
       var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.016, 10, 10),
-        new THREE.MeshBasicMaterial({ color: 0xeaf6ef, transparent: true, opacity: 0.3, depthWrite: false, clippingPlanes: [this._waterPlane] }), COUNT);
+        new THREE.MeshBasicMaterial({ color: 0xe0eee7, transparent: true, opacity: 0.3, depthWrite: false, clippingPlanes: [this._waterPlane] }), COUNT); // pale cool sage, re-solved for the dark fill (was 0xeaf6ef on cream)
       mesh.count = 90;
       this._bubbleBase = 90;
       mesh.renderOrder = 4;
@@ -953,10 +1012,11 @@
       // firing every nucleation site at once, and the fat air slugs that
       // glug back in through the neck while pouring
       var MAX = this._fast ? 300 : 150; // fast desktop: a denser gulp/air-channel train; LITE/narrow keep 150
-      // bright, near-white air so the gulp reads clearly against the sage
-      // water (a submerged air bubble catches the light as a pale sphere)
+      // bright cool air so the gulp reads clearly against the sage water (a
+      // submerged air bubble catches the light as a pale sphere) — knocked off
+      // pure-white so it doesn't fluoresce as a toneMapped:false pass on dark
       var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.013, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0xf3fbf6, transparent: true, opacity: 0.78, depthWrite: false, toneMapped: false, clippingPlanes: [this._waterPlane] }), MAX);
+        new THREE.MeshBasicMaterial({ color: 0xe8f4ee, transparent: true, opacity: 0.78, depthWrite: false, toneMapped: false, clippingPlanes: [this._waterPlane] }), MAX);
       mesh.count = 0;
       mesh.renderOrder = 4;
       parent.add(mesh);
@@ -977,7 +1037,7 @@
         new THREE.SphereGeometry(1, 8, 6),
         new THREE.MeshPhysicalMaterial({
           color: 0xeef6f0, transparent: true, opacity: 0.55,
-          roughness: 0.04, metalness: 0, envMapIntensity: 2.4,
+          roughness: 0.04, metalness: 0, envMapIntensity: 3.2, // 2.4->3.2: hotter clearcoat sparkle — condensation glint is a MAX-budget target on the dark stage
           clearcoat: 1, clearcoatRoughness: 0.04, depthWrite: false
         }), MAX);
       mesh.renderOrder = 6;
@@ -1026,7 +1086,7 @@
       // shared instanced pool: pour droplets, satellite drops, cap-off mist
       var MAX = this._fast ? 560 : 300; // fast desktop: more breakup drops + mist in flight; LITE/narrow keep 300
       var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.02, 10, 8),
-        new THREE.MeshBasicMaterial({ color: 0xf6fbf6, transparent: true, opacity: 0.75, depthWrite: false }), MAX);
+        new THREE.MeshBasicMaterial({ color: 0xeff8f2, transparent: true, opacity: 0.9, depthWrite: false }), MAX); // pale cool droplets read as glints on dark; brightened 0xe2efe8->0xeff8f2 @ 0.75->0.9 so the breakup sparkles harder against near-black (count untouched)
       mesh.renderOrder = 7;
       mesh.count = 0;
       mesh.frustumCulled = false;
@@ -1064,11 +1124,17 @@
         geo.setDrawRange(0, 0);
         return geo;
       }
-      // ══ ORIGINAL materials, restored (9e68e98): the lit clearcoat sheath
-      // over the aurora backdrop + the bright solid-liquid core ══
+      // ══ the lit clearcoat sheath (now relit as candlelight — its wet
+      // highlight comes from the warmed/widened installStreamGlareShader) over
+      // the espresso stage + the bright solid-liquid core ══
       var stream = new THREE.Mesh(tubeGeo(true), new THREE.MeshPhysicalMaterial({
+        // envMapIntensity 2.0->1.1: the grey studio env reflected off this thin
+        // tube WAS the pewter fill (a flat mid-grey the whole ribbon read as poured
+        // metal). Cut it so the body goes see-through over the dark stage; the wet
+        // read now comes from the glare shader's persistent candle-warm fresnel rim
+        // + moving lobes, not from a solid reflected fill.
         color: 0xdceede, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.0,
-        envMapIntensity: 2.0, clearcoat: 1, clearcoatRoughness: 0.06, depthWrite: false
+        envMapIntensity: 1.1, clearcoat: 1, clearcoatRoughness: 0.06, depthWrite: false
       }));
       installStreamGlareShader(stream.material);
       stream.renderOrder = 7;
@@ -1076,15 +1142,31 @@
       stream.frustumCulled = false;
       scene.add(stream);
       this._stream = stream;
-      // bright inner core — reads as solid liquid inside the sheath
+      // bright inner core — reads as solid liquid inside the sheath; cool pale,
+      // off pure-white so it doesn't blow out over the dark stage (was 0xfbfefb)
       var core = new THREE.Mesh(tubeGeo(false), new THREE.MeshBasicMaterial({
-        color: 0xfbfefb, transparent: true, opacity: 0.0, depthWrite: false
+        color: 0xe6f0ea, transparent: true, opacity: 0.0, depthWrite: false
       }));
       core.renderOrder = 8;
       core.visible = false;
       core.frustumCulled = false;
       scene.add(core);
       this._streamCore = core;
+      // ── the PERSISTENT warm edge, lifted OFF the tone-mapped sheath ──────
+      // Glass3D's fresnel sheen pass (waterSheenMesh) reused on the hero jet:
+      // a ShaderMaterial that writes gl_FragColor directly, so it BYPASSES the
+      // renderer's ACES tone mapping that was neutralising the sheath's rim —
+      // and ADDITIVE over the near-black stage, so its warm fresnel rim + the
+      // two sliding strip-lights only ever brighten. A frozen frame now reads
+      // lit glassy water: see-through tube, unmistakable warm edge, moving
+      // sheen. Shares the jet geometry + drawRange (normals are rewritten each
+      // frame in _updateStream); drawn on top of the sheath + core.
+      var streamSheen = waterSheenMesh(stream.geometry);
+      streamSheen.material.blending = THREE.AdditiveBlending;
+      streamSheen.material.toneMapped = false;
+      streamSheen.renderOrder = 9;
+      scene.add(streamSheen);
+      this._streamSheen = streamSheen;
     }
 
     _buildShadow(scene) {
@@ -1537,6 +1619,15 @@
       }
 
       var bk = this._updateStream(pouring, ps, flow, time);
+      // the reused edge pass shares the jet's geometry + drawRange; only its
+      // visibility + strength track here (one chokepoint covers every
+      // _updateStream return path). uK is normalised by the sheath's opacity
+      // ceiling (0.46) so the warm rim reaches full strength at the song's peak
+      // pour, then ebbs WITH the jet as the sheath fades.
+      if (this._streamSheen) {
+        this._streamSheen.visible = this._stream.visible;
+        this._streamSheen.material.uniforms.uK.value = this._stream.material.opacity / 0.46;
+      }
 
       // past the breakup point the jet pinches into main drops + satellites
       if (pouring && bk) {
@@ -1791,8 +1882,8 @@
       if (this._tubeFlip && this._tubeWarm) {
         stream.visible = true; core.visible = true;
         var kf = Math.min(1, 0.3 + ps * 4);
-        stream.material.opacity = Math.min(0.55 * kf, stream.material.opacity + 0.14); // faster onset: a slow fade left the lip ghosted for ~9 frames, reading as a gap
-        core.material.opacity = Math.min(0.5 * kf, core.material.opacity + 0.18);
+        stream.material.opacity = Math.min(0.46 * kf, stream.material.opacity + 0.14); // ceiling 0.55->0.46 (0.40 vanished on capture): the thinned sheath now reads as a see-through glass tube, not poured pewter; +0.14 onset RATE unchanged (a slow fade left the lip ghosted, reading as a gap)
+        core.material.opacity = Math.min(0.34 * kf, core.material.opacity + 0.18);      // core ceiling 0.5->0.34 (0.30 vanished on capture): a darker see-through interior — the edges carry the light, the core no longer reads as a separate flat band
         return this._lastBk;
       }
 
@@ -1879,8 +1970,8 @@
       // faint for a dribble, solid for a committed pour — but always
       // translucent enough to read as water, not paint
       var k = Math.min(1, 0.3 + ps * 4);
-      stream.material.opacity = Math.min(0.55 * k, stream.material.opacity + 0.14); // faster onset: a slow fade left the lip ghosted for ~9 frames, reading as a gap
-      core.material.opacity = Math.min(0.5 * k, core.material.opacity + 0.18);
+      stream.material.opacity = Math.min(0.46 * k, stream.material.opacity + 0.14); // ceiling 0.55->0.46 (0.40 vanished on capture): thinned sheath reads see-through, not poured pewter; +0.14 onset RATE unchanged
+      core.material.opacity = Math.min(0.34 * k, core.material.opacity + 0.18);      // core ceiling 0.5->0.34 (0.30 vanished on capture): darker see-through interior, light carried by the edges
       this._tubeWarm = true;   // half-rate rebuilds may now reuse this tube
       this._lastBk = bk;
       return bk;
@@ -1928,22 +2019,27 @@
     g.nor.push(ns[ni] || 0, ns[ni + 1] || 0, ns[ni + 2] === undefined ? 1 : ns[ni + 2]);
   }
 
-  /* shared soft studio light-box → PMREM env for glass/metal/water */
+  /* shared soft studio light-box → PMREM env for glass/metal/water. Warmed
+     toward candlelight for the espresso stage: the soft fill panels take an
+     amber cast (so glass/water reflect a warm room), while the tall highlight
+     STREAKS stay near-neutral and hot — those are the crisp glints that carve
+     the glass edges, and a coloured glint reads as dirt, not sparkle. Box
+     darkened slightly so the glass has a dim surround to stand its edges against. */
   function makeStudioEnv(renderer) {
     var env = new THREE.Scene();
     env.add(new THREE.Mesh(new THREE.BoxGeometry(20, 20, 20),
-      new THREE.MeshBasicMaterial({ color: 0x9a9a94, side: THREE.BackSide })));
+      new THREE.MeshBasicMaterial({ color: 0x817a70, side: THREE.BackSide })));   // warmer + a touch darker than 0x9a9a94
     function panel(x, y, z, w, h, c) {
       var m = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
         new THREE.MeshBasicMaterial({ color: new THREE.Color(c[0], c[1], c[2]), side: THREE.DoubleSide }));
       m.position.set(x, y, z); m.lookAt(0, 0, 0); env.add(m); return m;
     }
-    panel(0, 9, 0, 8, 8, [7, 7, 6.6]);
-    panel(-8, 2, 3, 3, 9, [3.4, 3.4, 3.2]);
-    panel(8, 1, -2, 3, 9, [2.2, 2.2, 2.2]);
-    panel(0, 1, 9, 5, 2.4, [1.6, 1.6, 1.55]);
-    panel(-3, 2, 7, 0.7, 11, [10, 10, 9.5]);   // tall vertical highlight streak (hot glare band)
-    panel(4.5, 2, 6, 0.5, 11, [5.5, 5.5, 5.3]);
+    panel(0, 9, 0, 8, 8, [7, 6.3, 5.0]);         // warm candle key panel (was neutral [7,7,6.6])
+    panel(-8, 2, 3, 3, 9, [3.4, 3.0, 2.4]);      // warm side fill
+    panel(8, 1, -2, 3, 9, [2.2, 2.0, 1.7]);      // warm side fill
+    panel(0, 1, 9, 5, 2.4, [1.6, 1.45, 1.2]);    // warm front fill
+    panel(-3, 2, 7, 0.7, 11, [10, 9.8, 9.3]);    // tall vertical highlight streak — kept near-neutral + hot (glass-edge glint)
+    panel(4.5, 2, 6, 0.5, 11, [5.5, 5.4, 5.1]);  // secondary streak, near-neutral
     var pmrem = new THREE.PMREMGenerator(renderer);
     var tex = pmrem.fromScene(env, 0.04).texture; // the baked cubeUV texture survives generator dispose
     pmrem.dispose();
@@ -2038,7 +2134,7 @@
       renderer.setClearColor(0x000000, 0);
       renderer.outputEncoding = THREE.sRGBEncoding;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.05;
+      renderer.toneMappingExposure = 1.12;   // matched to the hero: the tumbler glass + water must read on the near-black stage
       renderer.localClippingEnabled = true;
       this._renderer = renderer;
       var scene = new THREE.Scene();
@@ -2048,13 +2144,17 @@
       camera.lookAt(0, 0, 0);
       this._camera = camera;
       scene.environment = makeStudioEnv(renderer);
-      scene.add(new THREE.AmbientLight(0xffffff, 0.35));
-      var key = new THREE.DirectionalLight(0xfff8ee, 1.15);
+      // CANDLELIT RIG — identical recipe to the hero act (warm key, lifted cool
+      // rim to carve the crystal, warm glint, faint amber bounce from below)
+      scene.add(new THREE.AmbientLight(0xffdca8, 0.30));
+      var key = new THREE.DirectionalLight(0xffce96, 1.28);
       key.position.set(3, 5, 4); scene.add(key);
-      var rim = new THREE.DirectionalLight(0xe8f0ff, 0.4);
+      var rim = new THREE.DirectionalLight(0xdfe9ff, 0.72);
       rim.position.set(-4, 2, -3); scene.add(rim);
-      var glint = new THREE.PointLight(0xffffff, 0.85, 30);
+      var glint = new THREE.PointLight(0xffdca4, 1.0, 30);
       glint.position.set(2.4, 3.4, 3.2); scene.add(glint);
+      var bounce = new THREE.DirectionalLight(0xE0A458, 0.18);
+      bounce.position.set(0, -3, 3); scene.add(bounce);
 
       this._waterPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0.2);
       var g = new THREE.Group();
@@ -2145,14 +2245,14 @@
 
       // splash droplets kicked up at the impact point — the bottle drops' water
       var splash = new THREE.InstancedMesh(new THREE.SphereGeometry(0.014, 8, 6),
-        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false }), this._fast ? 300 : 150); // fast desktop: a fuller impact crown; LITE/narrow keep 150
+        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.92, depthWrite: false, toneMapped: false }), this._fast ? 300 : 150); // impact crown; opacity 0.8->0.92 so the splash glints sparkle on dark. fast desktop: fuller crown; LITE/narrow keep 150 (count untouched)
       splash.count = 0; splash.renderOrder = 3.7; splash.frustumCulled = false;
       scene.add(splash);
       this._splash = splash; this._splashData = []; this._splashClock = 0;
 
       // bubbles churned under the impact, rising through the water
       var bub = new THREE.InstancedMesh(new THREE.SphereGeometry(0.013, 8, 6),
-        new THREE.MeshBasicMaterial({ color: 0xf2fbf5, transparent: true, opacity: 0.75, depthWrite: false, toneMapped: false, clippingPlanes: [this._waterPlane] }), this._fast ? 240 : 120); // fast desktop: more churn under the impact; LITE/narrow keep 120
+        new THREE.MeshBasicMaterial({ color: 0xe6f2ec, transparent: true, opacity: 0.75, depthWrite: false, toneMapped: false, clippingPlanes: [this._waterPlane] }), this._fast ? 240 : 120); // cool pale churn, off pure-white so it won't fluoresce on dark (was 0xf2fbf5); fast desktop: more churn; LITE/narrow keep 120
       bub.count = 0; bub.renderOrder = 4; bub.frustumCulled = false;
       scene.add(bub);
       this._bub = bub; this._bubData = []; this._bubClock = 0;
@@ -2339,8 +2439,10 @@
               // crystal shells, so it read pale/thin (user: "the liquid in the
               // decanter is too thin"). The colour is carried by the emissive so
               // it stays a rich gold regardless of the studio lighting/frost.
+              // Emissive lifted 1.15->1.35 for the dark stage: candlelight
+              // suits amber, so let the decanter glow read as its own light source.
               color: 0x1c0e02, roughness: 0.35, metalness: 0,
-              emissive: 0xc8842c, emissiveIntensity: 1.15, toneMapped: false,
+              emissive: 0xc8842c, emissiveIntensity: 1.35, toneMapped: false,
               transparent: true, opacity: 0.9, envMapIntensity: 0.35, depthWrite: false,
               side: THREE.DoubleSide, clippingPlanes: [self._wbLiquidPlane]
             });
@@ -2392,8 +2494,10 @@
     }
 
     /* crystal on our alpha canvas — the tumbler's own facet-shell look:
-       BackSide tint + FrontSide clearcoat + a dark-edge fresnel so the wall
-       reads against light paper (without it the vessel washes out to nothing).
+       BackSide tint + FrontSide clearcoat + a BRIGHT-edge fresnel so the wall
+       carves out of the espresso stage (the old dark edge was solved for light
+       paper; on near-black a dark edge is invisible, so it's lifted to a cool
+       candle-pale rim — a bright edge is how the eye reads glass against dark).
        The edge pass is a ShaderMaterial, so its .opacity is wired to a uOp
        uniform — that lets the act's `m.opacity = m._op0 * a2` fade reach it
        too, and the whole vessel comes in and out as one. */
@@ -2419,14 +2523,14 @@
           'uniform float uOp; varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW;',
           'void main(){',
           '  float d = 1.0 - abs(dot(normalize(vN), normalize(vV)));',
-          '  float f = pow(d, 2.2); float hot = pow(d, 9.0);',
-          '  vec3 edge = vec3(0.33, 0.42, 0.37);',
+          '  float f = pow(d, 2.0); float hot = pow(d, 9.0);',   // widened rim (2.2->2.0) for the dark stage
+          '  vec3 edge = vec3(0.56, 0.66, 0.61);',   // BRIGHT cool-pale crystal edge (was dark 0.33,0.42,0.37 for light paper)
           '  vec3 V = normalize(cameraPosition - vWW);',
           '  vec3 R = reflect(-V, normalize(vWN));',
           '  float s1 = pow(max(dot(R, normalize(vec3(-0.45, 0.80, 0.42))), 0.0), 55.0);',
           '  float s2 = pow(max(dot(R, normalize(vec3(0.62, 0.30, 0.72))), 0.0), 150.0);',
-          '  vec3 col = mix(edge, vec3(1.0), hot) + vec3(1.0, 0.99, 0.94) * (s1 * 0.85 + s2 * 0.5);',
-          '  gl_FragColor = vec4(col, (f * 0.6 + hot * 0.4 + (s1 + s2) * 0.40) * uOp);',
+          '  vec3 col = mix(edge, vec3(1.0), hot) + vec3(1.0, 0.92, 0.78) * (s1 * 0.95 + s2 * 0.55);',   // candle-tinted glints
+          '  gl_FragColor = vec4(col, (f * 0.78 + hot * 0.4 + (s1 + s2) * 0.44) * uOp);',   // fatter edge alpha so the crystal wall reads on dark
           '}'
         ].join('\n')
       }));
@@ -2519,8 +2623,9 @@
        hard-cut crystal primitives: flat-shaded, hotter env sparkle — and the
        geometry's baked hard normals are NEVER recomputed or welded. */
     _shellify(parent, geo, facet) {
-      // clear glass over a light page = almost invisible body, dark edge
-      // bands where the wall goes edge-on, hot speculars from the env streaks
+      // clear glass over the espresso stage = almost invisible body, BRIGHT
+      // candle-pale edge bands where the wall goes edge-on, hot speculars from
+      // the env streaks (the edge was dark for light paper — see the fresnel below)
       var back = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
         color: 0x87a094, roughness: facet ? 0.02 : 0.06, metalness: 0, transparent: true, opacity: 0.28,
         side: THREE.BackSide, envMapIntensity: 0.9, depthWrite: false, flatShading: !!facet
@@ -2535,22 +2640,23 @@
       front.renderOrder = 5; parent.add(front);
       var fresnel = new THREE.Mesh(geo, new THREE.ShaderMaterial({
         transparent: true, depthWrite: false, blending: THREE.NormalBlending, side: THREE.FrontSide,
-        // normal blending with a DARK edge colour: reads as the thick wall of
-        // real glass against light paper; the hot term still sparkles white.
-        // World-space strip lights add the moving studio glare on top.
+        // normal blending with a BRIGHT cool-pale edge colour: reads as the
+        // thick wall of real glass carved out of the near-black stage (a dark
+        // edge, the old light-paper solve, would vanish on dark); the hot term
+        // sparkles candle-white. World-space strip lights add moving glare on top.
         vertexShader: 'varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW; void main(){ vN = normalize(normalMatrix * normal); vWN = mat3(modelMatrix) * normal; vec4 wp = modelMatrix * vec4(position, 1.0); vWW = wp.xyz; vec4 mv = viewMatrix * wp; vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
         fragmentShader: [
           'varying vec3 vN; varying vec3 vV; varying vec3 vWN; varying vec3 vWW;',
           'void main(){',
           '  float d = 1.0 - abs(dot(normalize(vN), normalize(vV)));',
-          '  float f = pow(d, 2.2); float hot = pow(d, 9.0);',
-          '  vec3 edge = vec3(0.33, 0.42, 0.37);',
+          '  float f = pow(d, 2.0); float hot = pow(d, 9.0);',   // widened rim (2.2->2.0) for the dark stage
+          '  vec3 edge = vec3(0.56, 0.66, 0.61);',   // BRIGHT cool-pale glass edge (was dark 0.33,0.42,0.37 for light paper)
           '  vec3 V = normalize(cameraPosition - vWW);',
           '  vec3 R = reflect(-V, normalize(vWN));',
           '  float s1 = pow(max(dot(R, normalize(vec3(-0.45, 0.80, 0.42))), 0.0), 60.0);',
           '  float s2 = pow(max(dot(R, normalize(vec3(0.62, 0.30, 0.72))), 0.0), 160.0);',
-          '  vec3 col = mix(edge, vec3(1.0), hot) + vec3(1.0, 0.99, 0.94) * (s1 * 0.8 + s2 * 0.45);',
-          '  gl_FragColor = vec4(col, f * 0.6 + hot * 0.4 + (s1 + s2) * 0.38);',
+          '  vec3 col = mix(edge, vec3(1.0), hot) + vec3(1.0, 0.92, 0.78) * (s1 * 0.9 + s2 * 0.5);',   // candle-tinted glints
+          '  gl_FragColor = vec4(col, f * 0.78 + hot * 0.4 + (s1 + s2) * 0.42);',   // fatter edge alpha so the wall reads on dark
           '}'
         ].join('\n')
       }));
@@ -3077,10 +3183,10 @@
       // clear tumbler walls take on a matching brown cast as the spirit lands
       if (this._waterC0 === undefined) {
         this._waterC0 = this._water.material.color.clone();
-        this._waterC1 = new THREE.Color(0xa5611a);   // deep whiskey amber (was 0xc9a45e — user: more tint)
+        this._waterC1 = new THREE.Color(0xb0520f);   // rich whiskey amber, redder + less green (was 0xa5611a). The body shader's green-biased Beer-Lambert absorb (exp(-vec3(0.42,0.14,0.28))) preserves green most, dragging the old target to khaki-olive on the dark stage; pushing the target red-heavy (R:G ~2.1) so it lands on rich amber AFTER absorption
         this._topC0 = this._waterTop.material.color.clone();
-        this._topC1 = new THREE.Color(0xd39a44);      // warmer amber surface sheen (was 0xe8d3a2)
-        this._glassTint = new THREE.Color(0x8a561f);  // richer warm brown wash for the glass walls (was 0x9c6a30 — user: stronger)
+        this._topC1 = new THREE.Color(0xd8933a);      // warmer amber surface sheen (was 0xd39a44) — richer gold on the meniscus
+        this._glassTint = new THREE.Color(0x8e5119);  // warmer brown wash for the glass walls (was 0x8a561f)
       }
       var whiskyAmt = Math.min(1, this._extra / 0.05); // 0 → 1 as the cup takes its pour
       var wmix = whiskyAmt * 0.90;                     // deeper blend (was *0.85 → *0.7 originally)

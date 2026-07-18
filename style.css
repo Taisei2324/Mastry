@@ -7,34 +7,44 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 
 :root{
-  /* aesthetic colors — colors-no-black.json */
-  --paper:#F9F5E9;          /* rice-paper */
-  --paper-deep:#F6F4EE;     /* stone-snow */
-  --ink:#1D2E18;            /* pine-needle */
-  --ink-soft:#30352C;       /* mountain-shadow */
-  --muted:#777061;          /* stone-taupe */
-  --hairline:#E6E0D1;       /* limestone */
-  --olive:#6B7A32;          /* olive-core */
-  --olive-deep:#46552A;     /* olive-moss */
-  --resin:#DED38E;          /* mastic-resin */
-  --resin-milk:#F7F4D8;     /* mastic-milk */
-  --dark:#1F2A1C;           /* charcoal-green */
-  --dark-2:#26341C;         /* olive-shadow */
-  --sage:#A8B88A;           /* light-sage / sage-original */
-  --cream:#F4E8C1;          /* warm-cream */
-  --jp-blue:#6D9DAA;        /* mineral-blue — Japan accent */
-  --gr-olive:#91964F;       /* mastic-olive — Greece accent */
-  --clay:#C3936C;           /* clay-sun */
-  --sun:#C6A548;            /* sun-muted */
-  --creek:#659F90;          /* water-creek */
-  --mist:#EEF2D7;           /* olive-mist */
-  --wash-sage:#F4F7EF;      /* sage-wash */
-  --wash-sky:#F3FAFC;       /* sky-frost */
+  /* speakeasy palette — candlelit remap of colors-no-black.json.
+     names kept so every downstream var() flips at once; the few light-on-dark
+     FOREGROUND uses of --paper (footer logo/link hover) are re-pointed in
+     their own rules, since --paper is now the espresso PAGE, not light ink. */
+  --paper:#14100C;          /* espresso page/wash (was rice-paper) */
+  --paper-deep:#1E1812;     /* surface / card (was stone-snow) */
+  --ink:#F0E8D8;            /* parchment text ink (was pine-needle) */
+  --ink-soft:#C4B99F;       /* dim parchment (was mountain-shadow) */
+  --muted:#9E927A;          /* muted parchment (was stone-taupe) */
+  --hairline:rgba(240,232,216,.14); /* warm hairline (was limestone) */
+  --olive:#A9B87A;          /* mastic olive, lifted for dark */
+  --olive-deep:#97A66B;     /* mastic olive, lifted mid (was olive-moss) */
+  --resin:#E8D9A0;          /* mastic resin, lifted */
+  --resin-milk:#2A2418;     /* mastic surface tint (was mastic-milk) */
+  --dark:#17130E;           /* deep espresso surface (was charcoal-green) */
+  --dark-2:#221B14;         /* raised espresso (was olive-shadow) */
+  --sage:#8FB6C2;           /* mineral blue, lifted (was light-sage) */
+  --cream:#E0A458;          /* candle amber (was warm-cream) */
+  --jp-blue:#8FB6C2;        /* mineral blue, lifted — Japan accent */
+  --gr-olive:#A9B87A;       /* mastic olive, lifted — Greece accent */
+  --clay:#C98B5F;           /* clay, lifted */
+  --sun:#D9A441;            /* sun, lifted */
+  --creek:#8FB6C2;          /* mineral blue, lifted (was water-creek) */
+  --mist:#262019;           /* raised surface — marquee band (was olive-mist) */
+  --wash-sage:#191410;      /* dark warm wash (was sage-wash) */
+  --wash-sky:#17130E;       /* dark warm wash — hero top (was sky-frost) */
 
-  /* flavour theming (swapped by JS) */
-  --fl-wash:#F7F4D8;        /* mastic-milk   */
-  --fl-accent:#91964F;      /* mastic-olive  */
-  --fl-deep:#596532;        /* mastic-deep   */
+  /* candle accents (speakeasy — frozen handshake) */
+  --amber:#E0A458;                    /* candle amber accent */
+  --amber-glow:rgba(224,164,88,.35);  /* amber glow, strong */
+  --amber-soft:rgba(224,164,88,.12);  /* amber glow, soft */
+  --surface-raised:#262019;           /* raised surface */
+
+  /* flavour theming (swapped by JS — hex values live in script.js, mid-tones
+     that still read on espresso; these are only the pre-interaction defaults) */
+  --fl-wash:#2A2418;        /* mastic surface tint */
+  --fl-accent:#A9B87A;      /* mastic olive, lifted */
+  --fl-deep:#8FB6C2;        /* mineral blue, lifted */
 
   --nav-h:76px;
   --ease:cubic-bezier(.22,1,.36,1);
@@ -57,16 +67,16 @@ body{
 img{max-width:100%;display:block;}
 
 /* quiet global details */
-html{scrollbar-color:var(--sage-soft,#B8C79E) var(--paper);scrollbar-width:thin;}
+html{scrollbar-color:#4A3E2C var(--paper);scrollbar-width:thin;color-scheme:dark;}
 ::-webkit-scrollbar{width:12px;}
 ::-webkit-scrollbar-track{background:var(--paper);}
-::-webkit-scrollbar-thumb{background:#B8C79E;border-radius:8px;border:3px solid var(--paper);}
-::-webkit-scrollbar-thumb:hover{background:var(--olive);}
-:focus-visible{outline:2px solid var(--olive);outline-offset:3px;border-radius:2px;}
-input,select,textarea{accent-color:var(--olive);}
+::-webkit-scrollbar-thumb{background:#4A3E2C;border-radius:8px;border:3px solid var(--paper);}
+::-webkit-scrollbar-thumb:hover{background:var(--amber);}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:2px;}
+input,select,textarea{accent-color:var(--amber);}
 
 /* ── progress hairline ── */
-#progress{position:fixed;top:0;left:0;height:2px;width:0;background:var(--olive);z-index:900;}
+#progress{position:fixed;top:0;left:0;height:2px;width:0;background:var(--amber);box-shadow:0 0 10px var(--amber-glow);z-index:900;}
 
 /* ── loader ── */
 #loader{
@@ -75,7 +85,10 @@ input,select,textarea{accent-color:var(--olive);}
   transition:opacity .7s var(--ease),visibility .7s;
 }
 #loader.done{opacity:0;visibility:hidden;}
-#loader img{width:min(150px,34vw);mix-blend-mode:multiply;opacity:0;animation:rise 1s var(--ease) .05s forwards;}
+/* the seal PNG is a pale warm greige artwork — on espresso it reads as a soft
+   parchment mark at normal blend (multiply would have sunk it into the dark);
+   a faint amber halo makes it glow like it's lit by a candle */
+#loader img{width:min(150px,34vw);opacity:0;filter:drop-shadow(0 0 28px var(--amber-soft));animation:rise 1s var(--ease) .05s forwards;}
 .loader__word{
   font-family:var(--sans);font-weight:600;font-size:.85rem;letter-spacing:.55em;
   padding-left:.55em;color:var(--ink);opacity:0;animation:rise 1s var(--ease) .25s forwards;
@@ -99,7 +112,7 @@ html.heroseq .nav{transform:translateY(-100%) !important;}
 html.heroseq .nav.peek,
 .nav.peek{transform:translateY(0) !important;}
 .nav.solid{
-  background:rgba(249,245,233,.88);
+  background:rgba(20,16,12,.82);
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
   border-bottom-color:var(--hairline);
 }
@@ -128,10 +141,11 @@ html.heroseq .nav.peek,
 .nav__lang a.is-active{color:var(--ink);border-bottom-color:var(--olive);}
 .nav__lang span{color:var(--hairline);}
 .nav__cta{
-  font-size:.75rem;font-weight:600;letter-spacing:.1em;text-decoration:none;color:var(--paper);
-  background:var(--ink);padding:11px 22px;border-radius:100px;transition:background .3s,transform .3s;
+  font-size:.75rem;font-weight:600;letter-spacing:.1em;text-decoration:none;color:#14100C;
+  background:var(--amber);padding:11px 22px;border-radius:100px;
+  box-shadow:0 0 22px var(--amber-soft);transition:background .3s,box-shadow .3s,transform .3s;
 }
-.nav__cta:hover{background:var(--olive-deep);transform:translateY(-1px);}
+.nav__cta:hover{background:#EDB877;box-shadow:0 0 30px var(--amber-glow);transform:translateY(-1px);}
 .nav__burger{display:none;background:none;border:0;cursor:pointer;width:34px;height:30px;position:relative;}
 .nav__burger span{
   position:absolute;left:4px;right:4px;height:1.5px;background:var(--ink);transition:transform .35s var(--ease),top .35s;
@@ -153,7 +167,7 @@ html.heroseq .nav.peek,
   line-height:1.12;letter-spacing:.01em;margin-bottom:30px;
 }
 .section__title em{font-style:italic;color:var(--olive-deep);}
-.section__title--light{color:var(--paper);}
+.section__title--light{color:var(--ink);}
 .section__title--light em{color:var(--resin);}
 /* scroll-drawn rule under titles tagged data-progress (--p: 0 → 1 as they near centre) */
 .section__title[data-progress]::after{
@@ -168,10 +182,12 @@ html.heroseq .nav.peek,
   padding:15px 32px;border-radius:100px;transition:transform .3s var(--ease),background .3s,color .3s,border-color .3s;
   cursor:pointer;border:1px solid transparent;font-family:var(--sans);
 }
-.btn--solid{background:var(--ink);color:var(--paper);}
-.btn--solid:hover{background:var(--olive-deep);transform:translateY(-2px);}
-.btn--ghost{border-color:var(--ink);color:var(--ink);background:transparent;}
-.btn--ghost:hover{background:var(--ink);color:var(--paper);transform:translateY(-2px);}
+/* the lit hero: the primary pill is the candle itself — warm amber, espresso
+   text, a soft glow that swells on hover. Ghost stays an amber-outlined ember. */
+.btn--solid{background:var(--amber);color:#14100C;box-shadow:0 0 26px var(--amber-soft);}
+.btn--solid:hover{background:#EDB877;box-shadow:0 0 34px var(--amber-glow);transform:translateY(-2px);}
+.btn--ghost{border-color:var(--amber);color:var(--amber);background:transparent;}
+.btn--ghost:hover{background:var(--amber);color:#14100C;transform:translateY(-2px);}
 
 /* reveal on scroll */
 .reveal{opacity:0;transform:translateX(-34px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
@@ -210,18 +226,23 @@ html.heroseq .nav.peek,
 .hero__stage{position:relative;height:min(78vh,760px);display:flex;align-items:center;justify-content:center;}
 .hero__blob{
   position:absolute;width:min(430px,80%);aspect-ratio:1;border-radius:50%;
+  /* frozen handshake: two soft pools — a parchment sheen and an amber core —
+     the near-invisible warm light the bottle catches at its shoulder */
   background:
-    radial-gradient(circle at 34% 28%,rgba(240,250,247,.42) 0%,transparent 52%),
-    radial-gradient(circle at 52% 46%,rgba(247,244,216,.48) 0%,transparent 74%);
+    radial-gradient(circle at 34% 28%,rgba(240,232,216,.08) 0%,transparent 52%),
+    radial-gradient(circle at 52% 46%,rgba(224,164,88,.12) 0%,transparent 74%);
   filter:blur(2px);
   animation:breathe 9s var(--ease) infinite;
 }
 @keyframes breathe{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
 #bubbles{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
 .hero__bottle{
+  /* the no-WebGL fallback photo (transparent PNG): multiply would have sunk
+     the glass into the espresso — normal blend lets it read as a lit bottle,
+     grounded by a warm shadow and a whisper of amber rim glow */
   position:relative;z-index:2;height:100%;width:auto;object-fit:contain;
-  mix-blend-mode:multiply;will-change:transform;
-  filter:drop-shadow(0 40px 40px rgba(38,52,28,.14));
+  will-change:transform;
+  filter:drop-shadow(0 30px 46px rgba(0,0,0,.5)) drop-shadow(0 0 60px var(--amber-soft));
   transition:opacity .8s var(--ease);
 }
 /* the WebGL bottle replaces the photo once it renders; photo stays as fallback */
@@ -267,23 +288,27 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   position:relative;width:min(600px,92vw);height:min(80svh,780px);
   display:flex;align-items:center;justify-content:center;
 }
-/* aurora behind the clear bottle: a slow ring of mastic-olive, mineral-blue
-   and sun hues, blurred into soft light so the glass reads against the page */
+/* CANDLE POOL behind the clear bottle (frozen handshake): a single warm pool
+   of light — amber core bleeding to burnt-umber then out to espresso — the
+   exact backdrop the composited bottle sits over. NO hue rotation; it only
+   breathes, like a flame drawing and settling. */
 .heropin__stage::before{
   content:"";position:absolute;top:50%;left:50%;width:min(520px,90%);aspect-ratio:1;
   transform:translate(-50%,-52%);border-radius:50%;z-index:0;pointer-events:none;
-  background:conic-gradient(from 20deg,
-    rgba(107,122,50,.55), rgba(101,159,144,.46), rgba(109,157,170,.50),
-    rgba(70,85,42,.42), rgba(107,122,50,.55));
-  filter:blur(42px);opacity:.55; /* calmed from .92/.58-.72 stops — at full strength the wash blew the tilted bottle out to white (owner: "back light way too strong") */
-  animation:aurora 22s linear infinite;
+  background:radial-gradient(circle at 50% 56%,
+    rgba(228,172,96,.30) 0%, rgba(190,130,60,.14) 42%, rgba(20,16,12,0) 72%);
+  filter:blur(42px);opacity:.85;
+  animation:candlepool 7s ease-in-out infinite alternate;
 }
-@keyframes aurora{to{transform:translate(-50%,-52%) rotate(360deg);}}
+@keyframes candlepool{
+  from{transform:translate(-50%,-52%) scale(1);}
+  to{transform:translate(-50%,-52%) scale(1.04);}
+}
 /* whisper of a ring framing the bottle */
 .heropin__stage::after{
   content:"";position:absolute;top:50%;left:50%;width:min(460px,84%);aspect-ratio:1;
   transform:translate(-50%,-52%);border-radius:50%;z-index:0;pointer-events:none;
-  border:1px solid rgba(107,122,50,.16);
+  border:1px solid rgba(224,164,88,.10);
 }
 @media (prefers-reduced-motion:reduce){
   .heropin__stage::before{animation:none;}
@@ -353,6 +378,16 @@ html.bottle3d-on .herowords__pour{display:none;} /* SVG column is the no-WebGL f
    in a finger of spirit; then the line lands. --hb (0..1, written by
    the glass element per frame) scrubs the copy in after the pour. */
 .highball{position:relative;height:170svh;}
+/* the highball act borrows the hero's candle pool — the whisky splash was
+   playing against flat espresso and the crystal stopper sank black-on-black;
+   a still, softer pool (no breathe) keeps the room's light language without
+   stealing the splash */
+.highball::before{
+  content:"";position:absolute;left:34%;top:44%;width:min(720px,80vw);aspect-ratio:1;
+  transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%, rgba(228,172,96,.20) 0%, rgba(190,130,60,.09) 45%, rgba(20,16,12,0) 72%);
+  filter:blur(46px);
+}
 .highball__copy{
   /* the cup rides down the pour line on the LEFT; the copy answers from
      the right, where the whisky bottle has just made its exit */
@@ -385,10 +420,10 @@ html:not(.bottle3d-on) .highball__copy{
   display:block;width:1px;height:52px;background:var(--hairline);position:relative;overflow:hidden;
 }
 .hero__scrollcue span::after{
-  content:"";position:absolute;top:-40%;left:0;width:100%;height:40%;background:var(--olive);
+  content:"";position:absolute;top:-40%;left:0;width:100%;height:40%;background:var(--amber);
   animation:cue 2.2s var(--ease) infinite;
 }
-.hero__scrollcue::after{content:"";width:7px;height:7px;border-right:1.5px solid var(--olive);border-bottom:1.5px solid var(--olive);transform:rotate(45deg);opacity:.5;}
+.hero__scrollcue::after{content:"";width:7px;height:7px;border-right:1.5px solid var(--amber);border-bottom:1.5px solid var(--amber);transform:rotate(45deg);opacity:.5;}
 @keyframes cue{0%{top:-40%;}60%,100%{top:110%;}}
 /* when the guided idle cue takes over, the hero hairline steps aside */
 html[data-conduct-idle] .hero__scrollcue{opacity:0;}
@@ -732,7 +767,7 @@ html[data-conduct="done"] .guidecue{opacity:0!important;}
 .order__form{
   display:flex;flex-direction:column;gap:24px;
   background:var(--paper-deep);border:1px solid var(--hairline);border-radius:20px;
-  padding:clamp(26px,3.4vw,44px);
+  padding:clamp(26px,3.4vw,44px);color-scheme:dark; /* native select popup + number spinners render dark */
 }
 .fg{display:flex;flex-direction:column;gap:8px;}
 .fg-row{display:grid;grid-template-columns:2fr 1fr;gap:20px;}
@@ -742,12 +777,14 @@ html[data-conduct="done"] .guidecue{opacity:0!important;}
 .fg input,.fg select,.fg textarea{
   font-family:var(--sans);font-weight:300;font-size:1rem;color:var(--ink);
   background:transparent;border:0;border-bottom:1px solid var(--hairline);
-  padding:11px 2px;outline:none;transition:border-color .3s;border-radius:0;
+  padding:11px 2px;outline:none;transition:border-color .3s,box-shadow .3s;border-radius:0;
   -webkit-appearance:none;appearance:none;
 }
-.fg select{cursor:pointer;}
+.fg select{cursor:pointer;background:var(--paper-deep);color:var(--ink);}
+.fg select option{background:var(--paper-deep);color:var(--ink);} /* dark dropdown list where the browser honours it */
 .fg textarea{resize:vertical;min-height:64px;}
-.fg input:focus,.fg select:focus,.fg textarea:focus{border-bottom-color:var(--olive);}
+/* amber focus ring — a lit underline the candle would cast */
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-bottom-color:var(--amber);box-shadow:0 1px 0 0 var(--amber);}
 .fg input::placeholder,.fg textarea::placeholder{color:var(--muted);}
 .order__form .btn{margin-top:8px;align-self:flex-start;}
 .order__note{font-size:.78rem;letter-spacing:.04em;color:var(--muted);}
@@ -755,28 +792,33 @@ html[data-conduct="done"] .guidecue{opacity:0!important;}
 
 /* ═══ FOOTER ═══ */
 .footer{
-  /* #202C22 = the panorama's own ground, so art and footer read as one surface */
-  background:#202C22;color:rgba(249,245,233,.6);
+  /* warm espresso ground — the panorama is tinted & dimmed to sit on it like
+     aged paper seen by candlelight, rather than glaring as a lightbox */
+  background:#17130E;color:rgba(240,232,216,.6);
   padding:60px clamp(20px,7vw,110px) 0;position:relative;
 }
 .footer__art{
   display:block;height:auto;
   width:calc(100% + 2*clamp(20px,7vw,110px));max-width:none; /* escape the global img clamp */
   margin:40px calc(-1*clamp(20px,7vw,110px)) 0; /* bleed to the page edges */
+  filter:brightness(.6) sepia(.34) saturate(.78) contrast(1.03); /* dim the light paper, warm the cool ink to amber */
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 12%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 12%); /* fade the top seam into the espresso footer */
 }
 .footer__top{
   display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
-  padding-bottom:34px;border-bottom:1px solid rgba(249,245,233,.14);
+  padding-bottom:34px;border-bottom:1px solid var(--hairline);
 }
 .footer__logo{
-  font-weight:700;font-size:1rem;letter-spacing:.3em;color:var(--paper);text-decoration:none;
+  /* --paper is the espresso PAGE now, so the light logo re-points to parchment ink */
+  font-weight:700;font-size:1rem;letter-spacing:.3em;color:var(--ink);text-decoration:none;
 }
 .footer__links{display:flex;gap:28px;flex-wrap:wrap;}
 .footer__links a{
-  font-size:.78rem;font-weight:500;letter-spacing:.08em;color:rgba(249,245,233,.6);
+  font-size:.78rem;font-weight:500;letter-spacing:.08em;color:rgba(240,232,216,.6);
   text-decoration:none;transition:color .25s;
 }
-.footer__links a:hover{color:var(--paper);}
+.footer__links a:hover{color:var(--ink);}
 .footer__bottom{
   display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
   padding-top:26px;font-size:.75rem;letter-spacing:.06em;
@@ -916,11 +958,20 @@ html[data-conduct="done"] .guidecue{opacity:0!important;}
 
 .flavours--plain{background:transparent;transition:none;text-align:center;}
 .flavours__single{display:flex;flex-direction:column;align-items:center;margin-top:clamp(28px,4vw,52px);}
+/* the catalog PNGs carry near-white backgrounds (yuzu/ume/hinoki) or are
+   transparent (original). On espresso a white frame would glare like a
+   lightbox, so the shot becomes a warm parchment VITRINE: the photo multiplies
+   into it (white bg → parchment, so nothing floats bright) and an amber halo
+   with a deep shadow stages it as a single lit object in a dark room. */
 .flavours__shot{
   display:block;width:min(340px,72vw);aspect-ratio:2/3;overflow:hidden;
-  background:#fff;border:1px solid var(--hairline);
+  background:#DFD2B6;border:1px solid var(--amber-soft);border-radius:4px;
+  box-shadow:0 0 70px var(--amber-soft),0 20px 54px rgba(0,0,0,.5);
 }
-.flavours__shot img{width:100%;height:100%;object-fit:cover;display:block;}
+.flavours__shot img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  mix-blend-mode:multiply;filter:saturate(.97) contrast(1.02);
+}
 .flavours__pick{
   list-style:none;display:flex;flex-wrap:wrap;justify-content:center;
   gap:14px clamp(20px,3vw,38px);margin:26px 0 0;padding:0;
