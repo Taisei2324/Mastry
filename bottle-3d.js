@@ -1265,6 +1265,55 @@
       this._shadow = mesh;
     }
 
+    /* volume-true waterline: slice the interior into stations along the axis
+       (radius profile radiusAtFast, same 0.90 skin as the water lathe); each
+       station's cross-section circle spans ±r·horiz of world height around the
+       axis; the submerged fraction of a station is the circular-segment area
+       of its disc under the plane. Bisect the plane height until the summed
+       submerged volume matches the level — `_level` IS the volume fraction (a
+       steady pour drains volume linearly in time), so the visible surface now
+       moves at the speed the pour justifies instead of teleporting with the
+       tilt. ~24 stations × 18 bisections ≈ a few hundred flops per frame. */
+    _solveVolumePlane(lvl) {
+      var N = 24;
+      if (!this._volW) {
+        this._volW = []; this._volY = []; var tw = 0;
+        for (var i = 0; i < N; i++) {
+          var y = 3.16 * (i + 0.5) / N;
+          var r = radiusAtFast(y) * 0.90;
+          this._volY.push(y); this._volW.push(r * r); tw += r * r;
+        }
+        this._volT = tw;
+      }
+      _v5.set(0, 0, 0); this._bottle.localToWorld(_v5);
+      _v4.set(0, 1, 0); this._bottle.localToWorld(_v4);
+      var ax = _v4.y - _v5.y;                          // world dy per local y
+      var horiz = Math.sqrt(Math.max(0.0001, 1 - ax * ax));
+      var yw = this._volYW || (this._volYW = new Float64Array(N));
+      var re = this._volRE || (this._volRE = new Float64Array(N));
+      var lo = 1e9, hi = -1e9;
+      for (var i2 = 0; i2 < N; i2++) {
+        yw[i2] = _v5.y + ax * this._volY[i2];
+        re[i2] = Math.max(1e-5, radiusAtFast(this._volY[i2]) * 0.90 * horiz);
+        if (yw[i2] - re[i2] < lo) lo = yw[i2] - re[i2];
+        if (yw[i2] + re[i2] > hi) hi = yw[i2] + re[i2];
+      }
+      var target = Math.max(0, Math.min(1, lvl)) * this._volT;
+      var a = lo, b = hi;
+      for (var it = 0; it < 18; it++) {
+        var mid = (a + b) / 2, vol = 0;
+        for (var k = 0; k < N; k++) {
+          var d = (mid - (yw[k] - re[k])) / (2 * re[k]);
+          if (d <= 0) continue;
+          if (d >= 1) { vol += this._volW[k]; continue; }
+          var th = 2 * Math.acos(1 - 2 * d);
+          vol += this._volW[k] * (th - Math.sin(th)) / (2 * Math.PI);
+        }
+        if (vol < target) a = mid; else b = mid;
+      }
+      return (a + b) / 2;
+    }
+
     /* ---------- events ---------- */
     _bindEvents() {
       var self = this;
@@ -1621,14 +1670,30 @@
       // moment the pour begins draining (lvl<0.9) it decays back to the
       // original 0.712 mapping, so the tuned pour/drain choreography is untouched.
       var surfFrac = 0.712 * lvl + 0.141 * smoothstep(0.90, 1.0, lvl);
-      var h = lerp(minY, maxY, surfFrac) + (this._surfBob || 0); // pooled water height, heaving with the glug
+      var hSimple = lerp(minY, maxY, surfFrac); // the art-directed upright mapping
+      // VOLUME-TRUE SURFACE under tilt: the simple mapping glues the surface
+      // to a fraction of the bottle's WORLD-HEIGHT span — but that span
+      // collapses as the bottle tips, so the level visibly plummeted the
+      // moment the tilt began (a 96%-full bottle read a third empty before
+      // the pour had taken anything). While tilted, solve the plane height so
+      // the SUBMERGED VOLUME matches the level: the surface now falls exactly
+      // as fast as the pour actually drains — slow through the fat barrel,
+      // quicker through the shoulder. Crossfaded so the tuned upright fill
+      // (which reads into the neck on the resting hero) is untouched.
+      var upW = Math.min(1, Math.abs(dyPer));
+      var h;
+      if (upW > 0.88) {
+        h = hSimple;
+      } else {
+        var m = smoothstep(0.60, 0.88, upW);
+        h = this._solveVolumePlane(lvl) * (1 - m) + hSimple * m;
+      }
+      h += (this._surfBob || 0); // heaving with the glug
       // PHYSICS CLAMP (pour): while liquid is leaving, the free surface pins
       // just above the pour lip — a flowing depth fills most of the bore and
-      // stays CONNECTED to the stream's neck run, while an air channel rides
-      // the neck's upper wall. Unclamped, the span mapping put the waterline
-      // over the entire tilted neck and it rendered as a solid slug of water
-      // out to the cap seat — impossible mid-pour, and the most visible water
-      // in the shot. (_v3 still holds the mouth world position.)
+      // stays CONNECTED to the stream's root, while an air channel rides the
+      // neck's upper wall (never the impossible full-neck slug).
+      // (_v3 still holds the mouth world position.)
       if (tiltT > 0.05) h = Math.min(h, _v3.y + 0.10);
       this._waterPlane.constant = h;
       // surface disc rides the waterline along the bottle axis, always world-level
