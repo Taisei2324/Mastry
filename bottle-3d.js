@@ -3014,11 +3014,11 @@
               // then bends it over the lip into the fall — the nappe curve.
               // The jet's built-in throat flare widens the first 10%, so the
               // head visually wraps the lip edge. All pure functions of w.
-              var inset = (this._wbLipR || 0.15) * 0.5;
+              var inset = (this._wbLipR || 0.15) * 0.85;   // head starts deep INSIDE the mouth — the stream visibly wells out of the lip, never a mid-air seam
               var sp = 0.55 + 0.75 * wp;                 // exit speed grows with the pour
               wjet = { x0: lipX - dxu * inset, y0: lipY - dyu * inset,
                        vx: dxu * sp, vy: Math.min(-0.12, dyu * sp),
-                       g: 12.5, r0: 0.022 + 0.02 * wp,
+                       g: 12.5, r0: 0.03 + 0.022 * wp,   // a fatter head that wraps the lip glass
                        organic: true,   // the hero pour's physics: varicose wave, breakup, droplets
                        cupX: this._glass.position.x };
             }
@@ -3301,16 +3301,16 @@
     _updateSplash(dt, pour, x, waterY) {
       var mesh = this._splash, data = this._splashData, dummy = this._dummy;
       if (pour > 0.05) {
-        this._splashClock += dt * 68 * pour;
+        this._splashClock += dt * 40 * pour;                 // calmer: ~40% fewer ejecta (user: turn the splash down)
         var n = Math.floor(this._splashClock);
         this._splashClock -= n;
         for (var k = 0; k < n && data.length < mesh.instanceMatrix.count; k++) {
           var ang = Math.random() * Math.PI * 2;
-          var sp = 0.18 + Math.random() * 0.6 * pour;
+          var sp = 0.14 + Math.random() * 0.42 * pour;       // tighter spray cone — droplets stay near the impact
           var rs = 0.026 + Math.random() * 0.026; // the ejecta sheet crowns at the jet's rim
-          var vy0 = 1.7 + Math.random() * 2.2 * pour;
+          var vy0 = 1.25 + Math.random() * 1.4 * pour;       // lower crown — a wet burble, not a volcano
           var life0 = 0.55, s0 = 0.5 + Math.random() * 0.9;
-          if (Math.random() < 0.22) { // fine spray haze riding above the crown
+          if (Math.random() < 0.12) { // fine spray haze riding above the crown
             s0 *= 0.45; vy0 *= 0.55; life0 = 0.95;
           }
           data.push({
@@ -3341,9 +3341,9 @@
       for (var i = data.length - 1; i >= 0; i--) {
         var q = data[i];
         q.vy -= 12.5 * dt; // same stylized gravity as the jet
-        // turbulent air: droplets wobble off their perfect arcs
-        q.vx += Math.sin(q.y * 26.0 + q.life * 31.0) * 0.30 * dt;
-        q.vz += Math.cos(q.y * 23.0 + q.life * 27.0) * 0.30 * dt;
+        // turbulent air: droplets wobble off their perfect arcs (gentler now)
+        q.vx += Math.sin(q.y * 26.0 + q.life * 31.0) * 0.18 * dt;
+        q.vz += Math.cos(q.y * 23.0 + q.life * 27.0) * 0.18 * dt;
         q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
         q.life -= dt;
         // the glass is a wall: droplets that reach it wet it and die there
