@@ -1358,7 +1358,7 @@
         // instant it arrives; the ticker then owns the hold.
         if (!self._lockActive && self._pin && !self._noWall && self._sawHero && self._level > 0.245 &&
             !anchorGlideActive() && !conductorLive() &&
-            (!self._wallT || self._clock.elapsedTime - self._wallT < 8)) {
+            (!self._wallT || self._clock.elapsedTime - self._wallT < 11)) {
           var wy = (self._pinTop || 0) + 0.88 * Math.max(1, (self._pinH || 1) - window.innerHeight);
           if (y >= wy - 2) { self._engageLock(self._clock.elapsedTime); y = window.scrollY; }
         }
@@ -1545,7 +1545,7 @@
       if (!this._lockActive) {
         var canArm = this._sawHero && !this._noWall && this._pin && this._level > 0.245 &&
                      !anchorGlideActive() && !conductorLive() &&
-                     (!this._wallT || t - this._wallT < 8);   // 8s failsafe: once it fires, no re-trap until refill re-zeroes _wallT
+                     (!this._wallT || t - this._wallT < 11);  // 11s failsafe (1s pause + ~6.5s slow drain + margin): once it fires, no re-trap until refill re-zeroes _wallT
         if (canArm && window.scrollY >= wallY - 2) this._engageLock(t);
       } else {
         // HELD — release when the cut scene has done its job. BOTH a cinematic
@@ -1557,7 +1557,7 @@
         var minGone = held >= 1.2;
         var drained = this._level <= 0.245;
         var escaped = minGone && this._lockUpIntent > 40;      // a deliberate up-push, tallied by the locked input handlers
-        var failed = this._wallT && (t - this._wallT > 8);
+        var failed = this._wallT && (t - this._wallT > 11);
         if (this._noWall || (minGone && drained) || escaped || failed) this._releaseLock();
       }
       // _holdY mirrors the lock every frame (also absorbs a resize that shifts
@@ -1689,12 +1689,14 @@
         h = this._solveVolumePlane(lvl) * (1 - m) + hSimple * m;
       }
       h += (this._surfBob || 0); // heaving with the glug
-      // PHYSICS CLAMP (pour): while liquid is leaving, the free surface pins
-      // just above the pour lip — a flowing depth fills most of the bore and
-      // stays CONNECTED to the stream's root, while an air channel rides the
-      // neck's upper wall (never the impossible full-neck slug).
-      // (_v3 still holds the mouth world position.)
-      if (tiltT > 0.05) h = Math.min(h, _v3.y + 0.10);
+      // NO lip clamp: during an active pour the free surface rides ABOVE the
+      // lip — that hydrostatic head is what drives the flow. A clamp here
+      // pinned the visible waterline to a constant the moment the tilt
+      // completed while the level drained invisibly behind it (the on-screen
+      // water collapsed in one second, then froze — the owner's "it instantly
+      // drops"). The volume-true solve alone is right: the bottle tips full,
+      // holds its beat, then the waterline appears at the raised base and
+      // sweeps down the glass at exactly the speed the pour drains it.
       this._waterPlane.constant = h;
       // surface disc rides the waterline along the bottle axis, always world-level
       if (dyPer > 0.25) { // upright-ish ONLY: inverted, the disc escaped the silhouette as a floating bar
@@ -1863,7 +1865,7 @@
         flow = 1 - 0.19 * gargle;
         // the water INSIDE heaves on the same beat — surface only, no particles
         this._surfBob = (gl - 0.5) * 0.05 * gargle;
-        if (draining) this._level = Math.max(0.20, this._level - dt * (0.055 + 0.176 * ps * flow)); // tempo +10% (was 0.05/0.16): a small drain bump on top of the shorter pin so the pour reads "a little faster", not rushed
+        if (draining) this._level = Math.max(0.20, this._level - dt * (0.028 + 0.088 * ps * flow)); // HALVED (owner: "it still drops super fast") — the bottle now takes ~6.5s to pour out, matching what the stream visibly carries; the wall failsafe stretched 8->11s to cover it
       } else {
         this._glugAmp = 0;
         this._surfBob = (this._surfBob || 0) * Math.pow(0.02, dt); // settle when not pouring
