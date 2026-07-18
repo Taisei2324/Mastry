@@ -211,8 +211,8 @@ html.heroseq .nav.peek,
 .hero__blob{
   position:absolute;width:min(430px,80%);aspect-ratio:1;border-radius:50%;
   background:
-    radial-gradient(circle at 34% 28%,#F0FAF7 0%,transparent 52%),
-    radial-gradient(circle at 52% 46%,var(--resin-milk) 0%,transparent 74%);
+    radial-gradient(circle at 34% 28%,rgba(240,250,247,.42) 0%,transparent 52%),
+    radial-gradient(circle at 52% 46%,rgba(247,244,216,.48) 0%,transparent 74%);
   filter:blur(2px);
   animation:breathe 9s var(--ease) infinite;
 }
@@ -273,9 +273,9 @@ model-viewer{outline:none;background:transparent;--poster-color:transparent;--pr
   content:"";position:absolute;top:50%;left:50%;width:min(520px,90%);aspect-ratio:1;
   transform:translate(-50%,-52%);border-radius:50%;z-index:0;pointer-events:none;
   background:conic-gradient(from 20deg,
-    rgba(107,122,50,.72), rgba(101,159,144,.62), rgba(109,157,170,.68),
-    rgba(70,85,42,.58), rgba(107,122,50,.72));
-  filter:blur(42px);opacity:.92;
+    rgba(107,122,50,.55), rgba(101,159,144,.46), rgba(109,157,170,.50),
+    rgba(70,85,42,.42), rgba(107,122,50,.55));
+  filter:blur(42px);opacity:.55; /* calmed from .92/.58-.72 stops — at full strength the wash blew the tilted bottle out to white (owner: "back light way too strong") */
   animation:aurora 22s linear infinite;
 }
 @keyframes aurora{to{transform:translate(-50%,-52%) rotate(360deg);}}
