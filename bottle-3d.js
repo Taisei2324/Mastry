@@ -1685,8 +1685,13 @@
       if (upW > 0.88) {
         h = hSimple;
       } else {
+        // read the fill a touch LOWER than the raw volume (owner: "too high"):
+        // a gamma curve pulls every partial fill down while leaving FULL at 1
+        // (1^γ = 1, so the tip-full pause is untouched) — the tilted bottle
+        // now reads as sitting lower in the glass, matching the pour.
+        var lvlV = Math.pow(Math.max(0, Math.min(1, lvl)), 1.5);
         var m = smoothstep(0.60, 0.88, upW);
-        h = this._solveVolumePlane(lvl) * (1 - m) + hSimple * m;
+        h = this._solveVolumePlane(lvlV) * (1 - m) + hSimple * m;
       }
       h += (this._surfBob || 0); // heaving with the glug
       // NO lip clamp: during an active pour the free surface rides ABOVE the
