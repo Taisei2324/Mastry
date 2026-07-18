@@ -457,7 +457,7 @@
       this._offsetX = this._num('offset-x', 1.55);
       this._pourEnabled = this.getAttribute('pour') !== '0';
       if (this._drops) {
-        this._drops.count = Math.min(240, Math.round(this._condensation * 70));
+        this._drops.count = Math.min(this._dropMax || 240, Math.round(this._condensation * 70)); // ceiling follows the tier's allocated pool, not a hard 240
         this._drops.visible = this._drops.count > 0;
       }
     }
@@ -505,6 +505,16 @@
       bottle.position.y = -CY;
       spin.add(bottle); root.add(spin); scene.add(root);
       this._root = root; this._spin = spin; this._bottle = bottle;
+
+      // MAX-LOD gate: the owner pulled every budget into the liquid, but only
+      // the fast DESKTOP path may spend it. LITE (slow links) and any narrow /
+      // forced-mobile viewport stay on the exact old counts — byte-identical.
+      // Decided ONCE here so every pool below sizes from the same verdict.
+      // innerWidth can be 0 at init (background-tab pre-render, unsized pane) —
+      // that's "not laid out yet", not "phone" (phones never reach this page:
+      // the router sends them to mobile.html), so fall through to screen.width.
+      var vw = window.innerWidth || (window.screen && window.screen.width) || 1280;
+      this._fast = !this._isLite() && !(window.__forceMobile || vw <= 760);
 
       this._buildCapGroups(bottle);
       this._buildBottle(bottle);
@@ -917,7 +927,7 @@
     }
 
     _buildBubbles(parent) {
-      var COUNT = 180; // headroom for the 2x cap-off surge
+      var COUNT = this._fast ? 320 : 180; // fast desktop: fat headroom for the cap-off surge; LITE/narrow keep 180
       var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.016, 10, 10),
         new THREE.MeshBasicMaterial({ color: 0xeaf6ef, transparent: true, opacity: 0.3, depthWrite: false, clippingPlanes: [this._waterPlane] }), COUNT);
       mesh.count = 90;
@@ -942,7 +952,7 @@
       // event bubbles, separate from the ambient column: the cap-off burst
       // firing every nucleation site at once, and the fat air slugs that
       // glug back in through the neck while pouring
-      var MAX = 150;
+      var MAX = this._fast ? 300 : 150; // fast desktop: a denser gulp/air-channel train; LITE/narrow keep 150
       // bright, near-white air so the gulp reads clearly against the sage
       // water (a submerged air bubble catches the light as a pale sphere)
       var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.013, 8, 8),
@@ -961,7 +971,8 @@
     _buildCondensation(parent) {
       // real droplets: tiny glass hemispheres that condense, grow, run down the
       // glass under gravity, and shrink away once they reach the bottom
-      var MAX = 240;
+      var MAX = this._fast ? 460 : 240; // fast desktop: a richer condensation film; LITE/narrow keep 240
+      this._dropMax = MAX; // _syncAttrs clamps the live count to THIS, not the old hard 240
       var mesh = new THREE.InstancedMesh(
         new THREE.SphereGeometry(1, 8, 6),
         new THREE.MeshPhysicalMaterial({
@@ -1013,7 +1024,7 @@
 
     _buildPour(scene) {
       // shared instanced pool: pour droplets, satellite drops, cap-off mist
-      var MAX = 300; // max LOD: more drops in flight, rounder drops
+      var MAX = this._fast ? 560 : 300; // fast desktop: more breakup drops + mist in flight; LITE/narrow keep 300
       var mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.02, 10, 8),
         new THREE.MeshBasicMaterial({ color: 0xf6fbf6, transparent: true, opacity: 0.75, depthWrite: false }), MAX);
       mesh.renderOrder = 7;
@@ -1036,7 +1047,7 @@
       // accelerates it (mass conservation), a Plateau–Rayleigh varicose wave
       // deepens down-stream, and past the breakup length it hands over to
       // the droplet pool above.
-      var RINGS = this._strRings = 64, SEG = this._strSeg = 10; // pour LOD: smooth at a third of the old vertex/upload cost
+      var RINGS = this._strRings = this._fast ? 192 : 64, SEG = this._strSeg = this._fast ? 16 : 10; // pour LOD: fast desktop spends 3x rings + a rounder tube silhouette; LITE/narrow keep 64/10
       function tubeGeo(withNormals) {
         var geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
@@ -1176,10 +1187,12 @@
 
     _resize() {
       var w = this.clientWidth || 1, h = this.clientHeight || 1;
-      // full-viewport canvas: DPR 2+ quadruples the fragment load for a gain
-      // the eye can't separate from 1.5 at this scene's softness — cap it
-      var dpr = Math.min(1.5, window.devicePixelRatio || 1);
-      this._renderer.setPixelRatio(dpr);
+      // fast DESKTOP now buys native crispness (up to 2.5) — the owner wants
+      // max fidelity and the glare/ripple detail earns the pixels. LITE/narrow
+      // stay pinned at 1.5 (byte-identical). setPixelRatio reallocates the
+      // drawing buffer, so fire it ONLY when the ratio actually changes.
+      var dpr = Math.min(this._fast ? 2.5 : 1.5, window.devicePixelRatio || 1);
+      if (this._dpr !== dpr) { this._renderer.setPixelRatio(dpr); this._dpr = dpr; }
       this._renderer.setSize(w, h, false);
       this._measurePin(); // pin geometry is only re-read here + on load/class shifts, never per frame
       this._narrow = window.__forceMobile || window.innerWidth <= 760; // the dedicated mobile page pins this true at any width
@@ -1742,7 +1755,14 @@
       // mass-conservation taper, Plateau–Rayleigh varicose wave, breakup
       // into main drops + satellites. Only the frame-bottom kill bound is
       // parametrised for today's full-hero canvas. ══
-      var ex = _v1.x + _v3.x * 0.10, ey = _v1.y + _v3.y * 0.10, ez = _v1.z + _v3.z * 0.10;
+      // THE LIP, solved like the decanter's: the water must WELL OUT of the
+      // rolled-lip bead, not hang a thread inboard of the glass. RIMR is the
+      // lip torus's centreline radius (TorusGeometry(0.176,…) at y=3.14); the
+      // head is born just off the mouth centre toward the LOW edge and the
+      // throat flare below fattens the first rings out to LIPWRAP so they
+      // overlap the bead — zero daylight at the exit, at onset, song, and ebb.
+      var RIMR = 0.176, LIPWRAP = RIMR * 0.82;
+      var ex = _v1.x + _v3.x * 0.05, ey = _v1.y + _v3.y * 0.05, ez = _v1.z + _v3.z * 0.05;
       var GP = 16;
       // exit velocity doubled (user: "no urge for the water to leave the
       // bottle") — nearer Torricelli for the head behind the lip at this
@@ -1771,8 +1791,8 @@
       if (this._tubeFlip && this._tubeWarm) {
         stream.visible = true; core.visible = true;
         var kf = Math.min(1, 0.3 + ps * 4);
-        stream.material.opacity = Math.min(0.55 * kf, stream.material.opacity + 0.06);
-        core.material.opacity = Math.min(0.5 * kf, core.material.opacity + 0.08);
+        stream.material.opacity = Math.min(0.55 * kf, stream.material.opacity + 0.14); // faster onset: a slow fade left the lip ghosted for ~9 frames, reading as a gap
+        core.material.opacity = Math.min(0.5 * kf, core.material.opacity + 0.18);
         return this._lastBk;
       }
 
@@ -1811,6 +1831,14 @@
           var gEdge = Math.min(1, s / 0.15);
           r *= 1 - gAmp * 0.55 * gEdge * (1 - gv * gv);            // fat runs, sharp pinches between
         }
+        // THE LIP WRAP (meniscus): over the first ~0.12 of arclength the
+        // column flares out to the wetted-mouth radius, so the head WELLS over
+        // the rolled-lip bead — water clinging to the glass as it leaves, never
+        // a thread floating inboard of the mouth (the "big wide gap"). Eases to
+        // 0 by the throat's end; the mass-conservation taper downstream is
+        // untouched, and it sits BEFORE the pinch-off neck (frac>0.78, far below).
+        var thr = 1 - s / 0.12; if (thr < 0) thr = 0;
+        if (thr > 0) { var wf = thr * thr; r = r * (1 - wf) + Math.max(r, LIPWRAP) * wf; }
         if (frac > 0.78) r *= Math.max(0.10, 1 - (frac - 0.78) * 3.6); // necks into the pinch-off
         if (r < 0.003) r = 0.003;
         // lateral wander grows down-stream
@@ -1851,8 +1879,8 @@
       // faint for a dribble, solid for a committed pour — but always
       // translucent enough to read as water, not paint
       var k = Math.min(1, 0.3 + ps * 4);
-      stream.material.opacity = Math.min(0.55 * k, stream.material.opacity + 0.06);
-      core.material.opacity = Math.min(0.5 * k, core.material.opacity + 0.08);
+      stream.material.opacity = Math.min(0.55 * k, stream.material.opacity + 0.14); // faster onset: a slow fade left the lip ghosted for ~9 frames, reading as a gap
+      core.material.opacity = Math.min(0.5 * k, core.material.opacity + 0.18);
       this._tubeWarm = true;   // half-rate rebuilds may now reuse this tube
       this._lastBk = bk;
       return bk;
@@ -1998,6 +2026,13 @@
     }
 
     _initScene() {
+      // MAX-LOD gate (mirrors the bottle's): only the fast DESKTOP path spends
+      // the freed budget. __mastryLite and any narrow / forced-mobile viewport
+      // stay byte-identical to today. This class has no _isLite(); __mastryLite
+      // is authoritative here, exactly as the whisky-load path already treats it.
+      // Same zero-width guard as the bottle's gate: 0 = not laid out, not phone.
+      var vw = window.innerWidth || (window.screen && window.screen.width) || 1280;
+      this._fast = !window.__mastryLite && !(window.__forceMobile || vw <= 760);
       // at DPR>=2 pixel density already smooths edges — dropping MSAA halves fill cost
       var renderer = new THREE.WebGLRenderer({ canvas: this._canvas, alpha: true, antialias: (window.devicePixelRatio || 1) < 2 });
       renderer.setClearColor(0x000000, 0);
@@ -2073,7 +2108,7 @@
       installWaterTopShader(top.material, 1.0, this);
 
       // the falling jet — the same rewritten-in-place tube as the bottle's pour
-      var RINGS = this._strRings = 64, SEG = this._strSeg = 8; // pour LOD, matched to the bottle's jet at a third of the old cost
+      var RINGS = this._strRings = this._fast ? 176 : 64, SEG = this._strSeg = this._fast ? 16 : 8; // pour LOD: fast desktop gets finer rings (same reach — dtt spreads across the fall) + a rounder tube; LITE/narrow keep 64/8
       function tubeGeo(withNormals) {
         var geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RINGS * SEG * 3), 3).setUsage(THREE.DynamicDrawUsage));
@@ -2110,14 +2145,14 @@
 
       // splash droplets kicked up at the impact point — the bottle drops' water
       var splash = new THREE.InstancedMesh(new THREE.SphereGeometry(0.014, 8, 6),
-        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false }), 150);
+        new THREE.MeshBasicMaterial({ color: WATER_DROP_TINT, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false }), this._fast ? 300 : 150); // fast desktop: a fuller impact crown; LITE/narrow keep 150
       splash.count = 0; splash.renderOrder = 3.7; splash.frustumCulled = false;
       scene.add(splash);
       this._splash = splash; this._splashData = []; this._splashClock = 0;
 
       // bubbles churned under the impact, rising through the water
       var bub = new THREE.InstancedMesh(new THREE.SphereGeometry(0.013, 8, 6),
-        new THREE.MeshBasicMaterial({ color: 0xf2fbf5, transparent: true, opacity: 0.75, depthWrite: false, toneMapped: false, clippingPlanes: [this._waterPlane] }), 120);
+        new THREE.MeshBasicMaterial({ color: 0xf2fbf5, transparent: true, opacity: 0.75, depthWrite: false, toneMapped: false, clippingPlanes: [this._waterPlane] }), this._fast ? 240 : 120); // fast desktop: more churn under the impact; LITE/narrow keep 120
       bub.count = 0; bub.renderOrder = 4; bub.frustumCulled = false;
       scene.add(bub);
       this._bub = bub; this._bubData = []; this._bubClock = 0;
@@ -2651,9 +2686,12 @@
     _resize() {
       var w = this.clientWidth || 1, h = this.clientHeight || 1;
       // full dpr on phones too: the viewport-fixed canvas is ~10x smaller
-      // than the old section-spanning one, so crispness is affordable now
-      var dpr = Math.min(2, window.devicePixelRatio || 1);
-      this._renderer.setPixelRatio(dpr);
+      // than the old section-spanning one, so crispness is affordable now.
+      // Fast DESKTOP climbs one more stop to 2.5 for the lip/pour detail;
+      // narrow/LITE keep their exact 2.0 cap. setPixelRatio reallocates the
+      // buffer — fire it ONLY on an actual change.
+      var dpr = Math.min(this._fast ? 2.5 : 2, window.devicePixelRatio || 1);
+      if (this._dpr !== dpr) { this._renderer.setPixelRatio(dpr); this._dpr = dpr; }
       this._renderer.setSize(w, h, false);
       this._narrow = window.__forceMobile || window.innerWidth <= 760; // the dedicated mobile page pins this true at any width
       this._needsRender = true;
@@ -3019,6 +3057,7 @@
               wjet = { x0: lipX - dxu * inset, y0: lipY - dyu * inset,
                        vx: dxu * sp, vy: Math.min(-0.12, dyu * sp),
                        g: 12.5, r0: 0.03 + 0.022 * wp,   // a fatter head that wraps the lip glass
+                       wrapR: (this._wbLipR || 0.15) * 0.9, // the throat flares out to nearly the FULL mouth radius so the head plugs the bead — the old 1.35x flare left a thin thread floating inside the wide mouth (the "big wide gap")
                        organic: true,   // the hero pour's physics: varicose wave, breakup, droplets
                        cupX: this._glass.position.x };
             }
@@ -3258,7 +3297,13 @@
           var frac = s / Lb;
           r = rBase * (1 + (0.08 + 0.95 * frac * frac) * 0.42 * Math.sin(s * 10.5 - time * 30));
           if (frac > 0.78) r *= Math.max(0.10, 1 - (frac - 0.78) * 3.6); // necks into the pinch-off
-          r *= (1 + 0.35 * thr * thr);                             // keep the lip wrap (nappe)
+          // THE LIP WRAP: when the emitter hands a real mouth radius (the whisky
+          // pour off the decanter's spout), flare the first 10% of the fall out
+          // to it so the head WELLS over the bead with zero daylight — mirrors
+          // the hero bottle's meniscus. The frame-top water jet has no lip here
+          // (the bottle owns its own), so it keeps the gentle 1.35x nappe.
+          if (jet.wrapR) { var wf = thr * thr; r = r * (1 - wf) + Math.max(r, jet.wrapR) * wf; }
+          else r *= (1 + 0.35 * thr * thr);
           if (r < 0.003) r = 0.003;
           wx += Math.sin(s * 7.5 - time * 11) * 0.016 * frac;      // lateral wander grows down-stream
         } else {
