@@ -7,34 +7,42 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 
 :root{
-  /* aesthetic colors — colors-no-black.json */
-  --paper:#F9F5E9;          /* rice-paper */
-  --paper-deep:#F6F4EE;     /* stone-snow */
-  --ink:#1D2E18;            /* pine-needle */
-  --ink-soft:#30352C;       /* mountain-shadow */
-  --muted:#777061;          /* stone-taupe */
-  --hairline:#E6E0D1;       /* limestone */
-  --olive:#6B7A32;          /* olive-core */
-  --olive-deep:#46552A;     /* olive-moss */
-  --resin:#DED38E;          /* mastic-resin */
-  --resin-milk:#F7F4D8;     /* mastic-milk */
-  --dark:#1F2A1C;           /* charcoal-green */
-  --dark-2:#26341C;         /* olive-shadow */
-  --sage:#A8B88A;           /* light-sage / sage-original */
-  --cream:#F4E8C1;          /* warm-cream */
-  --jp-blue:#6D9DAA;        /* mineral-blue — Japan accent */
-  --gr-olive:#91964F;       /* mastic-olive — Greece accent */
-  --clay:#C3936C;           /* clay-sun */
-  --sun:#C6A548;            /* sun-muted */
-  --creek:#659F90;          /* water-creek */
-  --mist:#EEF2D7;           /* olive-mist */
-  --wash-sage:#F4F7EF;      /* sage-wash */
-  --wash-sky:#F3FAFC;       /* sky-frost */
+  /* dark "espresso" palette (from fable-minimal-remake). Token names kept, so
+     every downstream var() flips to dark at once. --paper is now the espresso
+     PAGE (dark); light-on-dark FOREGROUND text uses --ink (parchment). */
+  --paper:#14100C;          /* espresso page/wash */
+  --paper-deep:#1E1812;     /* surface / card */
+  --ink:#F0E8D8;            /* parchment text ink */
+  --ink-soft:#C4B99F;       /* dim parchment */
+  --muted:#9E927A;          /* muted parchment */
+  --hairline:rgba(240,232,216,.14); /* warm hairline */
+  --olive:#A9B87A;          /* mastic olive, lifted */
+  --olive-deep:#97A66B;     /* mastic olive, lifted mid */
+  --resin:#E8D9A0;          /* mastic resin, lifted */
+  --resin-milk:#2A2418;     /* mastic surface tint */
+  --dark:#17130E;           /* deep espresso surface */
+  --dark-2:#221B14;         /* raised espresso */
+  --sage:#8FB6C2;           /* mineral blue, lifted */
+  --cream:#E0A458;          /* candle amber */
+  --jp-blue:#8FB6C2;        /* mineral blue — Japan accent */
+  --gr-olive:#A9B87A;       /* mastic olive — Greece accent */
+  --clay:#C98B5F;           /* clay, lifted */
+  --sun:#D9A441;            /* sun, lifted */
+  --creek:#8FB6C2;          /* mineral blue, lifted */
+  --mist:#262019;           /* raised surface — marquee band */
+  --wash-sage:#191410;      /* dark warm wash */
+  --wash-sky:#17130E;       /* dark warm wash — hero top */
 
-  /* flavour theming (swapped by JS) */
-  --fl-wash:#F7F4D8;        /* mastic-milk   */
-  --fl-accent:#91964F;      /* mastic-olive  */
-  --fl-deep:#596532;        /* mastic-deep   */
+  /* candle accents */
+  --amber:#E0A458;
+  --amber-glow:rgba(224,164,88,.35);
+  --amber-soft:rgba(224,164,88,.12);
+  --surface-raised:#262019;
+
+  /* flavour theming (swapped by JS — dark-safe mid-tones) */
+  --fl-wash:#2A2418;
+  --fl-accent:#A9B87A;
+  --fl-deep:#8FB6C2;
 
   --nav-h:76px;
   --ease:cubic-bezier(.22,1,.36,1);
@@ -93,7 +101,7 @@ input,select,textarea{accent-color:var(--olive);}
 }
 .nav.hidden{transform:translateY(-100%);}
 .nav.solid{
-  background:rgba(249,245,233,.88);
+  background:rgba(20,16,12,.85);
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
   border-bottom-color:var(--hairline);
 }
@@ -192,7 +200,7 @@ body.cine-end .cine__end{opacity:1;}
 }
 .cine__end-title{
   position:absolute;left:clamp(20px,6vw,90px);bottom:clamp(72px,13vh,140px);right:clamp(20px,6vw,90px);
-  margin:0;color:var(--paper);
+  margin:0;color:var(--ink);            /* light parchment over the photo (--paper is the dark page now) */
   font-family:var(--serif);font-style:italic;font-weight:400;
   font-size:clamp(3rem,7.5vw,6rem);line-height:1;letter-spacing:-.012em;
   text-shadow:0 1px 2px rgba(8,12,7,.45),0 2px 40px rgba(8,12,7,.5);
@@ -212,16 +220,16 @@ body.cine-end .cine__end-title{transform:none;}
 /* transparent nav sits over the DARK cinematic hero → light text (fable default
    is dark, for its light hero). `.nav.solid` (in the content below) stays dark. */
 .nav:not(.solid){text-shadow:0 1px 22px rgba(0,0,0,.4);}
-.nav:not(.solid) .nav__logo{color:var(--paper);}
-.nav:not(.solid) .nav__logo-jp{color:rgba(249,245,233,.72);}
-.nav:not(.solid) .nav__links a{color:rgba(249,245,233,.82);}
+.nav:not(.solid) .nav__logo{color:var(--ink);}
+.nav:not(.solid) .nav__logo-jp{color:rgba(240,232,216,.72);}
+.nav:not(.solid) .nav__links a{color:rgba(240,232,216,.82);}
 .nav:not(.solid) .nav__links a:hover,
-.nav:not(.solid) .nav__links a.active{color:var(--paper);}
+.nav:not(.solid) .nav__links a.active{color:var(--ink);}
 .nav:not(.solid) .nav__cta{
-  background:rgba(249,245,233,.14);color:var(--paper);
+  background:rgba(240,232,216,.14);color:var(--ink);
   -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
 }
-.nav:not(.solid) .nav__burger span{background:var(--paper);}
+.nav:not(.solid) .nav__burger span{background:var(--ink);}
 
 /* ═══ MARQUEE ═══ */
 .marquee{
@@ -513,14 +521,14 @@ body.cine-end .cine__end-title{transform:none;}
   padding-bottom:34px;border-bottom:1px solid rgba(249,245,233,.14);
 }
 .footer__logo{
-  font-weight:700;font-size:1rem;letter-spacing:.3em;color:var(--paper);text-decoration:none;
+  font-weight:700;font-size:1rem;letter-spacing:.3em;color:var(--ink);text-decoration:none;
 }
 .footer__links{display:flex;gap:28px;flex-wrap:wrap;}
 .footer__links a{
   font-size:.78rem;font-weight:500;letter-spacing:.08em;color:rgba(249,245,233,.6);
   text-decoration:none;transition:color .25s;
 }
-.footer__links a:hover{color:var(--paper);}
+.footer__links a:hover{color:var(--ink);}
 .footer__bottom{
   display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
   padding-top:26px;font-size:.75rem;letter-spacing:.06em;
