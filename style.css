@@ -172,7 +172,10 @@ input,select,textarea{accent-color:var(--olive);}
    A tall scroll TRACK (#cine) whose inner stage is position:sticky, so the
    screen stays pinned while scrolling scrubs the 505 rendered frames onto the
    canvas. The frames carry the whole hero — only a wordless scroll cue on top. */
-.cine{position:relative;height:520vh;background:#0f150e;}
+/* height enlarged from 520vh to absorb the underwater "slow zone" (scrubber.js
+   SLOW): the extra travel goes to the water frames so everything else keeps its
+   original scroll speed. Keep in sync with SLOW.factor/band. */
+.cine{position:relative;height:655vh;background:#0f150e;}
 .cine__sticky{
   position:sticky;top:0;height:100svh;overflow:hidden;
   background:#121a12;                       /* dark base — no white flash before frame 1 */

@@ -459,6 +459,46 @@
     // No frames at all: nothing to render, but don't hang the page.
     if (count <= 0) { safeCall(onLoadProgress, 0, 0); safeCall(onReady); return; }
 
+    // ---- scroll "slow zone" over the underwater transition ----
+    // The dive + underwater current (frames ~200..366) advance at REDUCED scroll
+    // sensitivity so the water reads slow and deliberate: each frame in the zone
+    // is given a larger scroll "weight" (factor× the normal per-frame scroll),
+    // smoothly ramped in/out so the change in feel is gradual, never a hard step.
+    // The .cine track in CSS is enlarged to absorb the extra travel, so frames
+    // OUTSIDE the zone keep their original sensitivity — nothing else speeds up.
+    // Keep SLOW roughly in sync with the .cine height (style.css); the height is
+    // tuned so non-zone density matches the old linear map.
+    var SLOW = { from: 200, a: 222, b: 346, to: 366, factor: 2.1 };
+    function smoothstep(t) { return t <= 0 ? 0 : (t >= 1 ? 1 : t * t * (3 - 2 * t)); }
+    function frameWeight(f) {
+      if (f <= SLOW.from || f >= SLOW.to) return 1;                   // flat outside the zone
+      if (f >= SLOW.a && f <= SLOW.b) return SLOW.factor;             // full-slow plateau
+      var t = (f < SLOW.a) ? (f - SLOW.from) / (SLOW.a - SLOW.from)   // ramp in
+                           : (SLOW.to - f) / (SLOW.to - SLOW.b);      // ramp out
+      return 1 + (SLOW.factor - 1) * smoothstep(t);
+    }
+    // Precompute cumulative weight: node[i] = weighted scroll position of frame i
+    // (node[1]=0). A wider gap node[i+1]-node[i] means more scroll to cross that
+    // frame = slower there. Built once; the per-tick lookup is a cheap bisect.
+    var node = new Float64Array(count + 1);
+    for (var wf = 2; wf <= count; wf++) node[wf] = node[wf - 1] + frameWeight(wf);
+    var span = node[count] || 1;
+    // Map linear scroll progress p∈[0,1] -> eased float frame index ∈[1,count],
+    // monotonic. Bisect for the segment then interpolate within it.
+    function frameForP(p) {
+      if (count <= 1) return 1;
+      var target = (p < 0 ? 0 : (p > 1 ? 1 : p)) * span;
+      var lo = 1, hi = count;                                         // largest i with node[i] <= target
+      while (lo < hi) {
+        var mid = (lo + hi + 1) >> 1;
+        if (node[mid] <= target) lo = mid; else hi = mid - 1;
+      }
+      if (lo >= count) return count;
+      var seg = node[lo + 1] - node[lo];
+      var ff = lo + (seg > 0 ? (target - node[lo]) / seg : 0);
+      return ff < 1 ? 1 : (ff > count ? count : ff);
+    }
+
     // ---- environment / mode ----
     // NOTE: the scrub is user-CONTROLLED (scroll position drives the frame), not
     // auto-playing motion, so we intentionally do NOT disable it under
@@ -590,9 +630,10 @@
         if (s.changed) { shownImg = null; renderedFrame = -1; }       // buffer cleared by resize -> force repaint
       }
 
-      // where scroll wants us, as a float frame index
+      // where scroll wants us, as a float frame index — warped so the underwater
+      // transition advances slower per unit scroll (see frameForP / the SLOW zone).
       var p = computeProgress();
-      targetFloat = 1 + p * (count > 1 ? count - 1 : 0);
+      targetFloat = frameForP(p);
       if (!primed) { currentFloat = targetFloat; primed = true; }     // first paint: no ease-in from frame 1
 
       // ease currentFloat toward targetFloat
