@@ -221,14 +221,18 @@
     bottles.forEach(function (b) {
       b.classList.toggle("is-active", b.dataset.flavour === key);
     });
-    detail.style.opacity = 0;
-    setTimeout(function () {
-      fJp.textContent = f.jp;
-      fDesc.textContent = f.desc;
-      fNotes.innerHTML = f.notes.map(function (n) { return "<li>" + n + "</li>"; }).join("");
-      detail.style.transition = "opacity .5s ease";
-      detail.style.opacity = 1;
-    }, reduceMotion ? 0 : 180);
+    /* detail panel was stripped for the minimalist layout; guard so tab clicks
+       still swap the bottle + tint without touching removed nodes. */
+    if (detail && fJp && fDesc && fNotes) {
+      detail.style.opacity = 0;
+      setTimeout(function () {
+        fJp.textContent = f.jp;
+        fDesc.textContent = f.desc;
+        fNotes.innerHTML = f.notes.map(function (n) { return "<li>" + n + "</li>"; }).join("");
+        detail.style.transition = "opacity .5s ease";
+        detail.style.opacity = 1;
+      }, reduceMotion ? 0 : 180);
+    }
   }
   tabs.forEach(function (t) {
     t.addEventListener("click", function () { selectFlavour(t.dataset.flavour); });
