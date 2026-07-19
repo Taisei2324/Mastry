@@ -51,6 +51,64 @@
   --jp:'Noto Serif JP',serif;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT THEME (day). The <head> boot script sets data-theme from the visitor's
+   local time (bright out = light, dark out = dark). Dark is the default :root
+   above; this overrides the tokens for daylight, so every var() consumer flips
+   at once. The hero FRAMES and their overlays (the transparent nav + the "In
+   Chios." card) sit over photographs, so they are pinned light in BOTH themes
+   below — they must not flip with the page. The footer's --dark background is
+   dark in both palettes (a deliberate anchor), so its logo/hover are re-pointed
+   light. ═══════════════════════════════════════════════════════════════════ */
+:root[data-theme="light"]{
+  --paper:#F9F5E9;          /* rice-paper */
+  --paper-deep:#F6F4EE;     /* stone-snow */
+  --ink:#1D2E18;            /* pine-needle */
+  --ink-soft:#30352C;       /* mountain-shadow */
+  --muted:#777061;          /* stone-taupe */
+  --hairline:#E6E0D1;       /* limestone */
+  --olive:#6B7A32;          /* olive-core */
+  --olive-deep:#46552A;     /* olive-moss */
+  --resin:#DED38E;          /* mastic-resin */
+  --resin-milk:#F7F4D8;     /* mastic-milk */
+  --dark:#1F2A1C;           /* charcoal-green — footer anchor stays dark */
+  --dark-2:#26341C;         /* olive-shadow */
+  --sage:#A8B88A;           /* light-sage */
+  --cream:#F4E8C1;          /* warm-cream */
+  --jp-blue:#6D9DAA;        /* mineral-blue — Japan accent */
+  --gr-olive:#91964F;       /* mastic-olive — Greece accent */
+  --clay:#C3936C;           /* clay-sun */
+  --sun:#C6A548;            /* sun-muted */
+  --creek:#659F90;          /* water-creek */
+  --mist:#EEF2D7;           /* olive-mist */
+  --wash-sage:#F4F7EF;      /* sage-wash */
+  --wash-sky:#F3FAFC;       /* sky-frost */
+  --amber:#6B7A32;
+  --amber-glow:rgba(107,122,50,.30);
+  --amber-soft:rgba(107,122,50,.10);
+  --surface-raised:#EEF2D7;
+  --fl-wash:#F7F4D8;
+  --fl-accent:#91964F;
+  --fl-deep:#596532;
+  color-scheme:light;
+  scrollbar-color:#B8C79E #F9F5E9;
+}
+/* solid nav (scrolled into the light content) → light bar; its ink flips via tokens */
+[data-theme="light"] .nav.solid{background:rgba(249,245,233,.85);}
+/* order form + native controls read as daylight */
+[data-theme="light"] .order{color-scheme:light;}
+[data-theme="light"] .fg select option{background:var(--paper);color:var(--ink);}
+/* footer stays a dark anchor in daylight → keep its logo + link-hover LIGHT */
+[data-theme="light"] .footer__logo,
+[data-theme="light"] .footer__links a:hover{color:#F9F5E9;}
+/* FRAME OVERLAYS pinned light in daylight too — they sit over photos, not the page */
+[data-theme="light"] .nav:not(.solid) .nav__logo,
+[data-theme="light"] .nav:not(.solid) .nav__links a:hover,
+[data-theme="light"] .nav:not(.solid) .nav__links a.active,
+[data-theme="light"] .nav:not(.solid) .nav__cta,
+[data-theme="light"] .cine__end-title{color:#F0E8D8;}
+[data-theme="light"] .nav:not(.solid) .nav__burger span{background:#F0E8D8;}
+
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
 body{
   font-family:var(--sans);
