@@ -508,17 +508,34 @@
     var noScroll = !scrollEl || !scrollEl.getBoundingClientRect;      // can't scrub without a driver
     var still = noScroll;                                             // "paint one representative frame" mode
 
-    // ---- tier selection (mobile vs desktop) ----
-    // Prefer mobile only if the manifest declares a mobile tier AND the viewport
-    // is small. If the mobile dir/frames turn out to be missing at load time we
-    // fall back to desktop (handled in the load callbacks below).
-    var hasMobile = nonEmptyStr(manifest.baseM);
-    var hasDesktop = nonEmptyStr(manifest.base);
+    // ---- tier selection: two INDEPENDENT axes ----
+    // RESOLUTION follows the CONNECTION: a slow link (data-saver, 2g/3g, or a weak
+    //   "low" 4g) loads the lighter 720p tier (manifest.baseLow) so the hero still
+    //   arrives quickly; everything else loads full 1080p (manifest.base). The
+    //   Network Information API is absent on iOS Safari → treated as "not slow" →
+    //   1080p, matching the max-quality default.
+    // MEMORY BOUNDING follows the VIEWPORT: small/mobile screens hold only a decoded
+    //   window (phones have a tight image budget); desktops hold the whole reel.
+    // tier is an object {low, bounded}; a 720p miss falls back to 1080p (same bound).
+    var hasLow = nonEmptyStr(manifest.baseLow);
+    var hasBase = nonEmptyStr(manifest.base);
     var smallViewport = mmMatches('(max-width:760px)') || (win.innerWidth || 9999) <= 760;
-    var tier = (hasMobile && smallViewport) ? 'mobile' : 'desktop';
-    function baseFor(t) { return t === 'mobile' ? String(manifest.baseM || '') : String(manifest.base || ''); }
+    function detectSlowNet() {
+      try {
+        var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (!c) return false;                                         // no API (iOS) → assume fast → 1080p
+        if (c.saveData) return true;                                  // user opted into data-saver
+        var et = c.effectiveType || '';
+        if (/(^|-)2g$/.test(et) || et === '3g') return true;          // 3g and below
+        if (et === '4g' && c.downlink > 0 && c.downlink < 2) return true; // a weak ("low") 4g
+      } catch (e) {}
+      return false;
+    }
+    var tier = { low: hasLow && detectSlowNet(), bounded: smallViewport };
+    function baseFor(t) { return String((t.low ? manifest.baseLow : manifest.base) || ''); }
     function frameUrl(t, i) { return baseFor(t) + String(i).padStart(pad, '0') + '.' + ext; }
-    function canFallback(t) { return t === 'mobile' && hasDesktop; }
+    function canFallback(t) { return t.low && hasBase; }             // 720p dir missing → drop to 1080p
+    function fallbackTier(t) { return { low: false, bounded: t.bounded }; }
 
     // ---- instance handle ----
     var inst = { destroyed: false, teardown: noop };
@@ -551,7 +568,7 @@
         fireReady();
       }, function () {
         if (inst.destroyed) return;
-        if (canFallback(t) && !triedFallback) { triedFallback = true; startStill('desktop'); return; }
+        if (canFallback(t) && !triedFallback) { triedFallback = true; startStill(fallbackTier(t)); return; }
         fireReady();                                                  // couldn't load; still let the page proceed
       });
     }
@@ -671,22 +688,25 @@
     }
 
     function buildStore(t) {
-      var mob = (t === 'mobile');
+      // Desktop (unbounded): preload the whole reel and keep every frame decoded —
+      //   plenty of RAM. Mobile (bounded): hold only a decoded window around the
+      //   playhead and stream the rest (HTTP-cached, so revisits re-decode, not
+      //   re-download). Window is sized per RESOLUTION to land ~340-365MB held:
+      //   1080p ≈ 8.3MB/frame → 44 frames; 720p ≈ 3.7MB/frame → 90 frames. In every
+      //   case maxDecoded > 2×maxRadius so the farthest held frame sits outside the
+      //   schedule window and eviction can't thrash against the preloader. The
+      //   accepted trade on 1080p mobile is the odd re-decode on a very fast fling.
+      var cfg = !t.bounded
+        ? { concurrency: 6, window: 100, maxRadius: 0,  maxDecoded: 0  }   // desktop: unbounded
+        : t.low
+          ? { concurrency: 4, window: 40, maxRadius: 40, maxDecoded: 90 } // mobile 720p: ~333MB
+          : { concurrency: 3, window: 20, maxRadius: 20, maxDecoded: 44 };// mobile 1080p: ~365MB
       return createFrameStore({
         base: baseFor(t), ext: ext, pad: pad, count: count,
-        // Desktop: preload the whole reel and keep every frame decoded (works well,
-        //   plenty of RAM) -> maxRadius/maxDecoded unset = unbounded, unchanged behaviour.
-        // Mobile: the tier now loads the FULL 1080p frames (~8.3MB each decoded), so the
-        //   window is tight — hold ~44 frames around the playhead (~365MB) and stream the
-        //   rest as you scroll (HTTP-cached, so revisits re-decode, not re-download). This
-        //   keeps 1080p on a phone within the image budget; the slower fps-fix trade the
-        //   user accepted is the occasional re-decode on a very fast fling.
-        //   maxDecoded(44) > 2×window(20): the farthest held frame is outside the schedule
-        //   window, so eviction can't thrash against the preloader.
-        concurrency: mob ? 3 : 6,       // fewer parallel 1080p decodes -> smaller memory spikes
-        window: mob ? 20 : 100,
-        maxRadius: mob ? 20 : 0,        // 0 -> unbounded outward fill (desktop)
-        maxDecoded: mob ? 44 : 0,       // 0 -> hold all decoded (desktop)
+        concurrency: cfg.concurrency,
+        window: cfg.window,
+        maxRadius: cfg.maxRadius,
+        maxDecoded: cfg.maxDecoded,
         onProgress: function (loaded, total) { if (!inst.destroyed) safeCall(onLoadProgress, loaded, total); },
         onReadyFrame: function () { if (!inst.destroyed) requestTick(); } // a frame decoded -> maybe upgrade paint
       });
@@ -704,7 +724,7 @@
         requestTick();
       }, function () {
         if (inst.destroyed || store !== thisStore) return;
-        if (canFallback(t) && !triedFallback) { triedFallback = true; startScrub('desktop'); }
+        if (canFallback(t) && !triedFallback) { triedFallback = true; startScrub(fallbackTier(t)); }
         // else frame 1 failed on desktop too — critical settle below still fires onReady
       });
 
