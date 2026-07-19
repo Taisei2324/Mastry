@@ -369,6 +369,16 @@
       focusCenter = clampFrame(i);
       schedulePump();
     }
+    // Re-budget the preloader after creation. Used to PHASE the load: start with a
+    // small window (fast, contention-free first paint), then widen once the hero
+    // is on screen so the rest of the reel streams in behind the visitor without
+    // starving the initial render. Pass Infinity/0 for maxR to mean "unbounded".
+    function setBudget(win, maxR) {
+      if (destroyed) return;
+      if (win != null) windowRadius = Math.max(0, win | 0);
+      if (maxR != null) maxRadius = (isFinite(maxR) && maxR > 0) ? (maxR | 0) : Infinity;
+      schedulePump();
+    }
     // Promise<Image> resolving when frame i is decoded. Jumps the queue (top
     // priority) but still obeys the global concurrency cap. Shared per index.
     function ensure(i) {
@@ -408,7 +418,7 @@
     return {
       total: count,
       get: get, isReady: isReady, nearestReady: nearestReady,
-      focus: focus, ensure: ensure, loadedCount: loadedCount, destroy: destroy
+      focus: focus, setBudget: setBudget, ensure: ensure, loadedCount: loadedCount, destroy: destroy
     };
   }
 
@@ -697,7 +707,7 @@
       //   schedule window and eviction can't thrash against the preloader. The
       //   accepted trade on 1080p mobile is the odd re-decode on a very fast fling.
       var cfg = !t.bounded
-        ? { concurrency: 6, window: 100, maxRadius: 0,  maxDecoded: 0  }   // desktop: unbounded
+        ? { concurrency: 6, window: 30, maxRadius: 60, maxDecoded: 0  }   // desktop: START small near the playhead for a fast, contention-free first paint; widened to the full reel after ready (see startScrub)
         : t.low
           ? { concurrency: 4, window: 40, maxRadius: 40, maxDecoded: 90 } // mobile 720p: ~333MB
           : { concurrency: 3, window: 20, maxRadius: 20, maxDecoded: 44 };// mobile 1080p: ~365MB
@@ -736,6 +746,15 @@
       Promise.all(crit).then(function () {
         if (inst.destroyed || store !== thisStore) return;            // don't fire ready for a superseded tier
         fireReady();
+        // Hero is on screen — NOW widen the desktop preload so the rest of the reel
+        // streams in behind the visitor (smooth seeking anywhere). Deferred a beat
+        // so the first paint and the opening glide aren't fighting a full-reel
+        // fetch burst — the burst is what stalls rendering on Safari / slow CPUs.
+        if (!t.bounded) {
+          win.setTimeout(function () {
+            if (!inst.destroyed && store === thisStore) store.setBudget(120, Infinity);
+          }, 700);
+        }
       });
     }
 

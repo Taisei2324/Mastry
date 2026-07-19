@@ -4,13 +4,119 @@
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* ── loader ── */
+  /* ── loader ──
+     YouTube-style: reveal the hero as soon as its FIRST frames are decoded
+     (scrubber onReady, below) and keep buffering the rest in the background — we
+     do NOT wait on window 'load' (all 505 frames + every image), which used to
+     keep the splash up for seconds. A short minimum keeps the wordmark from
+     flashing; a hard cap never traps the visitor. */
   var loader = document.getElementById("loader");
-  window.addEventListener("load", function () {
-    setTimeout(function () { loader.classList.add("done"); }, reduceMotion ? 0 : 900);
-  });
-  /* safety: never trap the user behind the loader */
-  setTimeout(function () { loader.classList.add("done"); }, 3500);
+  var loaderDone = false;
+  var loaderStart = Date.now();
+  var MIN_SPLASH = reduceMotion ? 0 : 550;
+  function dismissLoader() {
+    if (loaderDone || !loader) return;
+    loaderDone = true;
+    var wait = Math.max(0, MIN_SPLASH - (Date.now() - loaderStart));
+    /* Add the class synchronously when the minimum has elapsed. A NESTED
+       setTimeout here can be starved for seconds behind a heavy frame-load burst
+       (the outer timer fires on time, but a freshly-queued macrotask waits) —
+       which would keep the splash up long after it should clear. */
+    if (wait <= 0) loader.classList.add("done");
+    else setTimeout(function () { loader.classList.add("done"); }, wait);
+  }
+  setTimeout(dismissLoader, 3500);              /* safety: never trap the visitor */
+
+  /* ── cinematic auto-scroll (ice glide) ──
+     Once the hero is ready the page GLIDES down through the pinned cinematic on
+     its own — one smooth, constant-velocity motion that plays the bottle's
+     journey. The first genuine interaction (wheel, touch, drag, or a navigation
+     key) UNLOCKS it: the glide releases instantly and the visitor scrolls freely
+     from there, and it never re-locks. Honours reduced-motion and won't hijack a
+     visitor who has already started scrolling.
+
+     Why this also fixes Safari: driving the scroll on a steady rAF cadence keeps
+     the scrub engine's own loop running frame-to-frame, instead of depending on
+     Safari's coalesced/deferred wheel + momentum scroll events (the source of the
+     stutter). We also neutralise CSS `scroll-behavior:smooth` for the duration,
+     which otherwise fights every programmatic scrollTo on Safari and Chrome. */
+  var startAutoScroll = function () {};         /* no-op unless enabled just below */
+  (function () {
+    if (reduceMotion) return;                   /* auto-motion: honour the OS setting */
+    var cineEl = document.getElementById("cine");
+    if (!cineEl) return;
+
+    var running = false, unlocked = false, rafId = 0, t0 = 0, fromY = 0, toY = 0, dur = 0;
+    var rootEl = document.documentElement;
+    var prevBehavior = "";
+
+    /* ice glide: short ease-in, long CONSTANT-velocity cruise, short ease-out — a
+       trapezoidal speed profile (no fast middle), so the motion reads frictionless. */
+    function iceEase(t) {
+      if (t <= 0) return 0;
+      if (t >= 1) return 1;
+      var R = 0.16;                             /* ramp fraction at each end */
+      var cruise = 1 - 2 * R;
+      var v = 1 / (cruise + R);                 /* cruise speed, area-normalised to 1 */
+      if (t < R) return v * (t * t) / (2 * R);
+      if (t < R + cruise) return v * (R / 2 + (t - R));
+      var td = t - R - cruise;
+      return v * (R / 2 + cruise + td - (td * td) / (2 * R));
+    }
+
+    function restoreBehavior() { rootEl.style.scrollBehavior = prevBehavior; }
+    function stop() {
+      if (!running) return;
+      running = false;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      restoreBehavior();                        /* hand back CSS smooth for anchor links */
+    }
+    function unlock() {                          /* the visitor took over — release for good */
+      if (unlocked) return;
+      unlocked = true;
+      stop();
+      EVENTS.forEach(function (type) { window.removeEventListener(type, onIntent, INTENT_OPTS); });
+    }
+    function tick(now) {
+      if (!running) return;
+      var p = dur > 0 ? Math.min((now - t0) / dur, 1) : 1;
+      var y = fromY + (toY - fromY) * iceEase(p);
+      try { window.scrollTo({ top: y, left: 0, behavior: "auto" }); }
+      catch (e) { window.scrollTo(0, y); }      /* older Safari: object form unsupported */
+      if (p < 1) rafId = requestAnimationFrame(tick);
+      else stop();                              /* reached the end of the hero — hand off */
+    }
+
+    startAutoScroll = function () {
+      if (unlocked || running) return;
+      if ((window.scrollY || window.pageYOffset || 0) > 4) return;   /* visitor already moved */
+      fromY = window.scrollY || window.pageYOffset || 0;
+      toY = Math.max(0, cineEl.offsetTop + cineEl.offsetHeight - window.innerHeight);
+      var dist = toY - fromY;
+      if (dist <= 0) return;
+      dur = Math.min(18000, Math.max(10000, dist / 0.38));   /* ~10–18s glide, paced to the hero */
+      prevBehavior = rootEl.style.scrollBehavior;
+      rootEl.style.scrollBehavior = "auto";     /* stop CSS smooth from fighting the glide */
+      t0 = performance.now();
+      running = true;
+      rafId = requestAnimationFrame(tick);
+    };
+
+    /* Genuine user-intent events unlock; the glide's own scrollTo does NOT (we
+       never listen to 'scroll'). Navigation keys count; typing in a field doesn't. */
+    var EVENTS = ["wheel", "touchstart", "touchmove", "pointerdown", "mousedown", "keydown"];
+    var INTENT_OPTS = { passive: true };
+    var NAV_KEYS = { ArrowDown: 1, ArrowUp: 1, PageDown: 1, PageUp: 1, Home: 1, End: 1, " ": 1, Spacebar: 1 };
+    function onIntent(e) {
+      if (e.type === "keydown") {
+        var tag = (e.target && e.target.tagName) || "";
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;  /* let forms type */
+        if (!NAV_KEYS[e.key]) return;           /* only navigation keys mean "take over" */
+      }
+      unlock();
+    }
+    EVENTS.forEach(function (type) { window.addEventListener(type, onIntent, INTENT_OPTS); });
+  })();
 
   /* ── hero: scroll-scrub cinematic (frames.js manifest + scrubber.js engine) ──
      A tall pinned track scrubs 505 rendered frames onto #heroCanvas as you
@@ -23,7 +129,11 @@
     var root = document.documentElement;
     window.MastryScrubber.init({
       canvas: canvas, manifest: window.MASTRY_FRAMES, scrollEl: cineEl,
-      onReady: function () { document.body.classList.add("cine-ready"); },
+      onReady: function () {
+        document.body.classList.add("cine-ready");
+        dismissLoader();                         /* first frames decoded — reveal now, keep buffering */
+        setTimeout(startAutoScroll, 800);        /* let the splash finish fading, then glide */
+      },
       onProgress: function (p) {                 /* eased progress from the engine */
         if (p < 0) p = 0; else if (p > 1) p = 1;
         root.style.setProperty("--cp", p.toFixed(4));
