@@ -1,69 +1,56 @@
-// Nav scroll shadow
+// ─── Nav scroll shadow ──────────────────────────────────
+// Throttled with requestAnimationFrame + a passive listener so momentum
+// scrolling on mobile doesn't peg the main thread (each toggle repaints the
+// backdrop-filtered nav, which is expensive on phones).
 const nav = document.querySelector('.nav');
+let scrollScheduled = false;
 window.addEventListener('scroll', () => {
-  nav.classList.toggle('scrolled', window.scrollY > 40);
-});
+  if (scrollScheduled) return;
+  scrollScheduled = true;
+  requestAnimationFrame(() => {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+    scrollScheduled = false;
+  });
+}, { passive: true });
 
-// Mobile burger toggle
+// ─── Mobile burger toggle ───────────────────────────────
+// State lives in a single CSS class instead of a pile of inline styles.
 const burger = document.querySelector('.nav__burger');
 const navLinks = document.querySelector('.nav__links');
 burger.addEventListener('click', () => {
-  const open = navLinks.style.display === 'flex';
-  navLinks.style.display = open ? '' : 'flex';
-  navLinks.style.flexDirection = 'column';
-  navLinks.style.position = 'absolute';
-  navLinks.style.top = '72px';
-  navLinks.style.left = '0';
-  navLinks.style.right = '0';
-  navLinks.style.background = 'var(--clr-bg)';
-  navLinks.style.padding = '20px 40px';
-  navLinks.style.borderBottom = '1px solid var(--clr-border)';
-  if (open) navLinks.style.cssText = '';
+  navLinks.classList.toggle('nav__links--open');
 });
 
-// Close mobile nav on link click
+// Close the mobile nav after tapping a link
 document.querySelectorAll('.nav__links a').forEach(link => {
   link.addEventListener('click', () => {
-    navLinks.style.cssText = '';
+    navLinks.classList.remove('nav__links--open');
   });
 });
 
-// Fade-in on scroll
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
-      observer.unobserve(entry.target);
-    }
+// ─── Fade-in on scroll ──────────────────────────────────
+// Elements start hidden via the `.reveal` class and get `.visible` when they
+// scroll into view (CSS handles the transition). If IntersectionObserver is
+// unavailable, everything is shown immediately so content is never stuck
+// invisible.
+const revealEls = document.querySelectorAll(
+  '.menu-card, .testimonial, .gallery__item, .about__image-wrap, .stat'
+);
+
+if ('IntersectionObserver' in window) {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  revealEls.forEach(el => {
+    el.classList.add('reveal');
+    observer.observe(el);
   });
-}, { threshold: 0.12 });
-
-document.querySelectorAll('.menu-card, .testimonial, .gallery__item, .about__image-wrap, .stat').forEach(el => {
-  el.style.opacity = '0';
-  el.style.transform = 'translateY(24px)';
-  el.style.transition = 'opacity .5s ease, transform .5s ease';
-  observer.observe(el);
-});
-
-document.addEventListener('animationend', () => {}, { once: true });
-
-// Polyfill for IntersectionObserver visible class
-document.querySelectorAll('.menu-card, .testimonial, .gallery__item, .about__image-wrap, .stat').forEach(el => {
-  const style = el.style;
-  const origTransition = 'opacity .5s ease, transform .5s ease';
-  el._observer_cb = () => {
-    style.opacity = '1';
-    style.transform = 'translateY(0)';
-  };
-});
-
-// Attach visible class handler
-document.querySelectorAll('.menu-card, .testimonial, .gallery__item, .about__image-wrap, .stat').forEach(el => {
-  const mutObs = new MutationObserver(() => {
-    if (el.classList.contains('visible')) {
-      el.style.opacity = '1';
-      el.style.transform = 'translateY(0)';
-    }
-  });
-  mutObs.observe(el, { attributes: true, attributeFilter: ['class'] });
-});
+} else {
+  revealEls.forEach(el => el.classList.add('visible'));
+}

@@ -41,6 +41,22 @@ a { text-decoration: none; color: inherit; }
 ul { list-style: none; }
 address { font-style: normal; }
 
+/* ─── Scroll reveal (driven by JS adding `.visible`) ─────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity .5s ease, transform .5s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+
 /* ─── Buttons ───────────────────────────────────────────── */
 .btn {
   display: inline-flex;
@@ -663,4 +679,21 @@ address { font-style: normal; }
   .btn { width: 100%; justify-content: center; }
   .about__stats { flex-direction: column; gap: 24px; }
   .gallery__grid { grid-template-columns: 1fr; }
+}
+
+/* ─── Mobile nav open state ──────────────────────────────
+   Placed last so it wins source-order over the `display:none`
+   applied to .nav__links in the max-width:768px block above. */
+.nav__links--open {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  position: absolute;
+  top: 72px;
+  left: 0;
+  right: 0;
+  background: var(--clr-bg);
+  padding: 20px 40px;
+  border-bottom: 1px solid var(--clr-border);
 }
