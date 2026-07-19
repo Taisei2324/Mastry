@@ -148,6 +148,8 @@
     var count = Math.max(0, opts.count | 0);                          // 0 = valid empty store
     var concurrency = Math.min(8, Math.max(1, opts.concurrency == null ? 6 : (opts.concurrency | 0)));
     var windowRadius = Math.max(0, opts.window == null ? 60 : (opts.window | 0));
+    var maxRadius = (opts.maxRadius != null && opts.maxRadius > 0) ? (opts.maxRadius | 0) : Infinity; // cap outward fill (mobile: don't preload the whole reel)
+    var maxDecoded = Math.max(0, opts.maxDecoded == null ? 0 : (opts.maxDecoded | 0)); // held-frame cap; 0 = unbounded (hold all)
     var onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : null;
     var onReadyFrame = typeof opts.onReadyFrame === 'function' ? opts.onReadyFrame : null;
 
@@ -162,7 +164,9 @@
     // ---- scheduler bookkeeping ----
     var inFlightImgs = new Map();                                     // i -> loading Image (for destroy/abort)
     var inFlightCount = 0;                                            // occupied concurrency slots
-    var readyCount = 0;                                               // cumulative ready == loadedCount()
+    var readyCount = 0;                                               // DISTINCT frames ever readied (monotonic; drives load %)
+    var heldReady = 0;                                                // frames CURRENTLY decoded & held in imgs[] (bounded by maxDecoded)
+    var everSeen = new Uint8Array(count + 1);                        // 1 once a frame has readied — keeps readyCount monotonic across evictions
     var focusCenter = count > 0 ? 1 : 0;                             // priority center, set by focus()
     var destroyed = false;
     var pumpScheduled = false;                                        // microtask coalescing for focus()-spam
@@ -211,7 +215,7 @@
         }
       }
 
-      var maxOff = Math.max(c - lo, hi - c);
+      var maxOff = Math.min(maxRadius, Math.max(c - lo, hi - c));     // mobile: bounded fill — only schedule near the playhead, not the whole reel
       for (var off2 = windowRadius + 1; off2 <= maxOff; off2++) {
         var a2 = c + off2;
         if (a2 <= hi && state[a2] === STATE_IDLE) return a2;
@@ -267,14 +271,16 @@
       state[i] = STATE_READY;
       imgs[i] = img;
       inFlightCount--;
-      readyCount++;
+      heldReady++;
+      if (!everSeen[i]) { everSeen[i] = 1; readyCount++; }           // first-ever load -> bump monotonic progress
       pinned.delete(i);
 
       if (onReadyFrame) onReadyFrame(i);
-      if (onProgress) onProgress(readyCount, count);                 // once per frame, monotonic
+      if (onProgress) onProgress(readyCount, count);                 // monotonic (eviction below never regresses it)
 
       settleEnsure(i, null, img);
-      schedulePump();                                                 // a slot freed — keep the pipe full
+      maybeEvict();                                                  // bound decoded-image RAM (mobile): drop frames far from the playhead
+      schedulePump();                                                // a slot freed — keep the pipe full
     }
 
     function failLoad(i) {
@@ -292,6 +298,41 @@
       ensureResolvers.delete(i);
       ensureCache.delete(i);
       if (err) r.reject(err); else r.resolve(img);
+    }
+
+    // ---- decoded-memory cap (mobile) ----
+    // Holding every decoded frame (505 × ~2MB @540p ≈ 1GB) overruns a phone's
+    // image budget, so the browser silently evicts+re-decodes under the hood —
+    // the synchronous re-decode on each drawImage is the mid-scroll "1fps" stutter.
+    // With maxDecoded set we instead keep a bounded window of decoded frames around
+    // focusCenter (the playhead) and release the farthest ones; a released frame is
+    // just STATE_IDLE, so it reloads normally if the user scrolls back to it.
+    function maybeEvict() {
+      if (maxDecoded <= 0) return;                                    // desktop: unbounded, no-op
+      var guard = count + 2;                                          // hard stop against any pathological spin
+      while (heldReady > maxDecoded && guard-- > 0) {
+        var v = pickEvict();
+        if (v === 0) break;                                          // nothing safely evictable — bail
+        evict(v);
+      }
+    }
+    // Farthest READY frame from the playhead, never a pinned/ensure()'d one. The
+    // scheduled fill radius (maxRadius) is < maxDecoded/2, so the farthest held
+    // frame is always outside the schedule window and won't immediately reload.
+    function pickEvict() {
+      var best = 0, bestDist = -1;
+      for (var i = 1; i <= count; i++) {
+        if (state[i] !== STATE_READY || pinned.has(i)) continue;
+        var d = i > focusCenter ? i - focusCenter : focusCenter - i;
+        if (d > bestDist) { bestDist = d; best = i; }
+      }
+      return best;
+    }
+    function evict(i) {
+      imgs[i] = null;                                                // drop the decoded bitmap (GC-eligible)
+      state[i] = STATE_IDLE;                                          // reloadable on revisit
+      heldReady--;
+      // readyCount / everSeen untouched -> load progress never regresses
     }
 
     // ---- public store API ----
@@ -357,8 +398,10 @@
       ensureCache.clear();
       for (var i = 0; i <= count; i++) imgs[i] = null;
       state.fill(STATE_IDLE);
+      everSeen.fill(0);
       inFlightCount = 0;
       readyCount = 0;
+      heldReady = 0;
       pumpScheduled = false;
     }
 
@@ -587,9 +630,19 @@
     }
 
     function buildStore(t) {
+      var mob = (t === 'mobile');
       return createFrameStore({
         base: baseFor(t), ext: ext, pad: pad, count: count,
-        concurrency: 6, window: 100,
+        // Desktop: preload the whole reel and keep every frame decoded (works well,
+        //   plenty of RAM) -> maxRadius/maxDecoded unset = unbounded, unchanged behaviour.
+        // Mobile: hold only a ~160-frame window around the playhead so decoded-image
+        //   memory stays ~320MB (540p) instead of ~1GB — this is the mid-scroll fps fix.
+        //   maxDecoded(160) > 2×window(70): the farthest held frame is always outside
+        //   the schedule window, so eviction can't thrash against the preloader.
+        concurrency: mob ? 4 : 6,
+        window: mob ? 70 : 100,
+        maxRadius: mob ? 70 : 0,        // 0 -> unbounded outward fill (desktop)
+        maxDecoded: mob ? 160 : 0,      // 0 -> hold all decoded (desktop)
         onProgress: function (loaded, total) { if (!inst.destroyed) safeCall(onLoadProgress, loaded, total); },
         onReadyFrame: function () { if (!inst.destroyed) requestTick(); } // a frame decoded -> maybe upgrade paint
       });
