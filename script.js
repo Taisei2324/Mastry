@@ -12,6 +12,33 @@
   /* safety: never trap the user behind the loader */
   setTimeout(function () { loader.classList.add("done"); }, 3500);
 
+  /* ── hero: scroll-scrub cinematic (frames.js manifest + scrubber.js engine) ──
+     A tall pinned track scrubs 505 rendered frames onto #heroCanvas as you
+     scroll. onProgress drives the phase overlays (data-cine) + the marker (--cp).
+     The engine handles preloading, HiDPI cover-fit, tiers, and reduced-motion. */
+  (function () {
+    var cineEl = document.getElementById("cine");
+    var canvas = document.getElementById("heroCanvas");
+    if (!cineEl || !canvas || !window.MastryScrubber || !window.MASTRY_FRAMES) return;
+    var root = document.documentElement, body = document.body;
+    var PH = [["japan", 0.395], ["topple", 0.458], ["dive", 0.514],
+              ["journey", 0.673], ["surface", 0.851], ["greece", 1.01]];
+    function phaseFor(p) { for (var i = 0; i < PH.length; i++) { if (p < PH[i][1]) return PH[i][0]; } return "greece"; }
+    var cur = "japan";
+    body.setAttribute("data-cine", "japan");
+    window.MastryScrubber.init({
+      canvas: canvas, manifest: window.MASTRY_FRAMES, scrollEl: cineEl,
+      onReady: function () { body.classList.add("cine-ready"); },
+      onProgress: function (p) {
+        if (p < 0) p = 0; else if (p > 1) p = 1;
+        root.style.setProperty("--cp", p.toFixed(4));
+        var ph = phaseFor(p);
+        if (ph !== cur) { cur = ph; body.setAttribute("data-cine", ph); }
+      },
+      onLoadProgress: function () {}
+    });
+  })();
+
   /* ── scroll engine: data-speed (parallax Y), data-drift (X scrub), data-rotate ──
      Layout positions are cached (not read per frame) so scrolling stays 60fps. */
   var stage = [];
@@ -55,38 +82,28 @@
     measureStage();
   }
 
-  /* ── nav + hero scroll choreography ── */
+  /* ── nav + progress ── */
   var nav = document.getElementById("nav");
   var progress = document.getElementById("progress");
-  var heroBottle = document.getElementById("heroBottle");
-  var heroCopy = document.querySelector(".hero__copy");
-  var heroVertical = document.querySelector(".hero__vertical");
-  var scrollCue = document.querySelector(".hero__scrollcue");
+  var cine = document.getElementById("cine");
   var lastY = 0;
 
   function onScroll() {
     var y = window.scrollY;
     var vh = window.innerHeight;
-    nav.classList.toggle("solid", y > 40);
-    /* hide nav scrolling down, reveal scrolling up */
-    if (!reduceMotion) {
-      if (y > 480 && y > lastY + 2) nav.classList.add("hidden");
-      else if (y < lastY - 2 || y <= 480) nav.classList.remove("hidden");
+    /* The cinematic hero is a tall, dark, full-bleed track. Keep the nav
+       transparent + light (and always visible) across it; turn it solid — and
+       enable hide-on-scroll-down — only once we're past it, in the light content. */
+    var heroExit = cine ? cine.offsetHeight - vh * 1.1 : 40;
+    nav.classList.toggle("solid", y > heroExit);
+    if (!reduceMotion && y > heroExit) {
+      if (y > lastY + 2) nav.classList.add("hidden");
+      else if (y < lastY - 2) nav.classList.remove("hidden");
+    } else {
+      nav.classList.remove("hidden");
     }
     var h = document.documentElement.scrollHeight - vh;
     progress.style.width = (h > 0 ? (y / h) * 100 : 0) + "%";
-    /* hero: bottle sinks + tilts, copy lifts + fades, side text and cue drift */
-    if (!reduceMotion && y < vh) {
-      if (heroBottle) heroBottle.style.transform =
-        "translateY(" + (y * 0.14).toFixed(1) + "px) rotate(" + (y * 0.006).toFixed(2) + "deg)";
-      if (heroCopy) {
-        heroCopy.style.transform = "translateY(" + (y * 0.07).toFixed(1) + "px)";
-        heroCopy.style.opacity = Math.max(0, 1 - y / (vh * 0.85)).toFixed(3);
-      }
-      if (heroVertical) heroVertical.style.transform =
-        "translateY(calc(-50% + " + (y * 0.12).toFixed(1) + "px))";
-      if (scrollCue) scrollCue.style.opacity = Math.max(0, 1 - y / (vh * 0.3)).toFixed(3);
-    }
     choreograph();
     lastY = y;
   }
@@ -222,62 +239,8 @@
     t.addEventListener("click", function () { selectFlavour(t.dataset.flavour); });
   });
 
-  /* ── hero bubbles ── */
-  var canvas = document.getElementById("bubbles");
-  if (canvas && !reduceMotion) {
-    var ctx = canvas.getContext("2d");
-    var bubbles = [];
-    var running = true;
-
-    function resize() {
-      canvas.width = canvas.offsetWidth * devicePixelRatio;
-      canvas.height = canvas.offsetHeight * devicePixelRatio;
-    }
-    resize();
-    window.addEventListener("resize", resize);
-
-    function spawn() {
-      var w = canvas.width;
-      return {
-        x: w * (0.3 + Math.random() * 0.4),
-        y: canvas.height + 10,
-        r: (1 + Math.random() * 2.6) * devicePixelRatio,
-        v: (0.35 + Math.random() * 0.75) * devicePixelRatio,
-        drift: (Math.random() - 0.5) * 0.35 * devicePixelRatio,
-        a: 0.12 + Math.random() * 0.25
-      };
-    }
-    for (var i = 0; i < 26; i++) {
-      var b = spawn();
-      b.y = Math.random() * canvas.height;
-      bubbles.push(b);
-    }
-
-    function tick() {
-      if (!running) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = "rgba(107,122,50,0.55)"; /* olive-core */
-      bubbles.forEach(function (b, idx) {
-        b.y -= b.v;
-        b.x += b.drift;
-        if (b.y < -12) bubbles[idx] = spawn();
-        ctx.globalAlpha = b.a;
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      ctx.globalAlpha = 1;
-      requestAnimationFrame(tick);
-    }
-    tick();
-
-    /* pause when hero is off-screen */
-    new IntersectionObserver(function (entries) {
-      var visible = entries[0].isIntersecting;
-      if (visible && !running) { running = true; tick(); }
-      else if (!visible) { running = false; }
-    }).observe(canvas);
-  }
+  /* (the old hero bubbles canvas was removed — the hero is now the scroll-scrub
+     cinematic wired above.) */
 
   /* ── scenery rotation ── */
   var sceneryFrame = document.getElementById("sceneryFrame");

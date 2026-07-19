@@ -50,7 +50,9 @@ body{
   background:var(--paper);
   color:var(--ink);
   line-height:1.6;
-  overflow-x:hidden;
+  /* `clip`, not `hidden`: hidden forces overflow-y to `auto`, making body a
+     scroll container that breaks the cinematic hero's position:sticky pinning. */
+  overflow-x:clip;
   -webkit-font-smoothing:antialiased;
 }
 ::selection{background:var(--olive);color:var(--paper);}
@@ -158,15 +160,7 @@ input,select,textarea{accent-color:var(--olive);}
 .reveal--fade.in{opacity:1;}
 [data-speed],[data-drift],[data-rotate]{will-change:transform;}
 
-/* ═══ HERO ═══ */
-.hero{
-  min-height:100svh;display:flex;flex-direction:column;position:relative;padding-top:var(--nav-h);
-  background:linear-gradient(180deg,var(--wash-sky) 0%,var(--paper) 36%);
-}
-.hero__inner{
-  flex:1;display:grid;grid-template-columns:1.05fr .95fr;align-items:center;
-  max-width:1500px;margin:0 auto;width:100%;padding:20px clamp(20px,6vw,90px) 40px;gap:30px;
-}
+/* shared kicker (used by the cinematic hero overlay) */
 .kicker{
   font-size:.72rem;font-weight:600;letter-spacing:.3em;text-transform:uppercase;color:var(--olive);
   margin-bottom:30px;
@@ -174,46 +168,123 @@ input,select,textarea{accent-color:var(--olive);}
 .kicker__dot{color:var(--muted);margin:0 6px;}
 .kicker__gr{color:var(--gr-olive);}
 .kicker__jp{color:var(--jp-blue);}
-.hero__title{
-  font-family:var(--serif);font-weight:400;
-  font-size:clamp(2.7rem,6vw,5.4rem);line-height:1.06;letter-spacing:.005em;margin-bottom:32px;
-}
-.hero__title .line{display:block;overflow:hidden;}
-.hero__title em{font-style:italic;color:var(--olive-deep);}
-.hero__sub{max-width:52ch;font-size:clamp(.95rem,1.2vw,1.06rem);color:var(--ink-soft);margin-bottom:40px;}
-.hero__actions{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:44px;}
-.hero__foot{font-size:.72rem;letter-spacing:.22em;color:var(--muted);text-transform:uppercase;}
 
-.hero__stage{position:relative;height:min(78vh,760px);display:flex;align-items:center;justify-content:center;}
-.hero__blob{
-  position:absolute;width:min(430px,80%);aspect-ratio:1;border-radius:50%;
+/* ═══ HERO — scroll-scrub cinematic ═══
+   A tall scroll TRACK (#cine) whose inner stage is position:sticky, so the
+   screen stays pinned while scrolling scrubs the 505 rendered frames onto the
+   canvas. Overlays cross-fade by phase; a marker tracks 日本 ⟶ Ελλάδα. */
+.cine{position:relative;height:520vh;background:#0f150e;}
+.cine__sticky{
+  position:sticky;top:0;height:100svh;overflow:hidden;
+  background:#121a12;                       /* dark base — no white flash before frame 1 */
+}
+#heroCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.cine__scrim{
+  position:absolute;inset:0;pointer-events:none;
   background:
-    radial-gradient(circle at 34% 28%,#F0FAF7 0%,transparent 52%),
-    radial-gradient(circle at 52% 46%,var(--resin-milk) 0%,transparent 74%);
-  filter:blur(2px);
-  animation:breathe 9s var(--ease) infinite;
+    linear-gradient(180deg,rgba(12,17,11,.42) 0%,transparent 20%,transparent 52%,rgba(12,17,11,.62) 100%);
 }
-@keyframes breathe{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
-#bubbles{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
-.hero__bottle{
-  position:relative;z-index:2;height:100%;width:auto;object-fit:contain;
-  mix-blend-mode:multiply;will-change:transform;
-  filter:drop-shadow(0 40px 40px rgba(38,52,28,.14));
+.cine__overlays{position:absolute;inset:0;}
+.cine__ov{
+  position:absolute;left:clamp(20px,6vw,90px);bottom:clamp(92px,15vh,160px);
+  max-width:min(90vw,640px);color:var(--paper);
+  opacity:0;transform:translateY(24px);filter:blur(5px);
+  transition:opacity .9s var(--ease),transform .9s var(--ease),filter .9s var(--ease);
+  text-shadow:0 2px 34px rgba(8,12,7,.55);
 }
-.hero__vertical{
-  position:absolute;top:50%;right:clamp(-10px,0vw,8px);transform:translateY(-50%);
-  writing-mode:vertical-rl;font-family:var(--jp);font-weight:300;
-  font-size:.72rem;letter-spacing:.5em;color:var(--muted);z-index:3;
+.cine__ov--journey{
+  left:50%;right:auto;bottom:auto;top:50%;
+  transform:translate(-50%,-50%) translateY(24px);text-align:center;max-width:min(90vw,32rem);
 }
-.hero__scrollcue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);}
+/* phase reveals (attr set by script.js) */
+body[data-cine="japan"] .cine__ov--japan,
+body[data-cine="topple"] .cine__ov--japan{opacity:1;transform:none;filter:none;}
+body[data-cine="dive"] .cine__ov--journey,
+body[data-cine="journey"] .cine__ov--journey{opacity:1;transform:translate(-50%,-50%);filter:none;}
+body[data-cine="greece"] .cine__ov--greece{opacity:1;transform:none;filter:none;}
+/* surface phase intentionally shows nothing — a held breath */
+
+.cine .kicker{color:var(--resin);margin-bottom:22px;}
+.cine .kicker__gr{color:#cdd493;}
+.cine .kicker__jp{color:#a9ced9;}
+.cine__title{
+  font-family:var(--serif);font-weight:400;
+  font-size:clamp(2.6rem,6vw,5.2rem);line-height:1.04;letter-spacing:.005em;margin-bottom:24px;
+}
+.cine__title .line{display:block;}
+.cine__title em{font-style:italic;color:var(--resin);}
+.cine__sub{
+  max-width:46ch;font-size:clamp(.95rem,1.2vw,1.06rem);
+  color:rgba(249,245,233,.82);line-height:1.6;margin-bottom:32px;
+}
+.cine__foot{font-size:.72rem;letter-spacing:.22em;color:rgba(249,245,233,.6);text-transform:uppercase;}
+.cine__line{
+  font-family:var(--serif);font-style:italic;font-weight:400;
+  font-size:clamp(1.7rem,3.6vw,2.8rem);line-height:1.18;color:var(--paper);
+}
+.cine__line em{color:var(--resin);}
+.cine__ov--greece .btn{margin-top:4px;}
+
+/* 日本 ⟶ Ελλάδα marker */
+.cine__marker{
+  position:absolute;left:clamp(20px,6vw,90px);right:clamp(20px,6vw,90px);bottom:36px;
+  display:flex;align-items:center;gap:15px;
+  font-family:var(--jp);font-size:.62rem;letter-spacing:.28em;color:rgba(249,245,233,.72);
+}
+.cine__marker-gr{font-family:var(--serif);font-style:italic;letter-spacing:.05em;font-size:.9rem;}
+.cine__marker-track{position:relative;flex:1;height:1px;background:rgba(249,245,233,.24);}
+.cine__marker-fill{
+  position:absolute;left:0;top:0;height:100%;width:calc(var(--cp,0)*100%);
+  background:linear-gradient(90deg,var(--jp-blue),var(--resin),var(--gr-olive));
+}
+.cine__marker-dot{
+  position:absolute;top:50%;left:calc(var(--cp,0)*100%);width:7px;height:7px;border-radius:50%;
+  background:var(--paper);transform:translate(-50%,-50%);box-shadow:0 0 10px rgba(222,211,142,.85);
+}
+
+/* scroll cue (reused from the fable hero) */
+.hero__scrollcue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);
+  transition:opacity .5s var(--ease);}
 .hero__scrollcue span{
-  display:block;width:1px;height:52px;background:var(--hairline);position:relative;overflow:hidden;
+  display:block;width:1px;height:52px;background:rgba(249,245,233,.5);position:relative;overflow:hidden;
 }
 .hero__scrollcue span::after{
-  content:"";position:absolute;top:-40%;left:0;width:100%;height:40%;background:var(--olive);
+  content:"";position:absolute;top:-40%;left:0;width:100%;height:40%;background:var(--resin);
   animation:cue 2.2s var(--ease) infinite;
 }
 @keyframes cue{0%{top:-40%;}60%,100%{top:110%;}}
+body[data-cine]:not([data-cine="japan"]) .cine__cue{opacity:0;}
+
+/* reduced motion: no scrub — show the finished Chios frame + its copy */
+@media (prefers-reduced-motion:reduce){
+  .cine{height:100svh;}
+  .cine__ov{transition:none;}
+  .cine__ov--japan,.cine__ov--journey{opacity:0!important;}
+  .cine__ov--greece{opacity:1!important;transform:none!important;filter:none!important;}
+  .cine__cue{display:none;}
+  .cine__marker-fill{width:100%!important;}
+  .cine__marker-dot{left:100%!important;}
+}
+
+/* transparent nav sits over the DARK cinematic hero → light text (fable default
+   is dark, for its light hero). `.nav.solid` (in content below) stays dark. */
+.nav:not(.solid){text-shadow:0 1px 22px rgba(0,0,0,.4);}
+.nav:not(.solid) .nav__logo{color:var(--paper);}
+.nav:not(.solid) .nav__logo-jp{color:rgba(249,245,233,.72);}
+.nav:not(.solid) .nav__links a{color:rgba(249,245,233,.82);}
+.nav:not(.solid) .nav__links a:hover,
+.nav:not(.solid) .nav__links a.active{color:var(--paper);}
+.nav:not(.solid) .nav__cta{
+  background:rgba(249,245,233,.14);color:var(--paper);
+  -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+}
+.nav:not(.solid) .nav__burger span{background:var(--paper);}
+
+@media (max-width:760px){
+  .cine__ov{left:20px;right:20px;bottom:104px;max-width:none;}
+  .cine__ov--journey{left:50%;right:auto;}
+  .cine__marker{left:20px;right:20px;}
+}
 
 /* ═══ MARQUEE ═══ */
 .marquee{

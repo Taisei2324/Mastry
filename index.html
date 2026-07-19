@@ -39,32 +39,54 @@
 
 <main id="top">
 
-<!-- ══ Hero ══ -->
-<section class="hero">
-  <div class="hero__inner">
-    <div class="hero__copy">
-      <p class="kicker reveal">Mastic from <span class="kicker__gr">Chios, Greece</span> <span class="kicker__dot">·</span> Assembled in <span class="kicker__jp">Japan</span></p>
-      <h1 class="hero__title">
-        <span class="line"><em>Two ancient islands.</em></span>
-        <span class="line">One clear water.</span>
-      </h1>
-      <p class="hero__sub reveal">Sparkling water infused with mastic — the crystal resin
-      tapped from trees that grow nowhere on Earth but southern Chios —
-      carbonated and bottled with Japanese precision.</p>
-      <div class="hero__actions reveal">
-        <a class="btn btn--solid" href="#flavours">Explore the flavours</a>
-        <a class="btn btn--ghost" href="#story">Why mastic?</a>
+<!-- ══ Hero — scroll-scrub cinematic ══
+     The bottle's journey plays frame-by-frame as you scroll: a lake in Japan →
+     the topple → the dive → the current → a ledge in Chios. The stage stays
+     PINNED (screen doesn't move) while scroll advances the render. -->
+<section class="cine" id="cine" aria-label="Scroll to follow the bottle from a lake in Japan to a ledge in Chios">
+  <div class="cine__sticky">
+    <canvas id="heroCanvas" aria-hidden="true"></canvas>
+    <div class="cine__scrim" aria-hidden="true"></div>
+
+    <div class="cine__overlays">
+      <!-- opening — the fable hero identity, over the lake in Japan -->
+      <div class="cine__ov cine__ov--japan">
+        <p class="kicker">Mastic from <span class="kicker__gr">Chios, Greece</span> <span class="kicker__dot">·</span> Assembled in <span class="kicker__jp">Japan</span></p>
+        <h1 class="cine__title">
+          <span class="line"><em>Two ancient islands.</em></span>
+          <span class="line">One clear water.</span>
+        </h1>
+        <p class="cine__sub">Sparkling water infused with mastic — the crystal resin tapped
+        from trees that grow nowhere on Earth but southern Chios — carbonated and bottled
+        with Japanese precision.</p>
+        <p class="cine__foot">ΧΙΟΣ — 日本 &nbsp;·&nbsp; scroll to follow the bottle</p>
       </div>
-      <p class="hero__foot reveal">ΧΙΟΣ — 日本 &nbsp;·&nbsp; est. on two shores</p>
+
+      <!-- the dive / the current -->
+      <div class="cine__ov cine__ov--journey">
+        <p class="cine__line">Carried across the sea<br /><em>that lies between them.</em></p>
+      </div>
+
+      <!-- arrival — a ledge in Chios -->
+      <div class="cine__ov cine__ov--greece">
+        <h2 class="cine__title cine__title--end">
+          <span class="line">To a ledge</span>
+          <span class="line"><em>in Chios.</em></span>
+        </h2>
+        <p class="cine__sub">One tear of resin, in every bottle.</p>
+        <a class="btn btn--solid" href="#flavours">Explore the flavours</a>
+      </div>
     </div>
-    <div class="hero__stage">
-      <span class="hero__vertical" aria-hidden="true">ギリシャと日本の出会い</span>
-      <div class="hero__blob" aria-hidden="true"></div>
-      <canvas id="bubbles" aria-hidden="true"></canvas>
-      <img class="hero__bottle" id="heroBottle" src="images/brand%20new%20original%20catalog.png" alt="Mastry sparkling water — original mastic bottle" />
+
+    <!-- 日本 ⟶ Ελλάδα progress marker -->
+    <div class="cine__marker" aria-hidden="true">
+      <span class="cine__marker-jp">日本</span>
+      <span class="cine__marker-track"><span class="cine__marker-fill"></span><span class="cine__marker-dot"></span></span>
+      <span class="cine__marker-gr">Ελλάδα</span>
     </div>
+
+    <div class="hero__scrollcue cine__cue" aria-hidden="true"><span></span></div>
   </div>
-  <div class="hero__scrollcue" aria-hidden="true"><span></span></div>
 </section>
 
 <!-- ══ Marquee ══ -->
@@ -311,6 +333,8 @@
   </div>
 </footer>
 
+<script src="frames.js"></script>
+<script src="scrubber.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
