@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MASTRY — Sparkling Water with Mastic · Chios × Japan</title>
+<meta name="description" content="Mastry is sparkling water infused with mastic — the crystal resin of Chios, Greece — carbonated and bottled with Japanese precision. Zero sugar. Three ingredients. Two ancient islands." />
+<link rel="icon" href="images/seal-transparent.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="progress" aria-hidden="true"></div>
+
+<!-- ══ Loader ══ -->
+<div id="loader" aria-hidden="true">
+  <img src="images/seal-transparent.png" alt="" />
+  <span class="loader__word">MASTRY</span>
+</div>
+
+<!-- ══ Nav ══ -->
+<header class="nav" id="nav">
+  <a class="nav__logo" href="#top">MASTRY<span class="nav__logo-jp">マストリー</span></a>
+  <nav class="nav__links" id="navLinks" aria-label="Main">
+    <a href="#story">Story</a>
+    <a href="#flavours">Flavours</a>
+    <a href="#seal">The Seal</a>
+    <a href="#ritual">Ritual</a>
+    <a href="merch.html">Merch</a>
+  </nav>
+  <a class="nav__cta" href="#find">Find Mastry</a>
+  <button class="nav__burger" id="burger" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span>
+  </button>
+</header>
+
+<main id="top">
+
+<!-- ══ Hero — scroll-scrub cinematic ══
+     The bottle's journey plays frame-by-frame as you scroll: a lake in Japan →
+     the topple → the dive → the current → a ledge in Chios. The stage stays
+     PINNED (screen doesn't move) while scroll advances the render. -->
+<section class="cine" id="cine" aria-label="Scroll to follow the bottle from a lake in Japan to a ledge in Chios">
+  <div class="cine__sticky">
+    <canvas id="heroCanvas" aria-hidden="true"></canvas>
+    <div class="cine__scrim" aria-hidden="true"></div>
+
+    <!-- minimalist: no overlay text — the frames carry the whole hero.
+         Only a wordless scroll cue that fades as the scrub begins. -->
+    <div class="hero__scrollcue cine__cue" aria-hidden="true"><span></span></div>
+  </div>
+</section>
+
+<!-- ══ Marquee ══ -->
+<div class="marquee" aria-hidden="true" data-drift="-70">
+  <div class="marquee__track">
+    <span>Sparkling water with mastic · <em class="mk-jp">炭酸水</em> · <em class="mk-gr">ΧΙΟΣ</em> · zero sugar · <em class="mk-craft">職人技</em> · since antiquity · <em class="mk-resin">マスティック</em> ·&nbsp;</span>
+    <span>Sparkling water with mastic · <em class="mk-jp">炭酸水</em> · <em class="mk-gr">ΧΙΟΣ</em> · zero sugar · <em class="mk-craft">職人技</em> · since antiquity · <em class="mk-resin">マスティック</em> ·&nbsp;</span>
+  </div>
+</div>
+
+<!-- ══ Story ══ -->
+<section class="story section" id="story">
+  <p class="section__eyebrow reveal">The collaboration — 協業</p>
+  <h2 class="section__title reveal">A resin the Aegean has guarded<br /><em>for three thousand years.</em></h2>
+
+  <div class="story__grid">
+    <article class="story__col reveal--fade" data-speed="0.045">
+      <p class="story__label">Χίος — Greece</p>
+      <h3 class="story__head">The tears of Chios</h3>
+      <p>When the bark of the mastic tree is scored, it weeps slow drops of resin
+      that harden into fragrant crystals — the islanders call them <em>tears</em>.
+      Harvested by hand in the same twenty-four villages since antiquity,
+      mastic tastes like nothing else: cool pine, cedar, a whisper of the sea.</p>
+    </article>
+    <div class="story__divider" aria-hidden="true">
+      <span class="story__divider-line"></span>
+      <img src="images/seal-transparent.png" alt="" class="story__divider-seal" data-rotate="55" />
+      <span class="story__divider-line"></span>
+    </div>
+    <article class="story__col reveal--fade" data-speed="-0.045">
+      <p class="story__label story__label--jp">日本 — Japan</p>
+      <h3 class="story__head">The craft of clarity</h3>
+      <p>Soft Japanese water, fine persistent carbonation, and the restraint to
+      leave things out — no sugar, no sweeteners, nothing that clouds the glass.
+      Each bottle is finished in Japan, its label painted in the quiet
+      tradition of sumi-e landscape.</p>
+    </article>
+  </div>
+
+  <ul class="stats reveal--fade" data-speed="0.06" aria-label="What's inside">
+    <li><span class="stats__num" data-count="0">0</span><span class="stats__cap">sugar</span></li>
+    <li><span class="stats__num" data-count="0">0</span><span class="stats__cap">calories</span></li>
+    <li><span class="stats__num" data-count="3">0</span><span class="stats__cap">ingredients</span></li>
+    <li><span class="stats__num" data-count="24">0</span><span class="stats__cap">mastic villages</span></li>
+  </ul>
+</section>
+
+<!-- ══ Driftline ══ -->
+<div class="driftline" aria-hidden="true">
+  <span data-drift="-160">Mastic · Χίος · マスティック · Mastic · Χίος · マスティック</span>
+  <span data-drift="130">Sparkling · 炭酸水 · Ύδωρ · Sparkling · 炭酸水 · 水</span>
+</div>
+
+<!-- ══ Flavours ══ -->
+<section class="flavours section" id="flavours">
+  <div class="flavours__head">
+    <p class="section__eyebrow reveal">The line — 味</p>
+    <h2 class="section__title reveal">Four waters. <em>One resin.</em></h2>
+  </div>
+
+  <div class="flavours__stage">
+    <div class="flavours__bottlewrap" data-speed="-0.045">
+      <div class="flavours__halo" aria-hidden="true"></div>
+      <img class="flavours__bottle is-active" src="images/brand%20new%20original%20catalog.png" alt="Mastry Original Mastic bottle" data-flavour="original" />
+      <img class="flavours__bottle" src="images/Mastry%20ad%20yuzu.png" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" />
+      <img class="flavours__bottle" src="images/Ume%20mastry%20Ad.png" alt="Mastry Ume Mastic bottle" data-flavour="ume" />
+      <img class="flavours__bottle" src="images/hinoki%20mastry%20ad.png" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" />
+    </div>
+
+    <div class="flavours__panel" data-speed="0.03">
+      <div class="flavours__list" role="tablist" aria-label="Flavours">
+        <button class="flavours__tab is-active" role="tab" aria-selected="true" data-flavour="original">
+          <span class="flavours__no">01</span><span class="flavours__name">Original Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+        </button>
+        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="yuzu">
+          <span class="flavours__no">02</span><span class="flavours__name">Yuzu Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+        </button>
+        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="ume">
+          <span class="flavours__no">03</span><span class="flavours__name">Ume Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+        </button>
+        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="hinoki">
+          <span class="flavours__no">04</span><span class="flavours__name">Hinoki Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <div class="flavours__detail" id="flavourDetail" aria-live="polite">
+        <p class="flavours__jp" id="fJp">マスティック</p>
+        <p class="flavours__desc" id="fDesc">The unfiltered taste of Chios. Cool resin,
+        white flowers and clean sea air, carried on fine, persistent bubbles.</p>
+        <ul class="flavours__notes" id="fNotes">
+          <li>mastic resin</li><li>cedar &amp; pine</li><li>sea air</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Seal ══ -->
+<section class="seal section" id="seal">
+  <div class="seal__inner">
+    <div class="seal__figure reveal">
+      <div class="seal__paper" data-speed="-0.04">
+        <img src="images/seal-transparent.png" alt="The Mastry seal — a Greek column and a torii gate above seigaiha waves" />
+      </div>
+    </div>
+    <div class="seal__copy">
+      <p class="section__eyebrow section__eyebrow--light reveal">The seal — 印</p>
+      <h2 class="section__title section__title--light reveal">Everything we believe,<br /><em>in one circle.</em></h2>
+      <ol class="seal__legend" data-speed="0.035">
+        <li class="reveal"><span>Ionic column</span>The Greek shore — where the resin is born.</li>
+        <li class="reveal"><span>Torii gate</span>The Japanese shore — where the water is made.</li>
+        <li class="reveal"><span>The tree</span>Pistacia lentiscus, the mastic tree of Chios.</li>
+        <li class="reveal"><span>Seigaiha waves</span>The sea that separates us — and carries the cargo.</li>
+        <li class="reveal"><span>A single drop</span>One tear of mastic in every bottle.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Scenery ══ -->
+<section class="scenery" id="scenery" aria-label="Scenery from the label">
+  <div class="scenery__head">
+    <p class="section__eyebrow reveal">Scenery — 風景</p>
+    <h2 class="section__title reveal">The world on <em>every label.</em></h2>
+  </div>
+  <div class="scenery__frame" id="sceneryFrame">
+    <figure class="scenery__slide is-active" data-speed="-0.05">
+      <img src="images/web%20hero%20half%20&amp;%20half.png" alt="Ink drawing of a long bridge joining a Japanese pavilion to Greek temples across a bay" />
+      <figcaption><span>01 — 橋</span>One bridge, two shores.</figcaption>
+    </figure>
+    <figure class="scenery__slide" data-speed="-0.05">
+      <img src="images/perfect%20web%20hero.png" alt="Ink drawing of Mount Fuji with a torii gate and a boatman on still water" loading="lazy" />
+      <figcaption><span>02 — 富士</span>The water under Fuji.</figcaption>
+    </figure>
+    <figure class="scenery__slide" data-speed="-0.05">
+      <img src="images/web%20hero%20new%20striking.png" alt="Ink drawing of a strait between a Japanese pavilion and a Greek colonnade" loading="lazy" />
+      <figcaption><span>03 — 海峡</span>Pavilion on one cape, Parthenon on the other.</figcaption>
+    </figure>
+    <figure class="scenery__slide" data-speed="-0.05">
+      <img src="images/image%20web%20hero%20temple.png" alt="Ink drawing of a ferryman rowing from a torii gate toward a Greek acropolis" loading="lazy" />
+      <figcaption><span>04 — 渡し</span>The ferryman knows the route by heart.</figcaption>
+    </figure>
+    <figure class="scenery__slide" data-speed="-0.05">
+      <img src="images/wider%20and%20newer%20web%20hero.png" alt="A Mastry bottle on a wet rock at sunrise, Mount Fuji across the lake" loading="lazy" />
+      <figcaption><span>05 — 夜明け</span>First light, first pour.</figcaption>
+    </figure>
+    <div class="scenery__dots" id="sceneryDots" role="tablist" aria-label="Scenery slides"></div>
+  </div>
+</section>
+
+<!-- ══ Ritual ══ -->
+<section class="ritual section" id="ritual">
+  <div class="ritual__wrap">
+  <p class="section__eyebrow reveal">The ritual — 作法</p>
+  <h2 class="section__title reveal">Drink it <em>slowly.</em></h2>
+  <div class="ritual__grid">
+    <article class="ritual__step reveal--fade" data-speed="0.02">
+      <span class="ritual__no">01</span>
+      <h3>Chill, never freeze</h3>
+      <p>Four degrees. Cold enough to tighten the bubbles, warm enough that the resin still speaks.</p>
+    </article>
+    <article class="ritual__step reveal--fade" data-speed="0.055">
+      <span class="ritual__no">02</span>
+      <h3>Pour against the glass</h3>
+      <p>Tilt and pour slowly down the side. The carbonation is fine — treat it like something rationed.</p>
+    </article>
+    <article class="ritual__step reveal--fade" data-speed="0.09">
+      <span class="ritual__no">03</span>
+      <h3>Pair across the map</h3>
+      <p>Original with sashimi or mezze. Yuzu with anything fried. Ume before dinner, Hinoki after it.</p>
+    </article>
+  </div>
+  </div>
+</section>
+
+<!-- ══ Order / Contact ══ -->
+<section class="order section" id="find">
+  <div class="order__inner">
+    <div class="order__left reveal--fade" data-speed="0.03">
+      <p class="section__eyebrow">Order — 注文</p>
+      <h2 class="section__title">Order<br /><em>Mastry.</em></h2>
+      <p class="order__sub">Tell us what you'd like and where it's going.
+      We'll confirm by email within a day.</p>
+      <dl class="order__info">
+        <div><dt>Email</dt><dd>hello@mastry.jp</dd></div>
+        <div><dt>Origin</dt><dd>Chios, Greece × Japan</dd></div>
+        <div><dt>Ships from</dt><dd>Japan · 3–5 business days</dd></div>
+      </dl>
+    </div>
+
+    <form class="order__form reveal--fade" data-speed="-0.035" id="orderForm" novalidate="novalidate">
+      <div class="fg">
+        <label for="fname">Full name</label>
+        <input type="text" id="fname" placeholder="Your name" autocomplete="name" required />
+      </div>
+      <div class="fg">
+        <label for="femail">Email</label>
+        <input type="email" id="femail" placeholder="your@email.com" autocomplete="email" required />
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label for="fproduct">Flavour</label>
+          <select id="fproduct" required>
+            <option value="">Select</option>
+            <option>Original Mastic</option>
+            <option>Yuzu Mastic</option>
+            <option>Ume Mastic</option>
+            <option>Hinoki Mastic</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="fqty">Quantity</label>
+          <input type="number" id="fqty" min="1" max="48" value="1" required />
+        </div>
+      </div>
+      <div class="fg">
+        <label for="faddress">Delivery address</label>
+        <textarea id="faddress" rows="3" placeholder="Street, City, Country" required></textarea>
+      </div>
+      <button class="btn btn--solid" type="submit">Place order</button>
+      <p class="order__note">International shipping available worldwide.</p>
+      <p class="order__ok" id="orderOk" hidden>ありがとう — order received. We'll confirm at hello@mastry.jp.</p>
+    </form>
+  </div>
+</section>
+
+</main>
+
+<!-- ══ Footer ══ -->
+<footer class="footer">
+  <div class="footer__top">
+    <a class="footer__logo" href="#top">MASTRY</a>
+    <nav class="footer__links" aria-label="Footer">
+      <a href="#story">Story</a>
+      <a href="#flavours">Flavours</a>
+      <a href="#seal">The Seal</a>
+      <a href="#ritual">Ritual</a>
+      <a href="merch.html">Merch</a>
+    </nav>
+  </div>
+  <div class="footer__bottom">
+    <p>Mastic from Chios, Greece · Assembled in Japan</p>
+    <p>© 2026 Mastry. Sparkling water with mastic.</p>
+  </div>
+</footer>
+
+<script src="frames.js"></script>
+<script src="scrubber.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
