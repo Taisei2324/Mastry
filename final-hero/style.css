@@ -176,33 +176,33 @@ input,select,textarea{accent-color:var(--olive);}
   background:linear-gradient(180deg,rgba(12,17,11,.34) 0%,transparent 16%);
 }
 
-/* end card — the only text on the hero, fading in once the bottle has arrived
-   on the Chios ledge (body.cine-end, toggled by the engine's eased progress). */
-.cine__end{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .8s var(--ease);}
+/* end card — the ONLY text on the hero: one italic line that fades + settles up
+   onto the ledge once the bottle has arrived (body.cine-end, toggled by the
+   engine's eased progress). No link — scrolling past the pinned stage lands you
+   in the Flavours section on its own, so a CTA would just duplicate the scroll. */
+.cine__end{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 1s var(--ease);}
 body.cine-end .cine__end{opacity:1;}
-.cine__end-scrim{position:absolute;inset:0;background:linear-gradient(180deg,transparent 42%,rgba(9,13,8,.6) 100%);}
-.cine__end-copy{
-  position:absolute;left:clamp(20px,6vw,90px);bottom:clamp(84px,14vh,150px);max-width:min(90vw,620px);
-  color:var(--paper);text-shadow:0 2px 34px rgba(8,12,7,.55);
-  transform:translateY(22px);transition:transform .9s var(--ease);
+/* bottom-left-biased scrim: seats the line, leaves the rest of the bright
+   golden-hour frame pristine — no heavy black band. */
+.cine__end-scrim{
+  position:absolute;inset:0;
+  background:
+    linear-gradient(to right, rgba(9,13,8,.28) 0%, rgba(9,13,8,0) 44%),
+    linear-gradient(to top,   rgba(9,13,8,.5) 0%, rgba(9,13,8,.26) 18%, rgba(9,13,8,0) 46%);
 }
-body.cine-end .cine__end-copy{transform:none;}
 .cine__end-title{
-  font-family:var(--serif);font-weight:400;letter-spacing:.005em;
-  font-size:clamp(2.6rem,6vw,5rem);line-height:1.04;margin-bottom:22px;
+  position:absolute;left:clamp(20px,6vw,90px);bottom:clamp(72px,13vh,140px);right:clamp(20px,6vw,90px);
+  margin:0;color:var(--paper);
+  font-family:var(--serif);font-style:italic;font-weight:400;
+  font-size:clamp(3rem,7.5vw,6rem);line-height:1;letter-spacing:-.012em;
+  text-shadow:0 1px 2px rgba(8,12,7,.45),0 2px 40px rgba(8,12,7,.5);
+  transform:translateY(18px);transition:transform 1s var(--ease);will-change:transform;
 }
-.cine__end-title em{font-style:italic;color:var(--resin);}
-.cine__end-sub{
-  max-width:44ch;font-size:clamp(.95rem,1.2vw,1.05rem);
-  color:rgba(249,245,233,.85);line-height:1.6;margin-bottom:28px;
-}
-.cine__end-cta{
-  pointer-events:none;background:var(--paper);color:var(--ink);
-}
-body.cine-end .cine__end-cta{pointer-events:auto;}
-.cine__end-cta:hover,.cine__end-cta:focus-visible{background:var(--resin-milk);transform:translateY(-1px);}
-@media (max-width:760px){
-  .cine__end-copy{left:20px;right:20px;bottom:96px;max-width:none;}
+body.cine-end .cine__end-title{transform:none;}
+.cine__end-title em{font-style:italic;color:var(--resin);}   /* gold lands only on the destination */
+/* reduced motion: fade only — skip the settle-up slide */
+@media (prefers-reduced-motion:reduce){
+  .cine__end-title{transform:none!important;transition:none;}
 }
 
 /* Otherwise the hero is pure: nothing over the frames but the faint nav scrim.
