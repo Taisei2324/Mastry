@@ -190,9 +190,9 @@ input,select,textarea{accent-color:var(--olive);}
 }
 @keyframes cue{0%{top:-40%;}60%,100%{top:110%;}}
 
-/* reduced motion: no scrub — the engine paints one still (the Chios frame) */
+/* reduced motion: the scrub still works (it's scroll-CONTROLLED, not auto-motion),
+   so the track keeps its full height + range — we only drop the looping cue. */
 @media (prefers-reduced-motion:reduce){
-  .cine{height:100svh;}
   .cine__cue{display:none;}
 }
 

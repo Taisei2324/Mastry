@@ -417,9 +417,13 @@
     if (count <= 0) { safeCall(onLoadProgress, 0, 0); safeCall(onReady); return; }
 
     // ---- environment / mode ----
+    // NOTE: the scrub is user-CONTROLLED (scroll position drives the frame), not
+    // auto-playing motion, so we intentionally do NOT disable it under
+    // prefers-reduced-motion — otherwise that setting silently kills the hero.
+    // Only a genuinely missing scroll driver forces the single-still fallback.
     var reduced = mmMatches('(prefers-reduced-motion: reduce)');
     var noScroll = !scrollEl || !scrollEl.getBoundingClientRect;      // can't scrub without a driver
-    var still = reduced || noScroll;                                  // "paint one representative frame" mode
+    var still = noScroll;                                             // "paint one representative frame" mode
 
     // ---- tier selection (mobile vs desktop) ----
     // Prefer mobile only if the manifest declares a mobile tier AND the viewport
