@@ -46,8 +46,18 @@
 <section class="cine" id="cine" aria-label="Scroll to follow the bottle from a lake in Japan to a ledge in Chios">
   <div class="cine__sticky">
     <canvas id="heroCanvas" aria-hidden="true"></canvas>
-    <!-- pure minimalist: nothing but the frames. A faint top scrim keeps the nav legible. -->
+    <!-- minimalist: nothing over the frames but a faint top scrim (nav legibility) -->
     <div class="cine__scrim" aria-hidden="true"></div>
+
+    <!-- end card: fades in only once the bottle has arrived on the Chios ledge -->
+    <div class="cine__end">
+      <div class="cine__end-scrim" aria-hidden="true"></div>
+      <div class="cine__end-copy">
+        <h1 class="cine__end-title">To a ledge<br /><em>in Chios.</em></h1>
+        <p class="cine__end-sub">Infused with mastic — the tears of Chios, harvested by hand.</p>
+        <a class="btn cine__end-cta" href="#flavours">Explore the flavours</a>
+      </div>
+    </div>
   </div>
 </section>
 

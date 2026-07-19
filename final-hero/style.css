@@ -176,7 +176,36 @@ input,select,textarea{accent-color:var(--olive);}
   background:linear-gradient(180deg,rgba(12,17,11,.34) 0%,transparent 16%);
 }
 
-/* Pure minimalist hero: nothing over the frames but the faint nav scrim above.
+/* end card — the only text on the hero, fading in once the bottle has arrived
+   on the Chios ledge (body.cine-end, toggled by the engine's eased progress). */
+.cine__end{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .8s var(--ease);}
+body.cine-end .cine__end{opacity:1;}
+.cine__end-scrim{position:absolute;inset:0;background:linear-gradient(180deg,transparent 42%,rgba(9,13,8,.6) 100%);}
+.cine__end-copy{
+  position:absolute;left:clamp(20px,6vw,90px);bottom:clamp(84px,14vh,150px);max-width:min(90vw,620px);
+  color:var(--paper);text-shadow:0 2px 34px rgba(8,12,7,.55);
+  transform:translateY(22px);transition:transform .9s var(--ease);
+}
+body.cine-end .cine__end-copy{transform:none;}
+.cine__end-title{
+  font-family:var(--serif);font-weight:400;letter-spacing:.005em;
+  font-size:clamp(2.6rem,6vw,5rem);line-height:1.04;margin-bottom:22px;
+}
+.cine__end-title em{font-style:italic;color:var(--resin);}
+.cine__end-sub{
+  max-width:44ch;font-size:clamp(.95rem,1.2vw,1.05rem);
+  color:rgba(249,245,233,.85);line-height:1.6;margin-bottom:28px;
+}
+.cine__end-cta{
+  pointer-events:none;background:var(--paper);color:var(--ink);
+}
+body.cine-end .cine__end-cta{pointer-events:auto;}
+.cine__end-cta:hover,.cine__end-cta:focus-visible{background:var(--resin-milk);transform:translateY(-1px);}
+@media (max-width:760px){
+  .cine__end-copy{left:20px;right:20px;bottom:96px;max-width:none;}
+}
+
+/* Otherwise the hero is pure: nothing over the frames but the faint nav scrim.
    The scrub is scroll-CONTROLLED (not auto-motion), so it stays on under
    prefers-reduced-motion — the track keeps its full height + range. */
 
