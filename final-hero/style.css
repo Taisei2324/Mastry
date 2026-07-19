@@ -106,7 +106,7 @@
 [data-theme="light"] .nav:not(.solid) .nav__links a:hover,
 [data-theme="light"] .nav:not(.solid) .nav__links a.active,
 [data-theme="light"] .nav:not(.solid) .nav__cta,
-[data-theme="light"] .cine__end-title{color:#F0E8D8;}
+[data-theme="light"] .cine__end-a{color:#F0E8D8;}   /* serif line stays light over the photo; sans stays resin-gold */
 [data-theme="light"] .nav:not(.solid) .nav__burger span{background:#F0E8D8;}
 
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
@@ -259,16 +259,24 @@ body.cine-end .cine__end{opacity:1;}
     linear-gradient(to right, rgba(9,13,8,.28) 0%, rgba(9,13,8,0) 44%),
     linear-gradient(to top,   rgba(9,13,8,.5) 0%, rgba(9,13,8,.26) 18%, rgba(9,13,8,0) 46%);
 }
+/* two-font pull-quote — an italic serif (yin: flowing, organic) stacked over a
+   letterspaced uppercase sans (yang: structured, precise). Both sit over the
+   photo on a shared shadow; fades + settles up on body.cine-end. */
 .cine__end-title{
   position:absolute;left:clamp(20px,6vw,90px);bottom:clamp(72px,13vh,140px);right:clamp(20px,6vw,90px);
-  margin:0;color:var(--ink);            /* light parchment over the photo (--paper is the dark page now) */
-  font-family:var(--serif);font-style:italic;font-weight:400;
-  font-size:clamp(3rem,7.5vw,6rem);line-height:1;letter-spacing:-.012em;
+  margin:0;display:flex;flex-direction:column;align-items:flex-start;gap:clamp(6px,1.4vh,16px);
   text-shadow:0 1px 2px rgba(8,12,7,.45),0 2px 40px rgba(8,12,7,.5);
   transform:translateY(18px);transition:transform 1s var(--ease);will-change:transform;
 }
 body.cine-end .cine__end-title{transform:none;}
-.cine__end-title em{font-style:italic;color:var(--resin);}   /* gold lands only on the destination */
+.cine__end-a{                            /* yin — flowing italic serif */
+  font-family:var(--serif);font-style:italic;font-weight:400;color:var(--ink);
+  font-size:clamp(2.8rem,7.4vw,5.6rem);line-height:.9;letter-spacing:-.015em;
+}
+.cine__end-b{                            /* yang — structured letterspaced sans, resin-gold */
+  font-family:var(--sans);font-weight:500;text-transform:uppercase;color:var(--resin);
+  font-size:clamp(.95rem,2.3vw,1.6rem);letter-spacing:.4em;padding-left:.16em;
+}
 /* reduced motion: fade only — skip the settle-up slide */
 @media (prefers-reduced-motion:reduce){
   .cine__end-title{transform:none!important;transition:none;}
