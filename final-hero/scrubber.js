@@ -676,14 +676,17 @@
         base: baseFor(t), ext: ext, pad: pad, count: count,
         // Desktop: preload the whole reel and keep every frame decoded (works well,
         //   plenty of RAM) -> maxRadius/maxDecoded unset = unbounded, unchanged behaviour.
-        // Mobile: hold only a ~160-frame window around the playhead so decoded-image
-        //   memory stays ~320MB (540p) instead of ~1GB — this is the mid-scroll fps fix.
-        //   maxDecoded(160) > 2×window(70): the farthest held frame is always outside
-        //   the schedule window, so eviction can't thrash against the preloader.
-        concurrency: mob ? 4 : 6,
-        window: mob ? 70 : 100,
-        maxRadius: mob ? 70 : 0,        // 0 -> unbounded outward fill (desktop)
-        maxDecoded: mob ? 160 : 0,      // 0 -> hold all decoded (desktop)
+        // Mobile: the tier now loads the FULL 1080p frames (~8.3MB each decoded), so the
+        //   window is tight — hold ~44 frames around the playhead (~365MB) and stream the
+        //   rest as you scroll (HTTP-cached, so revisits re-decode, not re-download). This
+        //   keeps 1080p on a phone within the image budget; the slower fps-fix trade the
+        //   user accepted is the occasional re-decode on a very fast fling.
+        //   maxDecoded(44) > 2×window(20): the farthest held frame is outside the schedule
+        //   window, so eviction can't thrash against the preloader.
+        concurrency: mob ? 3 : 6,       // fewer parallel 1080p decodes -> smaller memory spikes
+        window: mob ? 20 : 100,
+        maxRadius: mob ? 20 : 0,        // 0 -> unbounded outward fill (desktop)
+        maxDecoded: mob ? 44 : 0,       // 0 -> hold all decoded (desktop)
         onProgress: function (loaded, total) { if (!inst.destroyed) safeCall(onLoadProgress, loaded, total); },
         onReadyFrame: function () { if (!inst.destroyed) requestTick(); } // a frame decoded -> maybe upgrade paint
       });
