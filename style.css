@@ -176,25 +176,9 @@ input,select,textarea{accent-color:var(--olive);}
   background:linear-gradient(180deg,rgba(12,17,11,.34) 0%,transparent 16%);
 }
 
-/* wordless scroll cue — a drawn line that fades out as the scrub begins (--cp) */
-.hero__scrollcue{
-  position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
-  opacity:clamp(0,calc(1 - var(--cp,0)*14),1);transition:opacity .4s var(--ease);
-}
-.hero__scrollcue span{
-  display:block;width:1px;height:54px;background:rgba(249,245,233,.5);position:relative;overflow:hidden;
-}
-.hero__scrollcue span::after{
-  content:"";position:absolute;top:-40%;left:0;width:100%;height:40%;background:var(--resin);
-  animation:cue 2.2s var(--ease) infinite;
-}
-@keyframes cue{0%{top:-40%;}60%,100%{top:110%;}}
-
-/* reduced motion: the scrub still works (it's scroll-CONTROLLED, not auto-motion),
-   so the track keeps its full height + range — we only drop the looping cue. */
-@media (prefers-reduced-motion:reduce){
-  .cine__cue{display:none;}
-}
+/* Pure minimalist hero: nothing over the frames but the faint nav scrim above.
+   The scrub is scroll-CONTROLLED (not auto-motion), so it stays on under
+   prefers-reduced-motion — the track keeps its full height + range. */
 
 /* transparent nav sits over the DARK cinematic hero → light text (fable default
    is dark, for its light hero). `.nav.solid` (in the content below) stays dark. */
