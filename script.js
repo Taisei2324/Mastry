@@ -20,20 +20,13 @@
     var cineEl = document.getElementById("cine");
     var canvas = document.getElementById("heroCanvas");
     if (!cineEl || !canvas || !window.MastryScrubber || !window.MASTRY_FRAMES) return;
-    var root = document.documentElement, body = document.body;
-    var PH = [["japan", 0.395], ["topple", 0.458], ["dive", 0.514],
-              ["journey", 0.673], ["surface", 0.851], ["greece", 1.01]];
-    function phaseFor(p) { for (var i = 0; i < PH.length; i++) { if (p < PH[i][1]) return PH[i][0]; } return "greece"; }
-    var cur = "japan";
-    body.setAttribute("data-cine", "japan");
+    var root = document.documentElement;
     window.MastryScrubber.init({
       canvas: canvas, manifest: window.MASTRY_FRAMES, scrollEl: cineEl,
-      onReady: function () { body.classList.add("cine-ready"); },
-      onProgress: function (p) {
+      onReady: function () { document.body.classList.add("cine-ready"); },
+      onProgress: function (p) {                 /* --cp only drives the scroll-cue fade */
         if (p < 0) p = 0; else if (p > 1) p = 1;
         root.style.setProperty("--cp", p.toFixed(4));
-        var ph = phaseFor(p);
-        if (ph !== cur) { cur = ph; body.setAttribute("data-cine", ph); }
       },
       onLoadProgress: function () {}
     });
