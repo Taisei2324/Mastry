@@ -494,14 +494,22 @@
 
     /* ---------------- normal scrubbing path ---------------- */
 
-    // rAF dirty-flag loop state
-    var dirty = true;                                                 // force first paint
-    var rafPending = false;
+    // ---- eased ("smoothed") scrub loop ----
+    // The displayed frame does NOT snap to the scroll position; it EASES toward it
+    // each rAF tick, so a chunky mouse-wheel notch (which jumps several frames at
+    // once) plays as a smooth glide instead of a step. currentFloat chases
+    // targetFloat; when it lands, the loop parks itself until the next scroll.
     var rafId = 0;
-    var needResize = true;                                            // force first sizing
+    var running = false;                                             // is the loop currently ticking?
+    var needResize = true;                                           // force first sizing
     var renderedFrame = -1;                                          // exact frame currently painted (-1 = none)
     var lastReportedFrame = -1, lastReportedP = -1;
     var layoutRetries = 0;
+    var targetFloat = 1;                                             // where scroll wants us (float, 1..count)
+    var currentFloat = 1;                                            // eased displayed position (float)
+    var primed = false;                                             // snap to first real target (no ease-in on load)
+    var SMOOTH = 0.18;                                               // ease fraction / tick (higher = snappier, less float)
+    var SNAP = 0.4;                                                  // within this many frames of target -> land + park
 
     // progress: p=0 when scrollEl top hits viewport top, p=1 when its bottom hits
     // viewport bottom (progress through the pinned region). Clamped; div-by-zero safe.
@@ -513,59 +521,68 @@
       var p = (0 - rect.top) / travel;
       return p < 0 ? 0 : (p > 1 ? 1 : p);
     }
-    // p -> frame index 1..count with rounding (p=0 -> 1, p=1 -> count).
-    function mapFrame(p) {
-      if (count <= 1) return 1;
-      var f = 1 + Math.round(p * (count - 1));
-      return f < 1 ? 1 : (f > count ? count : f);
-    }
+    function clampFrameIdx(f) { f = Math.round(f); return f < 1 ? 1 : (f > count ? count : f); }
 
+    // Any scroll / resize / decode just (re)starts the loop; it runs until the
+    // eased position settles on the target, then parks (no idle rAF churn).
     function requestTick() {
       if (inst.destroyed) return;
-      dirty = true;
-      if (!rafPending) { rafPending = true; rafId = win.requestAnimationFrame(onRaf); }
+      if (!running) { running = true; rafId = win.requestAnimationFrame(onRaf); }
     }
 
-    // One rAF consumes the dirty flag; multiple scroll/resize/decode events between
-    // frames collapse into a single redraw. Never draws the same image twice.
     function onRaf() {
-      rafPending = false;
-      if (inst.destroyed) return;
-      if (!dirty && !needResize) return;
-      dirty = false;
+      rafId = 0;
+      if (inst.destroyed) { running = false; return; }
 
       if (needResize) {
         var s = sizeCanvas(ctxCanvas, DPR_CAP);
         if (s.cssW <= 0 || s.cssH <= 0) {
           // Not laid out yet (init-before-layout). Retry a bounded number of
           // frames; ResizeObserver/resize will also re-kick us once sized.
-          needResize = true;
-          if (layoutRetries++ < 240) { rafPending = true; rafId = win.requestAnimationFrame(onRaf); }
-          return;
+          if (layoutRetries++ < 240) { rafId = win.requestAnimationFrame(onRaf); return; }
+          running = false; return;
         }
         layoutRetries = 0;
         needResize = false;
         if (s.changed) { shownImg = null; renderedFrame = -1; }       // buffer cleared by resize -> force repaint
       }
 
+      // where scroll wants us, as a float frame index
       var p = computeProgress();
-      var target = mapFrame(p);
-      store.focus(target);                                            // steer the preloader window
+      targetFloat = 1 + p * (count > 1 ? count - 1 : 0);
+      if (!primed) { currentFloat = targetFloat; primed = true; }     // first paint: no ease-in from frame 1
 
-      var img = store.get(target);
+      // ease currentFloat toward targetFloat
+      var gap = targetFloat - currentFloat;
+      if (Math.abs(gap) <= SNAP) currentFloat = targetFloat;          // close enough -> land exactly
+      else currentFloat += gap * SMOOTH;
+
+      var frame = clampFrameIdx(currentFloat);
+      store.focus(clampFrameIdx(targetFloat));                        // preload AHEAD, toward the destination
+
+      var img = store.get(frame);
       var exact = !!img;
-      if (!img) img = store.nearestReady(target);                     // no white flash: draw nearest decoded
-
-      if (img && (img !== shownImg || (exact && renderedFrame !== target))) {
+      if (!img) img = store.nearestReady(frame);                      // no white flash: nearest decoded
+      if (img && (img !== shownImg || (exact && renderedFrame !== frame))) {
         if (drawCover(ctx, img, ctxCanvas.width, ctxCanvas.height)) {
           shownImg = img;
-          renderedFrame = exact ? target : -1;                        // only "settle" on the exact frame, so a
-        }                                                             // later decode upgrades nearest -> exact
+          renderedFrame = exact ? frame : -1;                         // settle only on the exact frame (decode upgrades)
+        }
       }
 
-      if (target !== lastReportedFrame || p !== lastReportedP) {
-        lastReportedFrame = target; lastReportedP = p;
-        safeCall(onProgress, p, target);
+      // report the EASED progress so any host reveal (the end-card) tracks it smoothly
+      var pEased = count > 1 ? (currentFloat - 1) / (count - 1) : 0;
+      if (pEased < 0) pEased = 0; else if (pEased > 1) pEased = 1;
+      if (frame !== lastReportedFrame || pEased !== lastReportedP) {
+        lastReportedFrame = frame; lastReportedP = pEased;
+        safeCall(onProgress, pEased, frame);
+      }
+
+      // keep gliding until we land on the target; otherwise park (scroll/decode re-kicks)
+      if (needResize || currentFloat !== targetFloat) {
+        rafId = win.requestAnimationFrame(onRaf);
+      } else {
+        running = false;
       }
     }
 

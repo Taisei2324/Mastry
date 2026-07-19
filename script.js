@@ -24,9 +24,11 @@
     window.MastryScrubber.init({
       canvas: canvas, manifest: window.MASTRY_FRAMES, scrollEl: cineEl,
       onReady: function () { document.body.classList.add("cine-ready"); },
-      onProgress: function (p) {                 /* --cp only drives the scroll-cue fade */
+      onProgress: function (p) {                 /* eased progress from the engine */
         if (p < 0) p = 0; else if (p > 1) p = 1;
         root.style.setProperty("--cp", p.toFixed(4));
+        /* end card fades in once the bottle has arrived on the ledge (last ~10%) */
+        document.body.classList.toggle("cine-end", p >= 0.9);
       },
       onLoadProgress: function () {}
     });
