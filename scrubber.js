@@ -633,6 +633,19 @@
     }
     function clampFrameIdx(f) { f = Math.round(f); return f < 1 ? 1 : (f > count ? count : f); }
 
+    // Contiguous READY frames ahead of the displayed position — the page's
+    // buffer-aware auto-glide asks this to pace itself like a streaming player
+    // (start only when buffered, hold when the buffer runs dry). Returns -1 in
+    // still mode / before the store exists, meaning "not applicable, don't gate".
+    inst.status = function (margin) {
+      if (still || !store) return -1;
+      var m = (margin | 0) > 0 ? (margin | 0) : 12;
+      var base = clampFrameIdx(currentFloat);
+      var n = 0;
+      while (n < m && base + n <= count && store.isReady(base + n)) n++;
+      return (base + n > count) ? m : n;               // ran off the end -> fully buffered
+    };
+
     // Any scroll / resize / decode just (re)starts the loop; it runs until the
     // eased position settles on the target, then parks (no idle rAF churn).
     function requestTick() {
@@ -796,6 +809,12 @@
     if (activeInstance) { try { activeInstance.teardown(); } catch (e) {} activeInstance = null; }
   }
 
+  // Buffered-frames query for the active engine (used by the page's auto-glide
+  // to pace itself against the loader). -1 when no engine / not applicable.
+  function status(margin) {
+    return (activeInstance && activeInstance.status) ? activeInstance.status(margin) : -1;
+  }
+
   // The ONE global. Nothing else leaks from this closure.
-  win.MastryScrubber = { init: init, destroy: destroy };
+  win.MastryScrubber = { init: init, destroy: destroy, status: status };
 })();

@@ -77,8 +77,33 @@
       stop();
       EVENTS.forEach(function (type) { window.removeEventListener(type, onIntent, INTENT_OPTS); });
     }
+    /* ── buffer-aware pacing (YouTube-style) ──
+       The glide must never outrun the frame loader — that's what reads as
+       "glitchy" on a real connection (localhost hides it). So it begins only
+       once a healthy run of frames is decoded ahead, and mid-glide it HOLDS
+       (clock paused, current frame stays up, no jumping) whenever the buffered
+       run ahead of the playhead dips low, resuming as frames arrive. */
+    var BUFFER_START = 30;                      /* decoded frames ahead required to begin */
+    var BUFFER_KEEP = 10;                       /* hold when fewer than this remain ahead */
+    var startWaited = 0, lastNow = 0, holdRun = 0;
+    function bufferedAhead(m) {
+      try { return (window.MastryScrubber && window.MastryScrubber.status) ? window.MastryScrubber.status(m) : -1; }
+      catch (e) { return -1; }
+    }
+
     function tick(now) {
       if (!running) return;
+      var dt = lastNow > 0 ? now - lastNow : 0;
+      lastNow = now;
+      var ahead = bufferedAhead(BUFFER_KEEP);
+      if (ahead >= 0 && ahead < BUFFER_KEEP) {  /* buffer low -> hold in place, pause the clock */
+        t0 += dt;
+        holdRun += dt;
+        if (holdRun > 10000) { stop(); return; } /* frames stopped arriving -> bow out gracefully */
+        rafId = requestAnimationFrame(tick);
+        return;
+      }
+      holdRun = 0;
       var p = dur > 0 ? Math.min((now - t0) / dur, 1) : 1;
       var y = fromY + (toY - fromY) * iceEase(p);
       try { window.scrollTo({ top: y, left: 0, behavior: "auto" }); }
@@ -90,6 +115,12 @@
     startAutoScroll = function () {
       if (unlocked || running) return;
       if ((window.scrollY || window.pageYOffset || 0) > 4) return;   /* visitor already moved */
+      var ahead = bufferedAhead(BUFFER_START);
+      if (ahead >= 0 && ahead < BUFFER_START && startWaited < 15000) {
+        startWaited += 350;                     /* not buffered yet -> check again shortly */
+        setTimeout(startAutoScroll, 350);
+        return;
+      }
       fromY = window.scrollY || window.pageYOffset || 0;
       toY = Math.max(0, cineEl.offsetTop + cineEl.offsetHeight - window.innerHeight);
       var dist = toY - fromY;
@@ -98,6 +129,7 @@
       prevBehavior = rootEl.style.scrollBehavior;
       rootEl.style.scrollBehavior = "auto";     /* stop CSS smooth from fighting the glide */
       t0 = performance.now();
+      lastNow = 0; holdRun = 0;
       running = true;
       rafId = requestAnimationFrame(tick);
     };
