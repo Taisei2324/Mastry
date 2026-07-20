@@ -369,6 +369,16 @@
       focusCenter = clampFrame(i);
       schedulePump();
     }
+    // Re-budget the preloader after creation. Used to PHASE the load: start with a
+    // small window (fast, contention-free first paint), then widen once the hero
+    // is on screen so the rest of the reel streams in behind the visitor without
+    // starving the initial render. Pass Infinity/0 for maxR to mean "unbounded".
+    function setBudget(win, maxR) {
+      if (destroyed) return;
+      if (win != null) windowRadius = Math.max(0, win | 0);
+      if (maxR != null) maxRadius = (isFinite(maxR) && maxR > 0) ? (maxR | 0) : Infinity;
+      schedulePump();
+    }
     // Promise<Image> resolving when frame i is decoded. Jumps the queue (top
     // priority) but still obeys the global concurrency cap. Shared per index.
     function ensure(i) {
@@ -408,7 +418,7 @@
     return {
       total: count,
       get: get, isReady: isReady, nearestReady: nearestReady,
-      focus: focus, ensure: ensure, loadedCount: loadedCount, destroy: destroy
+      focus: focus, setBudget: setBudget, ensure: ensure, loadedCount: loadedCount, destroy: destroy
     };
   }
 
@@ -509,17 +519,19 @@
     var still = noScroll;                                             // "paint one representative frame" mode
 
     // ---- tier selection: three INDEPENDENT axes ----
-    // SHAPE follows the DEVICE: a phone-sized portrait viewport loads the portrait
-    //   center-crop tiers (manifest.baseP / basePLow) — the exact 9:16 slice that
-    //   cover-fit would crop out of the landscape frames anyway, pre-cut on disk so
-    //   the ~70% of each landscape frame a phone never shows is never downloaded
-    //   (~5.4 MB instead of ~15.4 MB; identical pixels on screen). Landscape phones
-    //   (rare for a scroll page) exceed 760px width → landscape tiers, still correct.
-    // RESOLUTION follows the CONNECTION: a slow link (data-saver, 2g/3g, or a weak
-    //   "low" 4g) loads the lighter tier of the chosen shape (720-tall) so the hero
-    //   still arrives quickly. The Network Information API is absent on iOS Safari →
-    //   treated as "not slow" → an iPhone gets the full portrait tier (its max
-    //   quality) — NOT the 15 MB desktop reel it used to be handed.
+    // SHAPE follows the DEVICE: a phone loads ONLY the pre-trimmed 400x810 tier
+    //   (manifest.baseP) — the exact slice cover-fit displays, cut on disk so the
+    //   parts of each landscape frame a phone never shows are never downloaded
+    //   (~3.5 MB instead of ~15.4 MB). "Phone" means EITHER a phone-sized portrait
+    //   viewport OR a touch device whose shorter screen side is phone-sized — so a
+    //   phone held sideways at load still gets the light tier, never the desktop
+    //   reel. (A landscape phone shows an upscaled slice of the 400x810 frame —
+    //   softer, but a rotated phone must never cost 15 MB.)
+    // RESOLUTION follows the CONNECTION on desktop: a slow link (data-saver,
+    //   2g/3g, or a weak "low" 4g) loads the lighter 720p landscape tier. Phones
+    //   have a single tier, so connection never changes what a phone downloads.
+    //   The Network Information API is absent on iOS Safari → treated as "not
+    //   slow", which for a phone is moot (one tier) and for iPad means the reel.
     // MEMORY BOUNDING follows the VIEWPORT: screens small in EITHER dimension hold
     //   only a decoded window (phones in any orientation have a tight image
     //   budget); desktops hold the whole reel.
@@ -533,6 +545,10 @@
     var smallViewport = mmMatches('(max-width:760px)') || vw <= 760;
     var boundedViewport = mmMatches('(max-width:760px), (max-height:760px)') || Math.min(vw, vh) <= 760;
     var portraitViewport = mmMatches('(orientation: portrait)') || vh >= vw;
+    // Touch device with a phone-sized shorter screen side = a phone in ANY
+    // orientation. (pointer:coarse) is the PRIMARY pointer, so touch-screen
+    // laptops (mouse/trackpad primary) stay on desktop tiers.
+    var phoneDevice = mmMatches('(pointer: coarse)') && Math.min(vw, vh) <= 760;
     function detectSlowNet() {
       try {
         var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
@@ -546,7 +562,7 @@
     }
     var tier = {
       low: detectSlowNet(),
-      portrait: hasP && smallViewport && portraitViewport,            // the phone case
+      portrait: hasP && (phoneDevice || (smallViewport && portraitViewport)), // the phone case, any orientation
       bounded: boundedViewport
     };
     // Per-branch gating: a requested low/portrait dir that isn't in the manifest
@@ -717,8 +733,9 @@
     }
 
     function buildStore(t) {
-      // Desktop (unbounded): preload the whole reel and keep every frame decoded —
-      //   plenty of RAM. Mobile (bounded): hold only a decoded window around the
+      // Desktop (unbounded): keep every frame decoded — plenty of RAM. Fill starts
+      //   small for a contention-free first paint, then setBudget() widens it to
+      //   the whole reel after ready. Mobile (bounded): hold only a decoded window around the
       //   playhead and stream the rest (HTTP-cached, so revisits re-decode, not
       //   re-download). Window is sized per TIER's decoded frame cost to land
       //   ~230-365MB held: landscape 1080p ≈ 8.3MB/frame → 44; landscape 720p ≈
@@ -729,7 +746,7 @@
       //   window — flings that used to hit the 1080p re-decode stutter now land
       //   on already-held frames.
       var cfg = !t.bounded
-        ? { concurrency: 6, window: 100, maxRadius: 0,  maxDecoded: 0  }   // desktop: unbounded
+        ? { concurrency: 6, window: 30, maxRadius: 60, maxDecoded: 0  }   // desktop: START small near the playhead for a fast, contention-free first paint; widened to the full reel after ready (see startScrub)
         : t.portrait
           ? (t.low
               ? { concurrency: 4, window: 70, maxRadius: 90, maxDecoded: 190 } // phone portrait 720: ~223MB
@@ -772,6 +789,15 @@
       Promise.all(crit).then(function () {
         if (inst.destroyed || store !== thisStore) return;            // don't fire ready for a superseded tier
         fireReady();
+        // Hero is on screen — NOW widen the desktop preload so the rest of the reel
+        // streams in behind the visitor (smooth seeking anywhere). Deferred a beat
+        // so the first paint and the opening glide aren't fighting a full-reel
+        // fetch burst — the burst is what stalls rendering on Safari / slow CPUs.
+        if (!t.bounded) {
+          win.setTimeout(function () {
+            if (!inst.destroyed && store === thisStore) store.setBudget(120, Infinity);
+          }, 700);
+        }
       });
     }
 

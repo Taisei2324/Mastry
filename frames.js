@@ -2,20 +2,20 @@
 // Loaded via <script src="frames.js"></script>. Defines one global, no exports.
 // Frame i (1-based) = <tier dir> + String(i).padStart(pad,"0") + "." + ext
 // scrubber.js picks the tier: ORIENTATION+VIEWPORT pick landscape vs portrait
-// (phones download only the center slice they can actually show — the portrait
-// dirs are pre-cropped to the exact 9:16 slice cover-fit displays, so nothing
-// visible is lost and ~2/3 of the bytes never leave the server); CONNECTION
-// picks full vs low resolution within that shape.
+// (phones download only the center slice they can actually show, physically
+// pre-cropped on disk — nothing visible is lost and ~3/4 of the bytes never
+// leave the server); CONNECTION picks full vs low resolution on desktop.
 window.MASTRY_FRAMES = {
   base:     "frames/",       // 1920x1080 landscape — desktop default (~15.4 MB)
   baseLow:  "frames-720/",   // 1280x720 landscape (~8.8 MB), desktop on SLOW connections
                              //   (data-saver / 2g / 3g / weak 4g) so the hero still arrives fast.
-  baseP:    "frames-p/",     // 608x1080 portrait center-crop — PHONE default (~5.4 MB).
-                             //   Identical pixels to what cover-fit shows from the 1080p
-                             //   landscape tier on a portrait phone — just not downloading
-                             //   the ~70% that gets cropped away. iOS (no Network
-                             //   Information API) -> this tier, never the 15 MB one.
-  basePLow: "frames-p-720/", // 406x720 portrait center-crop (~3.1 MB), phones on SLOW connections.
+  baseP: "mobile-final-render/", // 400x810 portrait — the ONLY tier phones load (~3.5 MB).
+                             //   Physically trimmed to phone-logical size: full source
+                             //   height, horizontally centered — the exact framing the
+                             //   mobile web displays. Light enough that slow connections
+                             //   use it too (no separate phone low tier), and iOS (no
+                             //   Network Information API) can never fall into the 15 MB reel.
+  basePLow: "",              // empty -> scrubber resolves slow-net phones to baseP as well
   ext:     "webp",
   count:   505,             // all 505 frames kept
   pad:     4,               // zero-pad width -> "0001"
@@ -25,6 +25,6 @@ window.MASTRY_FRAMES = {
   totalBytes: 16180572,     // desktop 1080p tier total bytes (report/preload budgeting)
   tierBytes: {              // exact per-tier totals (report/preload budgeting)
     "frames/": 16180572, "frames-720/": 9277500,
-    "frames-p/": 5653514, "frames-p-720/": 3279686
+    "mobile-final-render/": 3622844
   }
 };
