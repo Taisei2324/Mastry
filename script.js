@@ -116,14 +116,19 @@
       var dt = lastNow > 0 ? now - lastNow : 0;
       lastNow = now;
       var ahead = bufferedAhead(BUFFER_KEEP);
-      if (ahead >= 0 && ahead < BUFFER_KEEP) {  /* buffer low -> hold in place, pause the clock */
-        t0 += dt;
-        holdRun += dt;
-        if (holdRun > 10000) { stop(); return; } /* frames stopped arriving -> bow out gracefully */
-        rafId = requestAnimationFrame(tick);
-        return;
+      if (ahead >= 0 && ahead < BUFFER_KEEP) {
+        /* Buffer low -> SLOW-MOTION, not a hard stop: scale the clock by how much
+           buffer remains (empty = frozen, half = half speed), so on a starved
+           link the glide degrades to a steady crawl that matches the arrival
+           rate — continuous motion — instead of hold-then-burst stepping. */
+        var f = ahead / BUFFER_KEEP;
+        t0 += dt * (1 - f);
+        holdRun = ahead === 0 ? holdRun + dt : 0;
+        if (holdRun > 12000) { stop(); return; } /* frames stopped arriving entirely -> bow out */
+        if (ahead === 0) { rafId = requestAnimationFrame(tick); return; }
+      } else {
+        holdRun = 0;
       }
-      holdRun = 0;
       var p = dur > 0 ? Math.min((now - t0) / dur, 1) : 1;
       var y = fromY + (toY - fromY) * iceEase(p);
       try { window.scrollTo({ top: y, left: 0, behavior: "auto" }); }
@@ -180,7 +185,7 @@
     var cineEl = document.getElementById("cine");
     var canvas = document.getElementById("heroCanvas");
     if (!cineEl || !canvas || !window.MastryScrubber || !window.MASTRY_FRAMES) return;
-    var root = document.documentElement;
+    var onProgressEnd = false;                   /* last end-card state (write class only on change) */
     window.MastryScrubber.init({
       canvas: canvas, manifest: window.MASTRY_FRAMES, scrollEl: cineEl,
       onReady: function () {
@@ -194,9 +199,15 @@
       },
       onProgress: function (p) {                 /* eased progress from the engine */
         if (p < 0) p = 0; else if (p > 1) p = 1;
-        root.style.setProperty("--cp", p.toFixed(4));
-        /* end card fades in once the bottle has arrived on the ledge (last ~10%) */
-        document.body.classList.toggle("cine-end", p >= 0.9);
+        /* NOTE: no per-tick style writes here. Setting a :root custom property
+           every animation frame invalidates style for the whole document (the
+           old --cp write — nothing consumed it) and reads as jank, especially
+           in Safari. Only flip the end-card class when it actually changes. */
+        var end = p >= 0.9;
+        if (end !== onProgressEnd) {
+          onProgressEnd = end;
+          document.body.classList.toggle("cine-end", end);
+        }
       },
       onLoadProgress: function () {}
     });

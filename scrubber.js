@@ -70,13 +70,19 @@
     return { sx: sx, sy: sy, sw: sw, sh: sh, dx: 0, dy: 0, dw: areaW, dh: areaH };
   }
 
-  /* sizeCanvas(canvas, dprCap) -> { w, h, dpr, cssW, cssH, changed }
+  /* sizeCanvas(canvas, dprCap, maxW, maxH) -> { w, h, dpr, cssW, cssH, changed }
    * Sizes the backing store (canvas.width/height, device px) to CSS size × dpr,
    * dpr capped at dprCap (default 2). Only writes width/height when they change —
    * assigning them clears the buffer, an avoidable flash. If the element has zero
    * CSS size (not laid out yet), it does NOT zero the backing store; it returns
-   * changed:false so the caller can defer and retry (guard against init-before-layout). */
-  function sizeCanvas(canvas, dprCap) {
+   * changed:false so the caller can defer and retry (guard against init-before-layout).
+   * maxW/maxH (optional): the SOURCE frame resolution. The backing store is
+   * additionally capped so it never exceeds the source — a Retina display would
+   * otherwise get a 2x store (e.g. 3456×2160, 7.5M px) repainted every tick while
+   * the 1920×1080 frames have no extra detail to offer: pure per-frame paint cost,
+   * the main "laggy on a MacBook" source. Below-1 dpr is fine — the canvas is
+   * CSS-scaled up for free by the compositor. */
+  function sizeCanvas(canvas, dprCap, maxW, maxH) {
     var cap = (typeof dprCap === 'number' && isFinite(dprCap) && dprCap > 0) ? dprCap : 2;
 
     var rect = canvas.getBoundingClientRect ? canvas.getBoundingClientRect() : null;
@@ -85,6 +91,10 @@
 
     var dpr = Math.min(window.devicePixelRatio || 1, cap);
     if (!isFinite(dpr) || dpr < 1) dpr = 1;
+    if (maxW > 0 && maxH > 0 && cssW > 0 && cssH > 0) {
+      dpr = Math.min(dpr, maxW / cssW, maxH / cssH);
+      if (!isFinite(dpr) || dpr < 0.5) dpr = 0.5;   // sanity floor
+    }
 
     if (cssW <= 0 || cssH <= 0) {
       // Not laid out yet — report current dims, don't destroy the buffer.
@@ -465,6 +475,9 @@
     var count = Math.max(0, manifest.count | 0);
     var ext = nonEmptyStr(manifest.ext) ? manifest.ext : 'webp';
     var pad = manifest.pad == null ? 4 : (manifest.pad | 0);
+    // Source frame resolution — used to cap the canvas backing store: painting
+    // more device pixels than the frames contain is pure per-tick cost (Retina).
+    var srcW = manifest.width | 0, srcH = manifest.height | 0;
 
     // No frames at all: nothing to render, but don't hang the page.
     if (count <= 0) { safeCall(onLoadProgress, 0, 0); safeCall(onReady); return; }
@@ -539,6 +552,8 @@
     var hasBase = nonEmptyStr(manifest.base);
     var hasP = nonEmptyStr(manifest.baseP);
     var hasPLow = nonEmptyStr(manifest.basePLow);
+    var hasLite = nonEmptyStr(manifest.baseLite);
+    var hasPLite = nonEmptyStr(manifest.basePLite);
     var vw = win.innerWidth || 9999, vh = win.innerHeight || 9999;
     var smallViewport = mmMatches('(max-width:760px)') || vw <= 760;
     var boundedViewport = mmMatches('(max-width:760px), (max-height:760px)') || Math.min(vw, vh) <= 760;
@@ -554,26 +569,46 @@
       } catch (e) {}
       return false;
     }
+    // detectCrawlNet: the truly starved link (2g, or a sub-800kbps downlink
+    // report) — start straight on the lite tier rather than discovering it the
+    // slow way via measurement.
+    function detectCrawlNet() {
+      try {
+        var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (!c) return false;
+        if (/(^|-)2g$/.test(c.effectiveType || '')) return true;
+        if (c.downlink > 0 && c.downlink < 0.8) return true;
+      } catch (e) {}
+      return false;
+    }
     var tier = {
       low: detectSlowNet(),
+      lite: detectCrawlNet(),
       portrait: hasP && smallViewport && portraitViewport,            // the phone case
       bounded: boundedViewport
     };
-    // Per-branch gating: a requested low/portrait dir that isn't in the manifest
-    // quietly resolves to the nearest present tier (never a broken URL).
+    // Per-branch gating: a requested lite/low/portrait dir that isn't in the
+    // manifest quietly resolves to the nearest present tier (never a broken URL).
     function baseFor(t) {
-      var b = t.portrait ? (t.low && hasPLow ? manifest.basePLow : manifest.baseP)
-                         : (t.low && hasLow ? manifest.baseLow : manifest.base);
+      var b = t.portrait
+        ? (t.lite && hasPLite ? manifest.basePLite : (t.low || t.lite) && hasPLow ? manifest.basePLow : manifest.baseP)
+        : (t.lite && hasLite ? manifest.baseLite : (t.low || t.lite) && hasLow ? manifest.baseLow : manifest.base);
       return String(b || '');
     }
     function frameUrl(t, i) { return baseFor(t) + String(i).padStart(pad, '0') + '.' + ext; }
+    // Average bytes/frame for a tier (0 = unknown) — drives the measured ladder.
+    function tierAvg(t) {
+      try { var b = manifest.tierBytes && manifest.tierBytes[baseFor(t)]; return (b > 0 && count > 0) ? b / count : 0; }
+      catch (e) { return 0; }
+    }
     // Runtime fallback (dir present in manifest but 404s on disk): shed one axis
-    // per step — low first, then portrait — bottoming out at the 1080p landscape
-    // reel. fallbacksLeft (below) bounds the walk.
-    function canFallback(t) { return (t.low || t.portrait) && hasBase; }
+    // per step — lite first, then low, then portrait — bottoming out at the
+    // 1080p landscape reel. fallbacksLeft (below) bounds the walk.
+    function canFallback(t) { return (t.lite || t.low || t.portrait) && hasBase; }
     function fallbackTier(t) {
-      return t.low ? { low: false, portrait: t.portrait, bounded: t.bounded }
-                   : { low: false, portrait: false, bounded: t.bounded };
+      return t.lite ? { lite: false, low: t.low, portrait: t.portrait, bounded: t.bounded }
+           : t.low ? { lite: false, low: false, portrait: t.portrait, bounded: t.bounded }
+                   : { lite: false, low: false, portrait: false, bounded: t.bounded };
     }
 
     // ---- instance handle ----
@@ -584,7 +619,8 @@
     var store = null;
     var ctxCanvas = canvas;
     var readyFired = false;
-    var fallbacksLeft = 2;                                           // portrait-low → portrait → landscape is 2 steps max
+    var fallbacksLeft = 3;                                           // portrait-lite → portrait-low → portrait → landscape is 3 steps max
+    var downgrades = 0;                                              // measured-ladder steps taken (bounds re-measure loops)
     var shownImg = null;                                             // Image currently on canvas (dedupe + resize redraw)
     var ro = null;
 
@@ -613,7 +649,7 @@
     }
     function paintStill() {
       if (inst.destroyed || !shownImg) return;
-      sizeCanvas(ctxCanvas, DPR_CAP);                                 // (re)size backing store, then repaint in-frame
+      sizeCanvas(ctxCanvas, DPR_CAP, srcW, srcH);                     // (re)size backing store, then repaint in-frame
       drawCover(ctx, shownImg, ctxCanvas.width, ctxCanvas.height);
     }
 
@@ -687,7 +723,7 @@
       if (inst.destroyed) { running = false; return; }
 
       if (needResize) {
-        var s = sizeCanvas(ctxCanvas, DPR_CAP);
+        var s = sizeCanvas(ctxCanvas, DPR_CAP, srcW, srcH);
         if (s.cssW <= 0 || s.cssH <= 0) {
           // Not laid out yet (init-before-layout). Retry a bounded number of
           // frames; ResizeObserver/resize will also re-kick us once sized.
@@ -754,6 +790,10 @@
       //   on already-held frames.
       var cfg = !t.bounded
         ? { concurrency: 6, window: 30, maxRadius: 60, maxDecoded: 0  }   // desktop: START small near the playhead for a fast, contention-free first paint; widened to the full reel after ready (see startScrub)
+        : t.lite
+          ? (t.portrait
+              ? { concurrency: 6, window: 110, maxRadius: 140, maxDecoded: 300 } // phone portrait lite (304x540 ≈ .66MB dec): ~198MB
+              : { concurrency: 6, window: 90,  maxRadius: 110, maxDecoded: 250 })// small landscape lite (640x360 ≈ .92MB dec): ~230MB
         : t.portrait
           ? (t.low
               ? { concurrency: 4, window: 70, maxRadius: 90, maxDecoded: 190 } // phone portrait 720: ~223MB
@@ -772,8 +812,34 @@
       });
     }
 
+    // ---- measured-throughput ladder ----
+    // The Network Information API routinely lies or is absent; what can't lie is
+    // how long the frames ACTUALLY took. From frames-loaded-so-far + elapsed we
+    // get real bytes/sec — if that can't sustain ~20 frames/sec of the current
+    // tier, step down (full → low → lite) BEFORE revealing, so a 4g-at-its-worst
+    // phone plays the lite reel smoothly instead of slideshow-stepping the heavy
+    // one. HTTP-cached repeat visits measure instant → no downgrade. Returns the
+    // next tier to try, or null to stay.
+    function measuredNext(t, framesLoaded, tStart) {
+      if (!(tStart > 0) || downgrades >= 2 || t.lite || framesLoaded <= 0) return null;
+      var secs = Math.max(0.001, (win.performance.now() - tStart) / 1000);
+      var avgNow = tierAvg(t);
+      if (!(avgNow > 0)) return null;                                 // no tierBytes — can't measure
+      var rate = (framesLoaded * avgNow) / secs;                      // measured bytes/sec
+      if (rate / avgNow >= 20) return null;                           // current tier sustains ≥20fps — stay
+      var lowT = { lite: false, low: true, portrait: t.portrait, bounded: t.bounded };
+      var liteT = { lite: true, low: t.low, portrait: t.portrait, bounded: t.bounded };
+      if (!t.low && tierAvg(lowT) > 0 && rate / tierAvg(lowT) >= 20) return lowT; // low is enough
+      if (t.portrait ? hasPLite : hasLite) return liteT;              // else the crawl tier
+      if (!t.low && (t.portrait ? hasPLow : hasLow)) return lowT;     // no lite dir — low is still lighter
+      return null;
+    }
+
+    var earlyTimer = 0;                                               // 3s partial-progress check (crawl links)
+
     function startScrub(t) {
       if (store) { store.destroy(); store = null; }
+      if (earlyTimer) { win.clearTimeout(earlyTimer); earlyTimer = 0; }
       store = buildStore(t);
       tier = t;
       var thisStore = store;                                          // guard against stale callbacks after fallback
@@ -792,9 +858,27 @@
       // ensure is caught so onReady fires even if a frame or two fail to decode.
       var K = Math.min(count, 12);
       var crit = [];
+      var tCrit = (win.performance && win.performance.now) ? win.performance.now() : 0;
       for (var k = 1; k <= K; k++) crit.push(store.ensure(k).catch(noop));
+
+      // On a crawl link the full critical set can take 10s+ — don't sit behind
+      // the splash that long. After 3s, decide from PARTIAL progress and step
+      // down early; the crit .then's store guard makes the old set a no-op.
+      earlyTimer = win.setTimeout(function () {
+        earlyTimer = 0;
+        if (inst.destroyed || store !== thisStore || readyFired) return;
+        var loaded = store.loadedCount();
+        if (loaded >= K) return;                                      // done — the .then will handle it
+        var next = measuredNext(t, Math.max(1, loaded), tCrit);
+        if (next) { downgrades++; startScrub(next); }
+      }, 3000);
       Promise.all(crit).then(function () {
         if (inst.destroyed || store !== thisStore) return;            // don't fire ready for a superseded tier
+
+        if (earlyTimer) { win.clearTimeout(earlyTimer); earlyTimer = 0; }
+        var nextTier = measuredNext(t, K, tCrit);                     // measured-throughput ladder (below)
+        if (nextTier) { downgrades++; startScrub(nextTier); return; } // reveal happens on the lighter tier
+
         fireReady();
         // Hero is on screen — NOW widen the desktop preload so the rest of the reel
         // streams in behind the visitor (smooth seeking anywhere). Deferred a beat
@@ -824,6 +908,7 @@
       win.removeEventListener('resize', onResize);
       win.removeEventListener('orientationchange', onResize);
       if (ro) { try { ro.disconnect(); } catch (e) {} ro = null; }
+      if (earlyTimer) { try { win.clearTimeout(earlyTimer); } catch (e) {} earlyTimer = 0; }
       if (store) { try { store.destroy(); } catch (e) {} store = null; }
     };
 
