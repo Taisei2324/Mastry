@@ -4,13 +4,178 @@
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* ── loader ── */
+  /* ── loader ──
+     YouTube-style: reveal the hero as soon as its FIRST frames are decoded
+     (scrubber onReady, below) and keep buffering the rest in the background — we
+     do NOT wait on window 'load' (all 505 frames + every image), which used to
+     keep the splash up for seconds. A short minimum keeps the wordmark from
+     flashing; a hard cap never traps the visitor. */
   var loader = document.getElementById("loader");
-  window.addEventListener("load", function () {
-    setTimeout(function () { loader.classList.add("done"); }, reduceMotion ? 0 : 900);
-  });
-  /* safety: never trap the user behind the loader */
-  setTimeout(function () { loader.classList.add("done"); }, 3500);
+  var loaderDone = false;
+  var loaderStart = Date.now();
+  var MIN_SPLASH = reduceMotion ? 0 : 550;
+  function dismissLoader() {
+    if (loaderDone || !loader) return;
+    loaderDone = true;
+    var wait = Math.max(0, MIN_SPLASH - (Date.now() - loaderStart));
+    /* Add the class synchronously when the minimum has elapsed. A NESTED
+       setTimeout here can be starved for seconds behind a heavy frame-load burst
+       (the outer timer fires on time, but a freshly-queued macrotask waits) —
+       which would keep the splash up long after it should clear. */
+    if (wait <= 0) loader.classList.add("done");
+    else setTimeout(function () { loader.classList.add("done"); }, wait);
+  }
+  setTimeout(dismissLoader, 3500);              /* safety: never trap the visitor */
+
+  /* ── stage 2: the rest of the site ──
+     TWO-STAGE LOADING. Stage 1 (loading screen): the network belongs to the
+     hero frames alone — everything marked data-src (the ~1.4MB-each flavour
+     bottles) sits at zero bytes. Stage 2 (animation playing): stream those in
+     SEQUENTIALLY — one request at a time — so the still-buffering frame reel
+     keeps priority and the glide never starves. One-shot; never re-runs. */
+  function loadRestOfSite() {
+    if (loadRestOfSite.done) return;
+    loadRestOfSite.done = true;
+    var queue = Array.prototype.slice.call(document.querySelectorAll("img[data-src]"));
+    (function next() {
+      var img = queue.shift();
+      if (!img) return;
+      img.onload = img.onerror = function () { img.onload = img.onerror = null; next(); };
+      img.src = img.getAttribute("data-src");
+      img.removeAttribute("data-src");
+    })();
+  }
+
+  /* ── cinematic auto-scroll (ice glide) ──
+     Once the hero is ready the page GLIDES down through the pinned cinematic on
+     its own — one smooth, constant-velocity motion that plays the bottle's
+     journey. The first genuine interaction (wheel, touch, drag, or a navigation
+     key) UNLOCKS it: the glide releases instantly and the visitor scrolls freely
+     from there, and it never re-locks. Honours reduced-motion and won't hijack a
+     visitor who has already started scrolling.
+
+     Why this also fixes Safari: driving the scroll on a steady rAF cadence keeps
+     the scrub engine's own loop running frame-to-frame, instead of depending on
+     Safari's coalesced/deferred wheel + momentum scroll events (the source of the
+     stutter). We also neutralise CSS `scroll-behavior:smooth` for the duration,
+     which otherwise fights every programmatic scrollTo on Safari and Chrome. */
+  var startAutoScroll = function () {};         /* no-op unless enabled just below */
+  (function () {
+    if (reduceMotion) return;                   /* auto-motion: honour the OS setting */
+    var cineEl = document.getElementById("cine");
+    if (!cineEl) return;
+
+    var running = false, unlocked = false, rafId = 0, t0 = 0, fromY = 0, toY = 0, dur = 0;
+    var rootEl = document.documentElement;
+    var prevBehavior = "";
+
+    /* ice glide: short ease-in, long CONSTANT-velocity cruise, short ease-out — a
+       trapezoidal speed profile (no fast middle), so the motion reads frictionless. */
+    function iceEase(t) {
+      if (t <= 0) return 0;
+      if (t >= 1) return 1;
+      var R = 0.16;                             /* ramp fraction at each end */
+      var cruise = 1 - 2 * R;
+      var v = 1 / (cruise + R);                 /* cruise speed, area-normalised to 1 */
+      if (t < R) return v * (t * t) / (2 * R);
+      if (t < R + cruise) return v * (R / 2 + (t - R));
+      var td = t - R - cruise;
+      return v * (R / 2 + cruise + td - (td * td) / (2 * R));
+    }
+
+    function restoreBehavior() { rootEl.style.scrollBehavior = prevBehavior; }
+    function stop() {
+      if (!running) return;
+      running = false;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      restoreBehavior();                        /* hand back CSS smooth for anchor links */
+    }
+    function unlock() {                          /* the visitor took over — release for good */
+      if (unlocked) return;
+      unlocked = true;
+      stop();
+      EVENTS.forEach(function (type) { window.removeEventListener(type, onIntent, INTENT_OPTS); });
+      loadRestOfSite();                          /* they're free-scrolling now — bring in stage 2 */
+    }
+    /* ── buffer-aware pacing (YouTube-style) ──
+       The glide must never outrun the frame loader — that's what reads as
+       "glitchy" on a real connection (localhost hides it). So it begins only
+       once a healthy run of frames is decoded ahead, and mid-glide it HOLDS
+       (clock paused, current frame stays up, no jumping) whenever the buffered
+       run ahead of the playhead dips low, resuming as frames arrive. */
+    var BUFFER_START = 30;                      /* decoded frames ahead required to begin */
+    var BUFFER_KEEP = 10;                       /* hold when fewer than this remain ahead */
+    var startWaited = 0, lastNow = 0, holdRun = 0;
+    function bufferedAhead(m) {
+      try { return (window.MastryScrubber && window.MastryScrubber.status) ? window.MastryScrubber.status(m) : -1; }
+      catch (e) { return -1; }
+    }
+
+    function tick(now) {
+      if (!running) return;
+      var dt = lastNow > 0 ? now - lastNow : 0;
+      lastNow = now;
+      var ahead = bufferedAhead(BUFFER_KEEP);
+      if (ahead >= 0 && ahead < BUFFER_KEEP) {
+        /* Buffer low -> SLOW-MOTION, not a hard stop: scale the clock by how much
+           buffer remains (empty = frozen, half = half speed), so on a starved
+           link the glide degrades to a steady crawl that matches the arrival
+           rate — continuous motion — instead of hold-then-burst stepping. */
+        var f = ahead / BUFFER_KEEP;
+        t0 += dt * (1 - f);
+        holdRun = ahead === 0 ? holdRun + dt : 0;
+        if (holdRun > 12000) { stop(); return; } /* frames stopped arriving entirely -> bow out */
+        if (ahead === 0) { rafId = requestAnimationFrame(tick); return; }
+      } else {
+        holdRun = 0;
+      }
+      var p = dur > 0 ? Math.min((now - t0) / dur, 1) : 1;
+      var y = fromY + (toY - fromY) * iceEase(p);
+      try { window.scrollTo({ top: y, left: 0, behavior: "auto" }); }
+      catch (e) { window.scrollTo(0, y); }      /* older Safari: object form unsupported */
+      if (p < 1) rafId = requestAnimationFrame(tick);
+      else unlock();                            /* reached the end — hand off PERMANENTLY (the
+                                                   glide is one-shot and can never re-arm/reloop) */
+    }
+
+    startAutoScroll = function () {
+      if (unlocked || running) return;
+      if ((window.scrollY || window.pageYOffset || 0) > 4) return;   /* visitor already moved */
+      var ahead = bufferedAhead(BUFFER_START);
+      if (ahead >= 0 && ahead < BUFFER_START && startWaited < 15000) {
+        startWaited += 350;                     /* not buffered yet -> check again shortly */
+        setTimeout(startAutoScroll, 350);
+        return;
+      }
+      fromY = window.scrollY || window.pageYOffset || 0;
+      toY = Math.max(0, cineEl.offsetTop + cineEl.offsetHeight - window.innerHeight);
+      var dist = toY - fromY;
+      if (dist <= 0) return;
+      dur = Math.min(18000, Math.max(10000, dist / 0.38));   /* ~10–18s glide, paced to the hero */
+      prevBehavior = rootEl.style.scrollBehavior;
+      rootEl.style.scrollBehavior = "auto";     /* stop CSS smooth from fighting the glide */
+      t0 = performance.now();
+      lastNow = 0; holdRun = 0;
+      running = true;
+      rafId = requestAnimationFrame(tick);
+      setTimeout(loadRestOfSite, 2500);         /* stage 2: a beat into the glide, start the rest */
+    };
+
+    /* Genuine user-intent events unlock; the glide's own scrollTo does NOT (we
+       never listen to 'scroll'). Navigation keys count; typing in a field doesn't. */
+    var EVENTS = ["wheel", "touchstart", "touchmove", "pointerdown", "mousedown", "keydown"];
+    var INTENT_OPTS = { passive: true };
+    var NAV_KEYS = { ArrowDown: 1, ArrowUp: 1, PageDown: 1, PageUp: 1, Home: 1, End: 1, " ": 1, Spacebar: 1 };
+    function onIntent(e) {
+      if (e.type === "keydown") {
+        var tag = (e.target && e.target.tagName) || "";
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;  /* let forms type */
+        if (!NAV_KEYS[e.key]) return;           /* only navigation keys mean "take over" */
+      }
+      unlock();
+    }
+    EVENTS.forEach(function (type) { window.addEventListener(type, onIntent, INTENT_OPTS); });
+  })();
 
   /* ── hero: scroll-scrub cinematic (frames.js manifest + scrubber.js engine) ──
      A tall pinned track scrubs 505 rendered frames onto #heroCanvas as you
@@ -20,15 +185,29 @@
     var cineEl = document.getElementById("cine");
     var canvas = document.getElementById("heroCanvas");
     if (!cineEl || !canvas || !window.MastryScrubber || !window.MASTRY_FRAMES) return;
-    var root = document.documentElement;
+    var onProgressEnd = false;                   /* last end-card state (write class only on change) */
     window.MastryScrubber.init({
       canvas: canvas, manifest: window.MASTRY_FRAMES, scrollEl: cineEl,
-      onReady: function () { document.body.classList.add("cine-ready"); },
+      onReady: function () {
+        document.body.classList.add("cine-ready");
+        dismissLoader();                         /* first frames decoded — reveal now, keep buffering */
+        setTimeout(startAutoScroll, 800);        /* let the splash finish fading, then glide */
+        /* stage-2 safety: reduced-motion visitors get no glide (its start would
+           normally trigger this), and a stalled start must not strand the rest
+           of the site — so load it regardless after a generous beat. */
+        setTimeout(loadRestOfSite, reduceMotion ? 1500 : 15000);
+      },
       onProgress: function (p) {                 /* eased progress from the engine */
         if (p < 0) p = 0; else if (p > 1) p = 1;
-        root.style.setProperty("--cp", p.toFixed(4));
-        /* end card fades in once the bottle has arrived on the ledge (last ~10%) */
-        document.body.classList.toggle("cine-end", p >= 0.9);
+        /* NOTE: no per-tick style writes here. Setting a :root custom property
+           every animation frame invalidates style for the whole document (the
+           old --cp write — nothing consumed it) and reads as jank, especially
+           in Safari. Only flip the end-card class when it actually changes. */
+        var end = p >= 0.9;
+        if (end !== onProgressEnd) {
+          onProgressEnd = end;
+          document.body.classList.toggle("cine-end", end);
+        }
       },
       onLoadProgress: function () {}
     });

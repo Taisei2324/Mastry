@@ -597,12 +597,6 @@ body.cine-end .cine__end-title{transform:none;}
   background:var(--dark);color:rgba(249,245,233,.6);
   padding:60px clamp(20px,7vw,110px) 36px;position:relative;
 }
-/* seigaiha scalloped edge rising into the page */
-.footer::before{
-  content:"";position:absolute;top:-15px;left:0;right:0;height:16px;pointer-events:none;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='16'%3E%3Cpath d='M0 16 A16 16 0 0 1 32 16 Z' fill='%231F2A1C'/%3E%3C/svg%3E") repeat-x;
-  background-size:32px 16px;
-}
 .footer__top{
   display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
   padding-bottom:34px;border-bottom:1px solid rgba(249,245,233,.14);

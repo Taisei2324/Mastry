@@ -11,10 +11,12 @@
 (function () {
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
   function toTop() { try { window.scrollTo(0, 0); } catch (e) {} }
-  toTop();
-  window.addEventListener('DOMContentLoaded', toTop);
-  window.addEventListener('load', toTop);
-  window.addEventListener('pageshow', toTop);   /* fires on bfcache back/forward too */
+  toTop();                                        /* fresh load: start at the top, before first paint */
+  /* Reset again ONLY on a genuine back/forward (bfcache) restore. We must NOT
+     reset on 'load' or 'DOMContentLoaded': those fire AFTER the 505 hero frames
+     finish downloading (seconds in), so resetting there yanks a visitor who has
+     already begun scrolling back to frame 1 — the "bungee to the start" bug. */
+  window.addEventListener('pageshow', function (e) { if (e.persisted) toTop(); });
 })();
 </script>
 <title>MASTRY — Sparkling Water with Mastic · Chios × Japan</title>
@@ -22,7 +24,12 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='88'%3E%F0%9F%92%A7%3C/text%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet" />
+<!-- Fonts loaded NON-render-blocking: the hero paints immediately with system
+     fallbacks and the web fonts swap in when they arrive (display=swap). A
+     render-blocking <link rel="stylesheet"> here freezes first paint until the
+     CSS returns — on a slow/flaky font connection that stalls the whole hero. -->
+<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" />
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" /></noscript>
 <script>
 /* Day/night theme boot — runs before the stylesheet so there is no flash.
    No manual toggle on this page, so the theme follows the visitor's LOCAL time
@@ -48,6 +55,14 @@
 })();
 </script>
 <link rel="stylesheet" href="style.css" />
+<!-- First hero frame, media-matched to the tier the scrubber will pick (portrait
+     phones get the pre-cropped 9:16 slice; everything else the landscape reel) so
+     the opening frame is already in flight before any JS runs. On a slow-net
+     Android the scrubber may drop to the 720 tier of the same shape — the cost of
+     this hint being one tier off is a single ~11-20KB frame, the win every other
+     time is first-paint latency. -->
+<link rel="preload" as="image" href="frames-p/0001.webp" media="(max-width:760px) and (orientation:portrait)" />
+<link rel="preload" as="image" href="frames/0001.webp" media="(min-width:761px), (orientation:landscape)" />
 </head>
 <body>
 
@@ -90,7 +105,7 @@
     <div class="cine__end">
       <div class="cine__end-scrim" aria-hidden="true"></div>
       <blockquote class="cine__end-title">
-        <span class="cine__end-a">Two shores,</span>
+        <span class="cine__end-a">Two worlds,</span>
         <span class="cine__end-b">one water.</span>
       </blockquote>
     </div>
@@ -117,10 +132,15 @@
   <div class="flavours__stage">
     <div class="flavours__bottlewrap" data-speed="-0.045">
       <div class="flavours__halo" aria-hidden="true"></div>
-      <img class="flavours__bottle is-active" src="images/brand%20new%20original%20catalog.png" alt="Mastry Original Mastic bottle" data-flavour="original" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/Mastry%20ad%20yuzu.png" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/Ume%20mastry%20Ad.png" alt="Mastry Ume Mastic bottle" data-flavour="ume" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/hinoki%20mastry%20ad.png" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" loading="lazy" decoding="async" />
+      <!-- TWO-STAGE LOAD: these ~1.4MB-each PNGs carry data-src (not src) so they
+           download ZERO bytes while the loading screen has the network — lazy
+           loading isn't enough (slow connections balloon the browser's lazy
+           margin and fetch them during the hero load). script.js swaps src in
+           sequentially once the glide is playing (stage 2). -->
+      <img class="flavours__bottle is-active" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/brand%20new%20original%20catalog.png" alt="Mastry Original Mastic bottle" data-flavour="original" decoding="async" />
+      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/Mastry%20ad%20yuzu.png" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" decoding="async" />
+      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/Ume%20mastry%20Ad.png" alt="Mastry Ume Mastic bottle" data-flavour="ume" decoding="async" />
+      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/hinoki%20mastry%20ad.png" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" decoding="async" />
     </div>
 
     <div class="flavours__panel" data-speed="0.03">
