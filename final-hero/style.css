@@ -243,7 +243,7 @@ input,select,textarea{accent-color:var(--olive);}
 /* height enlarged from 520vh to absorb the underwater "slow zone" (scrubber.js
    SLOW): the extra travel goes to the water frames so everything else keeps its
    original scroll speed. Keep in sync with SLOW.factor/band. */
-.cine{position:relative;height:655vh;background:#0f150e;}
+.cine{position:relative;height:480vh;background:#0f150e;}  /* track shortened 655->480vh: each scroll covers more of the journey; the exponential pacing is normalised to track length, so the fast->slow shape is unchanged */
 .cine__sticky{
   position:sticky;top:0;height:100svh;overflow:hidden;
   background:#121a12;                       /* dark base — no white flash before frame 1 */
