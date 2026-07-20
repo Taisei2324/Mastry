@@ -70,6 +70,14 @@
     var DECAY = 1.15;                           /* ceiling falls to e^-1.15 ≈ 32% by the arrival */
     var KEEP = 10;                              /* frames that must be decoded ahead for full speed */
     var allowed = 0, lastT = 0, heroEnd = 0, bypassUntil = 0;
+    /* TOUCH DEVICES: never clamp. A phone's momentum scroll is animated by the
+       OS itself; writing scrollTo against it every frame is a tug-of-war that
+       reads as constant jank ("very laggy on mobile"). So the law applies to
+       WHEEL input only (which we own end-to-end, no fight); coarse-pointer
+       devices scroll natively and rely on the exponential frame pacing + the
+       engine's nearest-ready rendering instead. */
+    var COARSE = false;
+    try { COARSE = window.matchMedia("(pointer: coarse)").matches; } catch (e) {}
 
     function limitAt(y) {
       var p = heroEnd > 0 ? Math.min(1, Math.max(0, y / heroEnd)) : 1;
@@ -140,7 +148,7 @@
       lastT = now;
       if (dt <= 0 || dt > 0.25) return;          /* first tick / hidden tab — don't accumulate */
       var y = window.scrollY || 0;
-      if (window.__noSpeedLimit || now < bypassUntil || y >= heroEnd) { allowed = Math.min(y, heroEnd); return; }
+      if (COARSE || window.__noSpeedLimit || now < bypassUntil || y >= heroEnd) { allowed = Math.min(y, heroEnd); return; }
       var v = limitAt(allowed);
       var ahead = buffered(KEEP);
       if (ahead >= 0 && ahead < KEEP) v *= ahead / KEEP;
