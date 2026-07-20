@@ -1,0 +1,20 @@
+# MTL fallback only. Use the GLB or Three.js materials for physical transmission/refraction.
+newmtl CrystalBody
+Ka 0.02 0.02 0.02
+Kd 0.96 0.985 1.00
+Ks 1.00 1.00 1.00
+Ns 1000
+Ni 1.52
+d 0.12
+Tr 0.88
+illum 7
+
+newmtl CutFacets
+Ka 0.02 0.02 0.02
+Kd 1.00 1.00 1.00
+Ks 1.00 1.00 1.00
+Ns 1400
+Ni 1.545
+d 0.10
+Tr 0.90
+illum 7

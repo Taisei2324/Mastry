@@ -1,0 +1,381 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "OpenAI true faceted crystal highball generator"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "True_Faceted_Crystal_Highball",
+      "rotation": [
+        -0.7071067811865475,
+        0.0,
+        0.0,
+        0.7071067811865476
+      ]
+    }
+  ],
+  "meshes": [
+    {
+      "name": "True_Faceted_Crystal_Highball",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "material": 0,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "POSITION": 3,
+            "NORMAL": 4,
+            "TEXCOORD_0": 5
+          },
+          "material": 1,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "POSITION": 6,
+            "NORMAL": 7,
+            "TEXCOORD_0": 8
+          },
+          "material": 0,
+          "mode": 4,
+          "indices": 9
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "Crystal_Body_Smooth",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.985,
+          0.995,
+          1.0,
+          1.0
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.018
+      },
+      "doubleSided": false,
+      "extensions": {
+        "KHR_materials_transmission": {
+          "transmissionFactor": 1.0
+        },
+        "KHR_materials_ior": {
+          "ior": 1.52
+        },
+        "KHR_materials_volume": {
+          "thicknessFactor": 0.0042,
+          "attenuationDistance": 8.0,
+          "attenuationColor": [
+            0.985,
+            0.998,
+            1.0
+          ]
+        },
+        "KHR_materials_specular": {
+          "specularFactor": 1.0,
+          "specularColorFactor": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        }
+      }
+    },
+    {
+      "name": "Crystal_Cut_Facets_Hard",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.006
+      },
+      "doubleSided": false,
+      "extensions": {
+        "KHR_materials_transmission": {
+          "transmissionFactor": 1.0
+        },
+        "KHR_materials_ior": {
+          "ior": 1.545
+        },
+        "KHR_materials_volume": {
+          "thicknessFactor": 0.006,
+          "attenuationDistance": 10.0,
+          "attenuationColor": [
+            0.99,
+            1.0,
+            1.0
+          ]
+        },
+        "KHR_materials_specular": {
+          "specularFactor": 1.0,
+          "specularColorFactor": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        }
+      }
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 1498432,
+      "uri": "true_faceted_crystal_highball_web.bin"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 180864,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 180864,
+      "byteLength": 180864,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 361728,
+      "byteLength": 120576,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 482304,
+      "byteLength": 29376,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 511680,
+      "byteLength": 29376,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 541056,
+      "byteLength": 19584,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 560640,
+      "byteLength": 204792,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 765432,
+      "byteLength": 204792,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 970224,
+      "byteLength": 136528,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1106752,
+      "byteLength": 391680,
+      "target": 34963
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 15072,
+      "type": "VEC3",
+      "min": [
+        -0.034177739173173904,
+        -0.034177739173173904,
+        0.0
+      ],
+      "max": [
+        0.034177739173173904,
+        0.034177739173173904,
+        0.15809999406337738
+      ]
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 15072,
+      "type": "VEC3",
+      "min": [
+        -0.9998875260353088,
+        -0.9998875260353088,
+        -0.014998313039541245
+      ],
+      "max": [
+        0.9998875260353088,
+        0.9998875260353088,
+        -0.014998313039541245
+      ]
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 15072,
+      "type": "VEC2",
+      "min": [
+        0.0,
+        0.0
+      ],
+      "max": [
+        1.0,
+        0.9881250262260437
+      ]
+    },
+    {
+      "bufferView": 3,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 2448,
+      "type": "VEC3",
+      "min": [
+        -0.03368636965751648,
+        -0.03368636965751648,
+        0.015529231168329716
+      ],
+      "max": [
+        0.03368636965751648,
+        0.03368636965751648,
+        0.11749999970197678
+      ]
+    },
+    {
+      "bufferView": 4,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 2448,
+      "type": "VEC3",
+      "min": [
+        -0.9987092018127441,
+        -0.9987092018127441,
+        -0.9120970368385315
+      ],
+      "max": [
+        0.9987092018127441,
+        0.9987092018127441,
+        0.9105539321899414
+      ]
+    },
+    {
+      "bufferView": 5,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 2448,
+      "type": "VEC2",
+      "min": [
+        0.0,
+        0.09705769270658493
+      ],
+      "max": [
+        1.0,
+        0.734375
+      ]
+    },
+    {
+      "bufferView": 6,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 17066,
+      "type": "VEC3",
+      "min": [
+        -0.03420000150799751,
+        -0.03420000150799751,
+        0.0
+      ],
+      "max": [
+        0.03420000150799751,
+        0.03420000150799751,
+        0.15999189019203186
+      ]
+    },
+    {
+      "bufferView": 7,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 17066,
+      "type": "VEC3",
+      "min": [
+        -0.9996998906135559,
+        -0.9998925924301147,
+        -0.999671459197998
+      ],
+      "max": [
+        0.9998925924301147,
+        0.9998925924301147,
+        0.9998929500579834
+      ]
+    },
+    {
+      "bufferView": 8,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 17066,
+      "type": "VEC2",
+      "min": [
+        0.0,
+        0.0
+      ],
+      "max": [
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "bufferView": 9,
+      "byteOffset": 0,
+      "componentType": 5125,
+      "count": 97920,
+      "type": "SCALAR",
+      "min": [
+        0.0
+      ],
+      "max": [
+        17065.0
+      ]
+    }
+  ],
+  "extensionsUsed": [
+    "KHR_materials_transmission",
+    "KHR_materials_ior",
+    "KHR_materials_volume",
+    "KHR_materials_specular"
+  ],
+  "extensionsRequired": [
+    "KHR_materials_transmission",
+    "KHR_materials_ior"
+  ]
+}
