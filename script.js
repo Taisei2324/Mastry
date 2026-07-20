@@ -66,8 +66,8 @@
     var cineEl = document.getElementById("cine");
     if (!cineEl) return;
 
-    var V0 = 2600;                              /* px/s ceiling at the top of the hero */
-    var DECAY = 1.3;                            /* ceiling falls to e^-1.3 ≈ 27% by the arrival */
+    var V0 = 3600;                              /* px/s ceiling at the top of the hero */
+    var DECAY = 1.15;                           /* ceiling falls to e^-1.15 ≈ 32% by the arrival */
     var KEEP = 10;                              /* frames that must be decoded ahead for full speed */
     var allowed = 0, lastT = 0, heroEnd = 0, bypassUntil = 0;
 
@@ -119,7 +119,7 @@
       }
       /* budget for THIS event = ceiling speed × time since the last event
          (capped, so idle time doesn't accumulate into a burst allowance) */
-      var gap = lastWheelT ? Math.min(0.1, (now - lastWheelT) / 1000) : 0.016;
+      var gap = lastWheelT ? Math.min(0.15, (now - lastWheelT) / 1000) : 0.016;
       lastWheelT = now;
       var v = limitAt(y);
       var ahead = buffered(KEEP);
