@@ -801,13 +801,20 @@
           : t.low
             ? { concurrency: 4, window: 40, maxRadius: 40, maxDecoded: 90 } // small landscape 720p: ~333MB
             : { concurrency: 3, window: 20, maxRadius: 20, maxDecoded: 44 };// small landscape 1080p: ~365MB
+      var tBuild = (win.performance && win.performance.now) ? win.performance.now() : 0;
       return createFrameStore({
         base: baseFor(t), ext: ext, pad: pad, count: count,
         concurrency: cfg.concurrency,
         window: cfg.window,
         maxRadius: cfg.maxRadius,
         maxDecoded: cfg.maxDecoded,
-        onProgress: function (loaded, total) { if (!inst.destroyed) safeCall(onLoadProgress, loaded, total); },
+        onProgress: function (loaded, total) {
+          if (inst.destroyed) return;
+          safeCall(onLoadProgress, loaded, total);
+          // whole reel in — completion rate is a trustworthy bandwidth read;
+          // climb back up a tier if it comfortably sustains one (see maybeUpgrade)
+          if (loaded === total && tBuild > 0) maybeUpgrade(t, (win.performance.now() - tBuild) / 1000);
+        },
         onReadyFrame: function () { if (!inst.destroyed) requestTick(); } // a frame decoded -> maybe upgrade paint
       });
     }
@@ -826,13 +833,45 @@
       var avgNow = tierAvg(t);
       if (!(avgNow > 0)) return null;                                 // no tierBytes — can't measure
       var rate = (framesLoaded * avgNow) / secs;                      // measured bytes/sec
-      if (rate / avgNow >= 20) return null;                           // current tier sustains ≥20fps — stay
+      // Thresholds are deliberately forgiving: the first hit on a cold CDN (DNS,
+      // TLS, edge misses) measures slower than the link really is, and dropping
+      // quality is the visible cost. Only leave a tier that truly can't play
+      // (<14fps arrival), and prefer the 720 middle step whenever it plausibly
+      // sustains — the crawl tier is a last resort, not a first response.
+      if (rate / avgNow >= 14) return null;                           // current tier playable — stay
       var lowT = { lite: false, low: true, portrait: t.portrait, bounded: t.bounded };
       var liteT = { lite: true, low: t.low, portrait: t.portrait, bounded: t.bounded };
-      if (!t.low && tierAvg(lowT) > 0 && rate / tierAvg(lowT) >= 20) return lowT; // low is enough
+      if (!t.low && tierAvg(lowT) > 0 && rate / tierAvg(lowT) >= 14) return lowT; // low is enough
       if (t.portrait ? hasPLite : hasLite) return liteT;              // else the crawl tier
       if (!t.low && (t.portrait ? hasPLow : hasLow)) return lowT;     // no lite dir — low is still lighter
       return null;
+    }
+
+    // ---- background quality UPGRADE (the ladder's way back up) ----
+    // A cold-start mismeasure (or a congested moment) must not pin the visitor
+    // at low quality forever. When the CURRENT tier's whole reel finishes
+    // loading, the completion rate is a solid bandwidth read — if it sustains
+    // one tier up at ~24fps with 1.5x margin, swap up ONCE. The old frames stay
+    // painted (the canvas never clears) while the better ones stream in around
+    // the playhead, so the swap is invisible except for sharpening.
+    var upgraded = false;
+    function upgradeTier(t) {
+      if (t.lite) return { lite: false, low: true, portrait: t.portrait, bounded: t.bounded };
+      if (t.low) return { lite: false, low: false, portrait: t.portrait, bounded: t.bounded };
+      return null;
+    }
+    function maybeUpgrade(t, totalSecs) {
+      if (upgraded || inst.destroyed || still || !(totalSecs > 0)) return;
+      var up = upgradeTier(t);
+      if (!up) return;                                                // already at full
+      var avgNow = tierAvg(t), avgUp = tierAvg(up);
+      if (!(avgNow > 0) || !(avgUp > 0)) return;
+      var rate = (count * avgNow) / totalSecs;                        // achieved bytes/sec over the whole reel
+      // Bar = the upper tier at ~20fps. No extra margin: the completion rate
+      // already understates true bandwidth (it amortizes decode + the pipeline's
+      // concurrency cap), and a wrong upgrade self-corrects — the new tier's
+      // critical-set re-measure can step back down (bounded by the downgrade cap).
+      if (rate >= avgUp * 20) { upgraded = true; startScrub(up); }
     }
 
     var earlyTimer = 0;                                               // 3s partial-progress check (crawl links)

@@ -16,7 +16,7 @@ window.MASTRY_FRAMES = {
                              //   the ~70% that gets cropped away. iOS (no Network
                              //   Information API) -> this tier, never the 15 MB one.
   basePLow: "frames-p-720/", // 406x720 portrait center-crop (~3.1 MB), phones on SLOW connections.
-  baseLite:  "frames-lite/",   // 640x360 landscape (~2.6 MB TOTAL) — the CRAWL tier. Chosen when
+  baseLite:  "frames-lite/",   // 854x480 landscape (~3.8 MB TOTAL) — the CRAWL tier. Chosen when
                                //   MEASURED throughput can't sustain playback of the picked tier
                                //   (~300 kbps mobile 4g at its worst): ~5KB/frame arrives at
                                //   10+ fps even on such links, so the glide plays instead of
@@ -32,6 +32,6 @@ window.MASTRY_FRAMES = {
   tierBytes: {              // exact per-tier totals (report/preload budgeting)
     "frames/": 16180572, "frames-720/": 9277500,
     "frames-p/": 5653514, "frames-p-720/": 3279686,
-    "frames-lite/": 2631468, "frames-p-lite/": 1590210
+    "frames-lite/": 3838434, "frames-p-lite/": 1590210
   }
 };
