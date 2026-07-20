@@ -24,8 +24,6 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='88'%3E%F0%9F%92%A7%3C/text%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<!-- kick off the very first hero frame before any JS runs -->
-<link rel="preload" as="image" href="frames/0001.webp" />
 <!-- Fonts loaded NON-render-blocking: the hero paints immediately with system
      fallbacks and the web fonts swap in when they arrive (display=swap). A
      render-blocking <link rel="stylesheet"> here freezes first paint until the
@@ -57,6 +55,14 @@
 })();
 </script>
 <link rel="stylesheet" href="style.css" />
+<!-- First hero frame, media-matched to the tier the scrubber will pick (portrait
+     phones get the pre-cropped 9:16 slice; everything else the landscape reel) so
+     the opening frame is already in flight before any JS runs. On a slow-net
+     Android the scrubber may drop to the 720 tier of the same shape — the cost of
+     this hint being one tier off is a single ~11-20KB frame, the win every other
+     time is first-paint latency. -->
+<link rel="preload" as="image" href="frames-p/0001.webp" media="(max-width:760px) and (orientation:portrait)" />
+<link rel="preload" as="image" href="frames/0001.webp" media="(min-width:761px), (orientation:landscape)" />
 </head>
 <body>
 

@@ -518,22 +518,35 @@
     var noScroll = !scrollEl || !scrollEl.getBoundingClientRect;      // can't scrub without a driver
     var still = noScroll;                                             // "paint one representative frame" mode
 
-    // ---- tier selection: two INDEPENDENT axes ----
+    // ---- tier selection: three INDEPENDENT axes ----
+    // SHAPE follows the DEVICE: a phone-sized portrait viewport loads the portrait
+    //   center-crop tiers (manifest.baseP / basePLow) — the exact 9:16 slice that
+    //   cover-fit would crop out of the landscape frames anyway, pre-cut on disk so
+    //   the ~70% of each landscape frame a phone never shows is never downloaded
+    //   (~5.4 MB instead of ~15.4 MB; identical pixels on screen). Landscape phones
+    //   (rare for a scroll page) exceed 760px width → landscape tiers, still correct.
     // RESOLUTION follows the CONNECTION: a slow link (data-saver, 2g/3g, or a weak
-    //   "low" 4g) loads the lighter 720p tier (manifest.baseLow) so the hero still
-    //   arrives quickly; everything else loads full 1080p (manifest.base). The
-    //   Network Information API is absent on iOS Safari → treated as "not slow" →
-    //   1080p, matching the max-quality default.
-    // MEMORY BOUNDING follows the VIEWPORT: small/mobile screens hold only a decoded
-    //   window (phones have a tight image budget); desktops hold the whole reel.
-    // tier is an object {low, bounded}; a 720p miss falls back to 1080p (same bound).
+    //   "low" 4g) loads the lighter tier of the chosen shape (720-tall) so the hero
+    //   still arrives quickly. The Network Information API is absent on iOS Safari →
+    //   treated as "not slow" → an iPhone gets the full portrait tier (its max
+    //   quality) — NOT the 15 MB desktop reel it used to be handed.
+    // MEMORY BOUNDING follows the VIEWPORT: screens small in EITHER dimension hold
+    //   only a decoded window (phones in any orientation have a tight image
+    //   budget); desktops hold the whole reel.
+    // tier is {low, portrait, bounded}; a missing dir falls back low→full within
+    // the shape, then portrait→landscape (see canFallback/fallbackTier).
     var hasLow = nonEmptyStr(manifest.baseLow);
     var hasBase = nonEmptyStr(manifest.base);
-    var smallViewport = mmMatches('(max-width:760px)') || (win.innerWidth || 9999) <= 760;
+    var hasP = nonEmptyStr(manifest.baseP);
+    var hasPLow = nonEmptyStr(manifest.basePLow);
+    var vw = win.innerWidth || 9999, vh = win.innerHeight || 9999;
+    var smallViewport = mmMatches('(max-width:760px)') || vw <= 760;
+    var boundedViewport = mmMatches('(max-width:760px), (max-height:760px)') || Math.min(vw, vh) <= 760;
+    var portraitViewport = mmMatches('(orientation: portrait)') || vh >= vw;
     function detectSlowNet() {
       try {
         var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        if (!c) return false;                                         // no API (iOS) → assume fast → 1080p
+        if (!c) return false;                                         // no API (iOS) → assume fast → full tier
         if (c.saveData) return true;                                  // user opted into data-saver
         var et = c.effectiveType || '';
         if (/(^|-)2g$/.test(et) || et === '3g') return true;          // 3g and below
@@ -541,11 +554,27 @@
       } catch (e) {}
       return false;
     }
-    var tier = { low: hasLow && detectSlowNet(), bounded: smallViewport };
-    function baseFor(t) { return String((t.low ? manifest.baseLow : manifest.base) || ''); }
+    var tier = {
+      low: detectSlowNet(),
+      portrait: hasP && smallViewport && portraitViewport,            // the phone case
+      bounded: boundedViewport
+    };
+    // Per-branch gating: a requested low/portrait dir that isn't in the manifest
+    // quietly resolves to the nearest present tier (never a broken URL).
+    function baseFor(t) {
+      var b = t.portrait ? (t.low && hasPLow ? manifest.basePLow : manifest.baseP)
+                         : (t.low && hasLow ? manifest.baseLow : manifest.base);
+      return String(b || '');
+    }
     function frameUrl(t, i) { return baseFor(t) + String(i).padStart(pad, '0') + '.' + ext; }
-    function canFallback(t) { return t.low && hasBase; }             // 720p dir missing → drop to 1080p
-    function fallbackTier(t) { return { low: false, bounded: t.bounded }; }
+    // Runtime fallback (dir present in manifest but 404s on disk): shed one axis
+    // per step — low first, then portrait — bottoming out at the 1080p landscape
+    // reel. fallbacksLeft (below) bounds the walk.
+    function canFallback(t) { return (t.low || t.portrait) && hasBase; }
+    function fallbackTier(t) {
+      return t.low ? { low: false, portrait: t.portrait, bounded: t.bounded }
+                   : { low: false, portrait: false, bounded: t.bounded };
+    }
 
     // ---- instance handle ----
     var inst = { destroyed: false, teardown: noop };
@@ -555,7 +584,7 @@
     var store = null;
     var ctxCanvas = canvas;
     var readyFired = false;
-    var triedFallback = false;
+    var fallbacksLeft = 2;                                           // portrait-low → portrait → landscape is 2 steps max
     var shownImg = null;                                             // Image currently on canvas (dedupe + resize redraw)
     var ro = null;
 
@@ -578,7 +607,7 @@
         fireReady();
       }, function () {
         if (inst.destroyed) return;
-        if (canFallback(t) && !triedFallback) { triedFallback = true; startStill(fallbackTier(t)); return; }
+        if (canFallback(t) && fallbacksLeft > 0) { fallbacksLeft--; startStill(fallbackTier(t)); return; }
         fireReady();                                                  // couldn't load; still let the page proceed
       });
     }
@@ -711,19 +740,27 @@
     }
 
     function buildStore(t) {
-      // Desktop (unbounded): preload the whole reel and keep every frame decoded —
-      //   plenty of RAM. Mobile (bounded): hold only a decoded window around the
+      // Desktop (unbounded): keep every frame decoded — plenty of RAM. Fill starts
+      //   small for a contention-free first paint, then setBudget() widens it to
+      //   the whole reel after ready. Mobile (bounded): hold only a decoded window around the
       //   playhead and stream the rest (HTTP-cached, so revisits re-decode, not
-      //   re-download). Window is sized per RESOLUTION to land ~340-365MB held:
-      //   1080p ≈ 8.3MB/frame → 44 frames; 720p ≈ 3.7MB/frame → 90 frames. In every
-      //   case maxDecoded > 2×maxRadius so the farthest held frame sits outside the
-      //   schedule window and eviction can't thrash against the preloader. The
-      //   accepted trade on 1080p mobile is the odd re-decode on a very fast fling.
+      //   re-download). Window is sized per TIER's decoded frame cost to land
+      //   ~230-365MB held: landscape 1080p ≈ 8.3MB/frame → 44; landscape 720p ≈
+      //   3.7MB → 90; portrait 608x1080 ≈ 2.6MB → 120; portrait 406x720 ≈ 1.2MB →
+      //   190. In every case maxDecoded > 2×maxRadius so the farthest held frame
+      //   sits outside the schedule window and eviction can't thrash against the
+      //   preloader. The portrait tiers' cheaper frames buy a much wider decoded
+      //   window — flings that used to hit the 1080p re-decode stutter now land
+      //   on already-held frames.
       var cfg = !t.bounded
         ? { concurrency: 6, window: 30, maxRadius: 60, maxDecoded: 0  }   // desktop: START small near the playhead for a fast, contention-free first paint; widened to the full reel after ready (see startScrub)
-        : t.low
-          ? { concurrency: 4, window: 40, maxRadius: 40, maxDecoded: 90 } // mobile 720p: ~333MB
-          : { concurrency: 3, window: 20, maxRadius: 20, maxDecoded: 44 };// mobile 1080p: ~365MB
+        : t.portrait
+          ? (t.low
+              ? { concurrency: 4, window: 70, maxRadius: 90, maxDecoded: 190 } // phone portrait 720: ~223MB
+              : { concurrency: 4, window: 50, maxRadius: 55, maxDecoded: 120 })// phone portrait 1080: ~315MB
+          : t.low
+            ? { concurrency: 4, window: 40, maxRadius: 40, maxDecoded: 90 } // small landscape 720p: ~333MB
+            : { concurrency: 3, window: 20, maxRadius: 20, maxDecoded: 44 };// small landscape 1080p: ~365MB
       return createFrameStore({
         base: baseFor(t), ext: ext, pad: pad, count: count,
         concurrency: cfg.concurrency,
@@ -747,8 +784,8 @@
         requestTick();
       }, function () {
         if (inst.destroyed || store !== thisStore) return;
-        if (canFallback(t) && !triedFallback) { triedFallback = true; startScrub(fallbackTier(t)); }
-        // else frame 1 failed on desktop too — critical settle below still fires onReady
+        if (canFallback(t) && fallbacksLeft > 0) { fallbacksLeft--; startScrub(fallbackTier(t)); }
+        // else frame 1 failed on the base landscape reel too — critical settle below still fires onReady
       });
 
       // Critical set for onReady = frame 1 + a few early frames. Resilient: each
