@@ -48,6 +48,14 @@
 })();
 </script>
 <link rel="stylesheet" href="style.css" />
+<!-- First hero frame, media-matched to the tier the scrubber will pick (portrait
+     phones get the pre-cropped 9:16 slice; everything else the landscape reel) so
+     the opening frame is already in flight before any JS runs. On a slow-net
+     Android the scrubber may drop to the 720 tier of the same shape — the cost of
+     this hint being one tier off is a single ~11-20KB frame, the win every other
+     time is first-paint latency. -->
+<link rel="preload" as="image" href="frames-p/0001.webp" media="(max-width:760px) and (orientation:portrait)" />
+<link rel="preload" as="image" href="frames/0001.webp" media="(min-width:761px), (orientation:landscape)" />
 </head>
 <body>
 
