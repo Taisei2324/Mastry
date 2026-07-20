@@ -1,305 +1,227 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Umami Udon — Handcrafted Noodles</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script>
+/* Every reload (not just a hard refresh) starts the hero from the BEGINNING:
+   stop the browser restoring the old scroll position, and force scroll to 0 on
+   load and on back/forward (bfcache) restores. Runs before first paint so there
+   is no jump. */
+(function () {
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
+  function toTop() { try { window.scrollTo(0, 0); } catch (e) {} }
+  toTop();
+  window.addEventListener('DOMContentLoaded', toTop);
+  window.addEventListener('load', toTop);
+  window.addEventListener('pageshow', toTop);   /* fires on bfcache back/forward too */
+})();
+</script>
+<title>MASTRY — Sparkling Water with Mastic · Chios × Japan</title>
+<meta name="description" content="Mastry is sparkling water infused with mastic — the crystal resin of Chios, Greece — carbonated and bottled with Japanese precision. Zero sugar. Three ingredients. Two ancient islands." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='88'%3E%F0%9F%92%A7%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet" />
+<script>
+/* Day/night theme boot — runs before the stylesheet so there is no flash.
+   No manual toggle on this page, so the theme follows the visitor's LOCAL time
+   of access: a seasonal daylight window from the clock (sunrise/sunset shift
+   with the season, temperate-latitude fit) → bright out = light, dark out =
+   dark. No geolocation, no permission prompt. (A stored mastry-theme choice,
+   if ever set, still wins for 12h.) */
+(function () {
+  var t = null;
+  try {
+    t = localStorage.getItem('mastry-theme');
+    var ts = +localStorage.getItem('mastry-theme-ts') || 0;
+    if (Date.now() - ts > 432e5) t = null;              /* choice older than 12h → re-decide by clock */
+  } catch (e) {}
+  if (t !== 'light' && t !== 'dark') {
+    var now = new Date();
+    var doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 864e5);
+    var half = 6.05 + 1.15 * Math.cos(2 * Math.PI * (doy - 172) / 365);  /* half-day length, seasonal */
+    var hr = now.getHours() + now.getMinutes() / 60;
+    t = (hr > 12 - half && hr < 12 + half) ? 'light' : 'dark';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<link rel="stylesheet" href="style.css" />
+<!-- First hero frame, media-matched to the tier the scrubber will pick (portrait
+     phones get the pre-cropped 9:16 slice; everything else the landscape reel) so
+     the opening frame is already in flight before any JS runs. On a slow-net
+     Android the scrubber may drop to the 720 tier of the same shape — the cost of
+     this hint being one tier off is a single ~11-20KB frame, the win every other
+     time is first-paint latency. -->
+<link rel="preload" as="image" href="frames-p/0001.webp" media="(max-width:760px) and (orientation:portrait)" />
+<link rel="preload" as="image" href="frames/0001.webp" media="(min-width:761px), (orientation:landscape)" />
 </head>
 <body>
 
-  <!-- NAV -->
-  <nav class="nav">
-    <div class="nav__logo">
-      <span class="logo-kanji">うどん</span>
-      <span class="logo-name">Umami Udon</span>
-    </div>
-    <ul class="nav__links">
-      <li><a href="#about">About</a></li>
-      <li><a href="#menu">Menu</a></li>
-      <li><a href="#gallery">Gallery</a></li>
-      <li><a href="#hours">Visit</a></li>
-    </ul>
-    <a href="#hours" class="btn btn--sm">Reserve a Seat</a>
-    <button class="nav__burger" aria-label="Toggle menu">&#9776;</button>
+<div id="progress" aria-hidden="true"></div>
+
+<!-- ══ Loader ══ -->
+<div id="loader" aria-hidden="true">
+  <span class="loader__word">MASTRY</span>
+</div>
+
+<!-- ══ Nav ══ -->
+<header class="nav" id="nav">
+  <a class="nav__logo" href="#top">MASTRY<span class="nav__logo-jp">マストリー</span></a>
+  <nav class="nav__links" id="navLinks" aria-label="Main">
+    <a href="#story">Story</a>
+    <a href="#flavours">Flavours</a>
+    <a href="#find">Order</a>
+    <a href="merch.html">Merch</a>
   </nav>
+  <a class="nav__cta" href="#find">Find Mastry</a>
+  <button class="nav__burger" id="burger" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span>
+  </button>
+</header>
 
-  <!-- HERO -->
-  <header class="hero">
-    <img
-      src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=1800&auto=format&fit=crop"
-      alt="Bowl of udon noodles in broth"
-      class="hero__bg"
-    />
-    <div class="hero__overlay"></div>
-    <div class="hero__content">
-      <p class="hero__eyebrow">Est. 2012 · Osaka, Japan</p>
-      <h1 class="hero__title">Every Bowl Tells<br />a Story</h1>
-      <p class="hero__sub">Hand-pulled noodles. Slow-simmered dashi. Seasonal toppings.<br />We've been perfecting the art of udon for over a decade.</p>
-      <div class="hero__cta">
-        <a href="#menu" class="btn btn--primary">Explore the Menu</a>
-        <a href="#about" class="btn btn--ghost">Our Story</a>
-      </div>
-    </div>
-  </header>
+<main id="top">
 
-  <!-- ABOUT -->
-  <section class="about section" id="about">
-    <div class="about__image-wrap">
-      <img
-        src="https://images.unsplash.com/photo-1604497110050-3be85eb5ef74?w=900&auto=format&fit=crop"
-        alt="Chef pulling udon noodles by hand"
-        class="about__image"
-      />
-      <div class="about__badge">
-        <span class="about__badge-num">12</span>
-        <span class="about__badge-text">Years of<br/>Excellence</span>
-      </div>
-    </div>
-    <div class="about__body">
-      <p class="section__eyebrow">Our Story</p>
-      <h2 class="section__title">Born in Osaka,<br />Loved Worldwide</h2>
-      <p class="about__text">
-        Umami Udon started as a tiny 8-seat counter in the Namba district.
-        Our founder, Kenji Tanaka, learned the art of hand-pulled noodles from
-        his grandmother, who ran a small udon-ya for 40 years.
-      </p>
-      <p class="about__text">
-        Today we serve hundreds of guests daily, but every bowl is still made
-        with the same patience and care — dashi simmered for 12 hours,
-        noodles pulled fresh every morning, toppings sourced from local farms.
-      </p>
-      <div class="about__stats">
-        <div class="stat">
-          <span class="stat__num">100%</span>
-          <span class="stat__label">Fresh Daily Noodles</span>
-        </div>
-        <div class="stat">
-          <span class="stat__num">12h</span>
-          <span class="stat__label">Dashi Simmer Time</span>
-        </div>
-        <div class="stat">
-          <span class="stat__num">30+</span>
-          <span class="stat__label">Menu Items</span>
-        </div>
-      </div>
-    </div>
-  </section>
+<!-- ══ Hero — scroll-scrub cinematic ══
+     The bottle's journey plays frame-by-frame as you scroll: a lake in Japan →
+     the topple → the dive → the current → a ledge in Chios. The stage stays
+     PINNED (screen doesn't move) while scroll advances the render. -->
+<section class="cine" id="cine" aria-label="Scroll to follow the bottle from a lake in Japan to a ledge in Chios">
+  <div class="cine__sticky">
+    <canvas id="heroCanvas" aria-hidden="true"></canvas>
+    <!-- minimalist: nothing over the frames but a faint top scrim (nav legibility) -->
+    <div class="cine__scrim" aria-hidden="true"></div>
 
-  <!-- MENU -->
-  <section class="menu section" id="menu">
-    <div class="section__header">
-      <p class="section__eyebrow">What We Serve</p>
-      <h2 class="section__title">Our Signature Bowls</h2>
-      <p class="section__sub">Every bowl is available in regular or large. Noodle thickness can be customized.</p>
-    </div>
-    <div class="menu__grid">
-
-      <article class="menu-card">
-        <div class="menu-card__img-wrap">
-          <img src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&auto=format&fit=crop" alt="Kake Udon" />
-          <span class="menu-card__tag">Classic</span>
-        </div>
-        <div class="menu-card__body">
-          <h3>Kake Udon</h3>
-          <p>Silky noodles in a delicate golden dashi broth, topped with sliced scallions and a dusting of shichimi.</p>
-          <span class="menu-card__price">¥850</span>
-        </div>
-      </article>
-
-      <article class="menu-card menu-card--featured">
-        <div class="menu-card__img-wrap">
-          <img src="https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&auto=format&fit=crop" alt="Curry Udon" />
-          <span class="menu-card__tag">Chef's Pick</span>
-        </div>
-        <div class="menu-card__body">
-          <h3>Curry Udon</h3>
-          <p>Rich Japanese curry broth ladled over thick udon, crowned with crispy tempura flakes and pickled ginger.</p>
-          <span class="menu-card__price">¥1,200</span>
-        </div>
-      </article>
-
-      <article class="menu-card">
-        <div class="menu-card__img-wrap">
-          <img src="https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=600&auto=format&fit=crop" alt="Tempura Udon" />
-          <span class="menu-card__tag">Popular</span>
-        </div>
-        <div class="menu-card__body">
-          <h3>Ebi Tempura Udon</h3>
-          <p>Three jumbo prawn tempura perched atop a bowl of light dashi udon — the crowd favourite since day one.</p>
-          <span class="menu-card__price">¥1,500</span>
-        </div>
-      </article>
-
-      <article class="menu-card">
-        <div class="menu-card__img-wrap">
-          <img src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&auto=format&fit=crop&crop=bottom" alt="Zaru Udon" />
-          <span class="menu-card__tag">Summer</span>
-        </div>
-        <div class="menu-card__body">
-          <h3>Zaru Udon</h3>
-          <p>Chilled noodles served on a bamboo zaru with a cold tsuyu dipping broth, wasabi, and nori strips.</p>
-          <span class="menu-card__price">¥950</span>
-        </div>
-      </article>
-
-      <article class="menu-card">
-        <div class="menu-card__img-wrap">
-          <img src="https://images.unsplash.com/photo-1604697177698-ec6fdb5e1b94?w=600&auto=format&fit=crop" alt="Niku Udon" />
-          <span class="menu-card__tag">Hearty</span>
-        </div>
-        <div class="menu-card__body">
-          <h3>Niku Udon</h3>
-          <p>Thinly sliced wagyu beef simmered in sweet soy sauce, laid over steaming noodles in a deep umami broth.</p>
-          <span class="menu-card__price">¥1,650</span>
-        </div>
-      </article>
-
-      <article class="menu-card">
-        <div class="menu-card__img-wrap">
-          <img src="https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop" alt="Nabeyaki Udon" />
-          <span class="menu-card__tag">Winter</span>
-        </div>
-        <div class="menu-card__body">
-          <h3>Nabeyaki Udon</h3>
-          <p>Udon served in a cast-iron pot with chicken, fish cake, spinach, egg, and shiitake — warming and generous.</p>
-          <span class="menu-card__price">¥1,800</span>
-        </div>
-      </article>
-
-    </div>
-    <div class="menu__footer">
-      <a href="#" class="btn btn--outline">View Full Menu (PDF)</a>
-    </div>
-  </section>
-
-  <!-- GALLERY -->
-  <section class="gallery section" id="gallery">
-    <div class="section__header">
-      <p class="section__eyebrow">Inside Umami Udon</p>
-      <h2 class="section__title">A Taste of the Experience</h2>
-    </div>
-    <div class="gallery__grid">
-      <img src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800&auto=format&fit=crop" alt="Bowl of udon" class="gallery__item gallery__item--tall" />
-      <img src="https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=800&auto=format&fit=crop" alt="Japanese restaurant interior" class="gallery__item" />
-      <img src="https://images.unsplash.com/photo-1547592180-85f173990554?w=800&auto=format&fit=crop" alt="Ramen preparation" class="gallery__item" />
-      <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&auto=format&fit=crop" alt="Delicious food spread" class="gallery__item gallery__item--wide" />
-      <img src="https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=800&auto=format&fit=crop" alt="Chef at work" class="gallery__item" />
-    </div>
-  </section>
-
-  <!-- TESTIMONIALS -->
-  <section class="testimonials section">
-    <div class="section__header">
-      <p class="section__eyebrow">Guest Reviews</p>
-      <h2 class="section__title">What People Are Saying</h2>
-    </div>
-    <div class="testimonials__grid">
-      <blockquote class="testimonial">
-        <p>"The curry udon is life-changing. The broth alone is worth the trip — it's been in my dreams since I first tried it."</p>
-        <footer>
-          <img src="https://i.pravatar.cc/60?img=11" alt="Sophie L." />
-          <div>
-            <strong>Sophie L.</strong>
-            <span>Food blogger, London</span>
-          </div>
-        </footer>
-      </blockquote>
-      <blockquote class="testimonial testimonial--featured">
-        <p>"I've eaten udon in Tokyo, Kyoto, and Osaka — Umami Udon is still my number one. The hand-pulled noodles have an incredible chew."</p>
-        <footer>
-          <img src="https://i.pravatar.cc/60?img=33" alt="Marcus T." />
-          <div>
-            <strong>Marcus T.</strong>
-            <span>Travel writer, NYC</span>
-          </div>
-        </footer>
-      </blockquote>
-      <blockquote class="testimonial">
-        <p>"Came for lunch, stayed for dessert, came back for dinner. The nabeyaki in winter is absolute comfort food."</p>
-        <footer>
-          <img src="https://i.pravatar.cc/60?img=47" alt="Yuki M." />
-          <div>
-            <strong>Yuki M.</strong>
-            <span>Regular guest, Osaka</span>
-          </div>
-        </footer>
+    <!-- end card: a two-font quote — a flowing italic serif (yin) paired with a
+         letterspaced uppercase sans (yang) — fades in once the bottle arrives -->
+    <div class="cine__end">
+      <div class="cine__end-scrim" aria-hidden="true"></div>
+      <blockquote class="cine__end-title">
+        <span class="cine__end-a">Two shores,</span>
+        <span class="cine__end-b">one water.</span>
       </blockquote>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- HOURS & LOCATION -->
-  <section class="visit section" id="hours">
-    <div class="visit__map">
-      <img
-        src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=900&auto=format&fit=crop"
-        alt="Restaurant entrance"
-      />
-    </div>
-    <div class="visit__info">
-      <p class="section__eyebrow">Find Us</p>
-      <h2 class="section__title">Come Visit</h2>
-      <address class="visit__address">
-        2-5-14 Namba, Chuo-ku<br />
-        Osaka, Japan 542-0076
-      </address>
-      <div class="visit__hours">
-        <div class="hours-row">
-          <span>Mon – Fri</span><span>11:00 – 21:30</span>
-        </div>
-        <div class="hours-row">
-          <span>Saturday</span><span>10:30 – 22:00</span>
-        </div>
-        <div class="hours-row">
-          <span>Sunday</span><span>10:30 – 21:00</span>
-        </div>
-        <div class="hours-row hours-row--closed">
-          <span>Tuesday</span><span>Closed</span>
-        </div>
-      </div>
-      <div class="visit__contact">
-        <a href="tel:+81661234567" class="btn btn--outline">+81 6-6123-4567</a>
-        <a href="mailto:hello@umami-udon.jp" class="btn btn--outline">hello@umami-udon.jp</a>
-      </div>
-    </div>
-  </section>
+<!-- ══ Essence — the story, one line + the stats, nothing else ══ -->
+<section class="essence section" id="story">
+  <p class="essence__line">Mastic from Chios. Water from Japan.<br /><em>Nothing else.</em></p>
+  <ul class="stats" aria-label="What's inside">
+    <li><span class="stats__n">0</span><span class="stats__cap">sugar</span></li>
+    <li><span class="stats__n">0</span><span class="stats__cap">calories</span></li>
+    <li><span class="stats__n">3</span><span class="stats__cap">ingredients</span></li>
+    <li><span class="stats__n">2</span><span class="stats__cap">islands</span></li>
+  </ul>
+</section>
 
-  <!-- FOOTER -->
-  <footer class="footer">
-    <div class="footer__top">
-      <div class="footer__brand">
-        <span class="logo-kanji">うどん</span>
-        <span class="logo-name">Umami Udon</span>
-        <p>Handcrafted noodles served with soul since 2012.</p>
-      </div>
-      <div class="footer__links">
-        <h4>Navigate</h4>
-        <ul>
-          <li><a href="#about">About</a></li>
-          <li><a href="#menu">Menu</a></li>
-          <li><a href="#gallery">Gallery</a></li>
-          <li><a href="#hours">Visit</a></li>
-        </ul>
-      </div>
-      <div class="footer__links">
-        <h4>Follow</h4>
-        <ul>
-          <li><a href="#">Instagram</a></li>
-          <li><a href="#">Twitter / X</a></li>
-          <li><a href="#">TikTok</a></li>
-          <li><a href="#">Google Maps</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer__bottom">
-      <p>&copy; 2024 Umami Udon. All rights reserved.</p>
-      <p>Photos via <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a></p>
-    </div>
-  </footer>
+<!-- ══ Flavours ══ -->
+<section class="flavours section" id="flavours">
+  <div class="flavours__head">
+    <h2 class="section__title reveal">Four waters. <em>One resin.</em></h2>
+  </div>
 
-  <script src="script.js"></script>
+  <div class="flavours__stage">
+    <div class="flavours__bottlewrap" data-speed="-0.045">
+      <div class="flavours__halo" aria-hidden="true"></div>
+      <img class="flavours__bottle is-active" src="images/brand%20new%20original%20catalog.png" alt="Mastry Original Mastic bottle" data-flavour="original" loading="lazy" decoding="async" />
+      <img class="flavours__bottle" src="images/Mastry%20ad%20yuzu.png" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" loading="lazy" decoding="async" />
+      <img class="flavours__bottle" src="images/Ume%20mastry%20Ad.png" alt="Mastry Ume Mastic bottle" data-flavour="ume" loading="lazy" decoding="async" />
+      <img class="flavours__bottle" src="images/hinoki%20mastry%20ad.png" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" loading="lazy" decoding="async" />
+    </div>
+
+    <div class="flavours__panel" data-speed="0.03">
+      <div class="flavours__list" role="tablist" aria-label="Flavours">
+        <button class="flavours__tab is-active" role="tab" aria-selected="true" data-flavour="original">
+          <span class="flavours__no">01</span><span class="flavours__name">Original Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+        </button>
+        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="yuzu">
+          <span class="flavours__no">02</span><span class="flavours__name">Yuzu Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+        </button>
+        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="ume">
+          <span class="flavours__no">03</span><span class="flavours__name">Ume Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+        </button>
+        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="hinoki">
+          <span class="flavours__no">04</span><span class="flavours__name">Hinoki Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Order / Contact ══ -->
+<section class="order section" id="find">
+  <div class="order__inner">
+    <div class="order__left reveal--fade" data-speed="0.03">
+      <p class="section__eyebrow">Order — 注文</p>
+      <h2 class="section__title">Order<br /><em>Mastry.</em></h2>
+      <p class="order__sub">Tell us what you'd like and where it's going.
+      We'll confirm by email within a day.</p>
+      <dl class="order__info">
+        <div><dt>Email</dt><dd>hello@mastry.jp</dd></div>
+        <div><dt>Origin</dt><dd>Chios, Greece × Japan</dd></div>
+        <div><dt>Ships from</dt><dd>Japan · 3–5 business days</dd></div>
+      </dl>
+    </div>
+
+    <form class="order__form reveal--fade" data-speed="-0.035" id="orderForm" novalidate="novalidate">
+      <div class="fg">
+        <label for="fname">Full name</label>
+        <input type="text" id="fname" placeholder="Your name" autocomplete="name" required />
+      </div>
+      <div class="fg">
+        <label for="femail">Email</label>
+        <input type="email" id="femail" placeholder="your@email.com" autocomplete="email" required />
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label for="fproduct">Flavour</label>
+          <select id="fproduct" required>
+            <option value="">Select</option>
+            <option>Original Mastic</option>
+            <option>Yuzu Mastic</option>
+            <option>Ume Mastic</option>
+            <option>Hinoki Mastic</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="fqty">Quantity</label>
+          <input type="number" id="fqty" min="1" max="48" value="1" required />
+        </div>
+      </div>
+      <div class="fg">
+        <label for="faddress">Delivery address</label>
+        <textarea id="faddress" rows="3" placeholder="Street, City, Country" required></textarea>
+      </div>
+      <button class="btn btn--solid" type="submit">Place order</button>
+      <p class="order__note">International shipping available worldwide.</p>
+      <p class="order__ok" id="orderOk" hidden>ありがとう — order received. We'll confirm at hello@mastry.jp.</p>
+    </form>
+  </div>
+</section>
+
+</main>
+
+<!-- ══ Footer ══ -->
+<footer class="footer">
+  <div class="footer__top">
+    <a class="footer__logo" href="#top">MASTRY</a>
+    <nav class="footer__links" aria-label="Footer">
+      <a href="#story">Story</a>
+      <a href="#flavours">Flavours</a>
+      <a href="#find">Order</a>
+      <a href="merch.html">Merch</a>
+    </nav>
+  </div>
+  <div class="footer__bottom">
+    <p>Mastic from Chios, Greece · Assembled in Japan</p>
+    <p>© 2026 Mastry. Sparkling water with mastic.</p>
+  </div>
+</footer>
+
+<script src="frames.js"></script>
+<script src="scrubber.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
