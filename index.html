@@ -61,8 +61,8 @@
      opening frame is already in flight before any JS runs. On slow-net desktop
      the scrubber may drop to 720p — the cost of the hint being one tier off is a
      single ~20KB frame, the win every other time is first-paint latency. -->
-<link rel="preload" as="image" href="mobile-final-render/0001.webp" media="(max-width:760px) and (orientation:portrait)" />
-<link rel="preload" as="image" href="frames/0001.webp" media="(min-width:761px), (orientation:landscape)" />
+<link rel="preload" as="image" href="mobile-final-render/0001.webp" media="(max-width:760px) and (orientation:portrait), (pointer:coarse) and (max-height:760px)" />
+<link rel="preload" as="image" href="frames/0001.webp" media="(min-width:761px) and (min-height:761px) and (pointer:fine)" />
 </head>
 <body>
 
@@ -132,10 +132,10 @@
   <div class="flavours__stage">
     <div class="flavours__bottlewrap" data-speed="-0.045">
       <div class="flavours__halo" aria-hidden="true"></div>
-      <img class="flavours__bottle is-active" src="images/brand%20new%20original%20catalog.png" alt="Mastry Original Mastic bottle" data-flavour="original" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/Mastry%20ad%20yuzu.png" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/Ume%20mastry%20Ad.png" alt="Mastry Ume Mastic bottle" data-flavour="ume" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/hinoki%20mastry%20ad.png" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" loading="lazy" decoding="async" />
+      <img class="flavours__bottle is-active" src="images/flavours/original.webp" alt="Mastry Original Mastic bottle" data-flavour="original" loading="lazy" decoding="async" />
+      <img class="flavours__bottle" src="images/flavours/yuzu.webp" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" loading="lazy" decoding="async" />
+      <img class="flavours__bottle" src="images/flavours/ume.webp" alt="Mastry Ume Mastic bottle" data-flavour="ume" loading="lazy" decoding="async" />
+      <img class="flavours__bottle" src="images/flavours/hinoki.webp" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" loading="lazy" decoding="async" />
     </div>
 
     <div class="flavours__panel" data-speed="0.03">
