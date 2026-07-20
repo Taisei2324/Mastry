@@ -27,6 +27,25 @@
   }
   setTimeout(dismissLoader, 3500);              /* safety: never trap the visitor */
 
+  /* ── stage 2: the rest of the site ──
+     TWO-STAGE LOADING. Stage 1 (loading screen): the network belongs to the
+     hero frames alone — everything marked data-src (the ~1.4MB-each flavour
+     bottles) sits at zero bytes. Stage 2 (animation playing): stream those in
+     SEQUENTIALLY — one request at a time — so the still-buffering frame reel
+     keeps priority and the glide never starves. One-shot; never re-runs. */
+  function loadRestOfSite() {
+    if (loadRestOfSite.done) return;
+    loadRestOfSite.done = true;
+    var queue = Array.prototype.slice.call(document.querySelectorAll("img[data-src]"));
+    (function next() {
+      var img = queue.shift();
+      if (!img) return;
+      img.onload = img.onerror = function () { img.onload = img.onerror = null; next(); };
+      img.src = img.getAttribute("data-src");
+      img.removeAttribute("data-src");
+    })();
+  }
+
   /* ── cinematic auto-scroll (ice glide) ──
      Once the hero is ready the page GLIDES down through the pinned cinematic on
      its own — one smooth, constant-velocity motion that plays the bottle's
@@ -76,6 +95,7 @@
       unlocked = true;
       stop();
       EVENTS.forEach(function (type) { window.removeEventListener(type, onIntent, INTENT_OPTS); });
+      loadRestOfSite();                          /* they're free-scrolling now — bring in stage 2 */
     }
     /* ── buffer-aware pacing (YouTube-style) ──
        The glide must never outrun the frame loader — that's what reads as
@@ -109,7 +129,8 @@
       try { window.scrollTo({ top: y, left: 0, behavior: "auto" }); }
       catch (e) { window.scrollTo(0, y); }      /* older Safari: object form unsupported */
       if (p < 1) rafId = requestAnimationFrame(tick);
-      else stop();                              /* reached the end of the hero — hand off */
+      else unlock();                            /* reached the end — hand off PERMANENTLY (the
+                                                   glide is one-shot and can never re-arm/reloop) */
     }
 
     startAutoScroll = function () {
@@ -132,6 +153,7 @@
       lastNow = 0; holdRun = 0;
       running = true;
       rafId = requestAnimationFrame(tick);
+      setTimeout(loadRestOfSite, 2500);         /* stage 2: a beat into the glide, start the rest */
     };
 
     /* Genuine user-intent events unlock; the glide's own scrollTo does NOT (we
@@ -165,6 +187,10 @@
         document.body.classList.add("cine-ready");
         dismissLoader();                         /* first frames decoded — reveal now, keep buffering */
         setTimeout(startAutoScroll, 800);        /* let the splash finish fading, then glide */
+        /* stage-2 safety: reduced-motion visitors get no glide (its start would
+           normally trigger this), and a stalled start must not strand the rest
+           of the site — so load it regardless after a generous beat. */
+        setTimeout(loadRestOfSite, reduceMotion ? 1500 : 15000);
       },
       onProgress: function (p) {                 /* eased progress from the engine */
         if (p < 0) p = 0; else if (p > 1) p = 1;

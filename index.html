@@ -132,10 +132,15 @@
   <div class="flavours__stage">
     <div class="flavours__bottlewrap" data-speed="-0.045">
       <div class="flavours__halo" aria-hidden="true"></div>
-      <img class="flavours__bottle is-active" src="images/brand%20new%20original%20catalog.png" alt="Mastry Original Mastic bottle" data-flavour="original" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/Mastry%20ad%20yuzu.png" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/Ume%20mastry%20Ad.png" alt="Mastry Ume Mastic bottle" data-flavour="ume" loading="lazy" decoding="async" />
-      <img class="flavours__bottle" src="images/hinoki%20mastry%20ad.png" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" loading="lazy" decoding="async" />
+      <!-- TWO-STAGE LOAD: these ~1.4MB-each PNGs carry data-src (not src) so they
+           download ZERO bytes while the loading screen has the network — lazy
+           loading isn't enough (slow connections balloon the browser's lazy
+           margin and fetch them during the hero load). script.js swaps src in
+           sequentially once the glide is playing (stage 2). -->
+      <img class="flavours__bottle is-active" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/brand%20new%20original%20catalog.png" alt="Mastry Original Mastic bottle" data-flavour="original" decoding="async" />
+      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/Mastry%20ad%20yuzu.png" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" decoding="async" />
+      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/Ume%20mastry%20Ad.png" alt="Mastry Ume Mastic bottle" data-flavour="ume" decoding="async" />
+      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/hinoki%20mastry%20ad.png" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" decoding="async" />
     </div>
 
     <div class="flavours__panel" data-speed="0.03">
