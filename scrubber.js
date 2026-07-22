@@ -629,10 +629,15 @@
       } catch (e) {}
       return false;
     }
+    // Touch device with a phone-sized shorter screen side = a phone in ANY
+    // orientation — a phone held sideways at load must still get the trimmed
+    // tier, never the 15 MB desktop reel. (pointer:coarse) is the PRIMARY
+    // pointer, so touch-screen laptops (mouse/trackpad primary) stay desktop.
+    var phoneDevice = mmMatches('(pointer: coarse)') && Math.min(vw, vh) <= 760;
     var tier = {
       low: detectSlowNet(),
       lite: detectCrawlNet(),
-      portrait: hasP && smallViewport && portraitViewport,            // the phone case
+      portrait: hasP && (phoneDevice || (smallViewport && portraitViewport)), // the phone case, any orientation
       bounded: boundedViewport
     };
     // Per-branch gating: a requested lite/low/portrait dir that isn't in the
@@ -750,6 +755,16 @@
     // buffer-aware auto-glide asks this to pace itself like a streaming player
     // (start only when buffered, hold when the buffer runs dry). Returns -1 in
     // still mode / before the store exists, meaning "not applicable, don't gate".
+    // Introspection for tuning/diagnosis (harmless to call in production).
+    inst.debug = function () {
+      return {
+        tier: { low: !!tier.low, lite: !!tier.lite, portrait: !!tier.portrait, bounded: !!tier.bounded },
+        base: baseFor(tier), downgrades: downgrades, climbs: climbs, ready: readyFired,
+        finished: store ? store.finished() : -1,
+        activeSeconds: store ? Math.round(store.activeSeconds() * 100) / 100 : -1,
+        loaded: store ? store.loadedCount() : -1
+      };
+    };
     inst.status = function (margin) {
       if (still || !store) return -1;
       var m = (margin | 0) > 0 ? (margin | 0) : 12;
@@ -844,8 +859,8 @@
               : { concurrency: 6, window: 90,  maxRadius: 110, maxDecoded: 250 })// small landscape lite (640x360 ≈ .92MB dec): ~230MB
         : t.portrait
           ? (t.low
-              ? { concurrency: 4, window: 70, maxRadius: 90, maxDecoded: 190 } // phone portrait 720: ~223MB
-              : { concurrency: 4, window: 50, maxRadius: 55, maxDecoded: 120 })// phone portrait 1080: ~315MB
+              ? { concurrency: 4, window: 70, maxRadius: 90, maxDecoded: 190 } // (unreachable while basePLow is empty)
+              : { concurrency: 6, window: 80, maxRadius: 100, maxDecoded: 220 })// phone 400x810 trimmed (≈1.3MB dec): ~286MB, wide window — flings land on held frames
           : t.low
             ? { concurrency: 4, window: 40, maxRadius: 40, maxDecoded: 90 } // small landscape 720p: ~333MB
             : { concurrency: 3, window: 20, maxRadius: 20, maxDecoded: 44 };// small landscape 1080p: ~365MB
@@ -1066,7 +1081,10 @@
   function status(margin) {
     return (activeInstance && activeInstance.status) ? activeInstance.status(margin) : -1;
   }
+  function debug() {
+    return (activeInstance && activeInstance.debug) ? activeInstance.debug() : null;
+  }
 
   // The ONE global. Nothing else leaks from this closure.
-  win.MastryScrubber = { init: init, destroy: destroy, status: status };
+  win.MastryScrubber = { init: init, destroy: destroy, status: status, debug: debug };
 })();
