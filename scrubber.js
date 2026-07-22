@@ -183,6 +183,17 @@
     var pinned = new Set();                                           // ensure()'d frames, FIFO top priority
     var ensureResolvers = new Map();                                 // i -> { resolve, reject }
     var ensureCache = new Map();                                     // i -> shared Promise
+    // ---- throughput bookkeeping (drives the quality ladder's climb-back-up) ----
+    // finishes counts EVERY completed load (reloads after eviction included);
+    // activeMs accumulates only wall time with at least one request in flight,
+    // so finishes/activeSeconds is honest bytes-per-second evidence even on a
+    // bounded mobile store that idles between playhead moves.
+    var finishes = 0;
+    var activeMs = 0, activeSince = 0;
+    function nowMs() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
+    function slotDrained() {                                          // last in-flight request settled
+      if (inFlightCount === 0 && activeSince) { activeMs += nowMs() - activeSince; activeSince = 0; }
+    }
 
     function clampFrame(i) { i = i | 0; return i < 1 ? 1 : (i > count ? count : i); }
     function frameUrl(i) { return base + String(i).padStart(pad, '0') + '.' + ext; }
@@ -237,6 +248,7 @@
 
     function startLoad(i) {
       state[i] = STATE_LOADING;
+      if (inFlightCount === 0) activeSince = nowMs();                 // pipe going busy — start the active clock
       inFlightCount++;                                                // the ONE place a slot is claimed
       attemptLoad(i, 0);
     }
@@ -281,6 +293,8 @@
       state[i] = STATE_READY;
       imgs[i] = img;
       inFlightCount--;
+      slotDrained();
+      finishes++;
       heldReady++;
       if (!everSeen[i]) { everSeen[i] = 1; readyCount++; }           // first-ever load -> bump monotonic progress
       pinned.delete(i);
@@ -297,6 +311,7 @@
       if (destroyed) return;
       state[i] = STATE_FAILED;                                        // terminal: pickNext never picks it -> no deadlock
       inFlightCount--;
+      slotDrained();
       pinned.delete(i);
       settleEnsure(i, new Error('frame ' + i + ' failed: ' + frameUrl(i)), null);
       schedulePump();
@@ -406,6 +421,10 @@
       return p;
     }
     function loadedCount() { return readyCount; }
+    function finished() { return finishes; }                          // every completed load, reloads included
+    function activeSeconds() {                                        // wall time the pipe was actually busy
+      return (activeMs + (activeSince ? nowMs() - activeSince : 0)) / 1000;
+    }
 
     function destroy() {
       if (destroyed) return;
@@ -428,7 +447,8 @@
     return {
       total: count,
       get: get, isReady: isReady, nearestReady: nearestReady,
-      focus: focus, setBudget: setBudget, ensure: ensure, loadedCount: loadedCount, destroy: destroy
+      focus: focus, setBudget: setBudget, ensure: ensure, loadedCount: loadedCount,
+      finished: finished, activeSeconds: activeSeconds, destroy: destroy
     };
   }
 
@@ -821,18 +841,21 @@
     // phone plays the lite reel smoothly instead of slideshow-stepping the heavy
     // one. HTTP-cached repeat visits measure instant → no downgrade. Returns the
     // next tier to try, or null to stay.
-    function measuredNext(t, framesLoaded, tStart) {
-      if (!(tStart > 0) || downgrades >= 2 || t.lite || framesLoaded <= 0) return null;
-      var secs = Math.max(0.001, (win.performance.now() - tStart) / 1000);
+    function measuredNext(t, framesLoaded, secs) {
+      if (downgrades >= 2 || t.lite || !(framesLoaded > 0) || !(secs > 0.05)) return null;
       var avgNow = tierAvg(t);
       if (!(avgNow > 0)) return null;                                 // no tierBytes — can't measure
       var rate = (framesLoaded * avgNow) / secs;                      // measured bytes/sec
       // Thresholds are deliberately forgiving: the first hit on a cold CDN (DNS,
       // TLS, edge misses) measures slower than the link really is, and dropping
-      // quality is the visible cost. Only leave a tier that truly can't play
-      // (<14fps arrival), and prefer the 720 middle step whenever it plausibly
-      // sustains — the crawl tier is a last resort, not a first response.
-      if (rate / avgNow >= 14) return null;                           // current tier playable — stay
+      // quality is the visible cost — callers start the clock at the FIRST frame's
+      // completion so connection setup never counts against the link. Only leave a
+      // tier that truly can't play (<14fps arrival), prefer the 720 middle step
+      // whenever it plausibly sustains, and demand a HARDER failure (<9fps) before
+      // the second step down — the crawl tier is for genuinely starved links only,
+      // because pixel-wise it reads as "super bad" on a Retina phone.
+      var bar = t.low ? 9 : 14;
+      if (rate / avgNow >= bar) return null;                          // current tier playable — stay
       var lowT = { lite: false, low: true, portrait: t.portrait, bounded: t.bounded };
       var liteT = { lite: true, low: t.low, portrait: t.portrait, bounded: t.bounded };
       if (!t.low && tierAvg(lowT) > 0 && rate / tierAvg(lowT) >= 14) return lowT; // low is enough
@@ -849,13 +872,14 @@
     // painted (the canvas never clears) while the better ones stream in around
     // the playhead, so the swap is invisible except for sharpening.
     var upgraded = false;
+    var climbs = 0;                                                   // total up-steps taken (lite→low→full is 2)
     function upgradeTier(t) {
       if (t.lite) return { lite: false, low: true, portrait: t.portrait, bounded: t.bounded };
       if (t.low) return { lite: false, low: false, portrait: t.portrait, bounded: t.bounded };
       return null;
     }
     function maybeUpgrade(t, totalSecs) {
-      if (upgraded || inst.destroyed || still || !(totalSecs > 0)) return;
+      if (upgraded || climbs >= 2 || inst.destroyed || still || !(totalSecs > 0)) return;
       var up = upgradeTier(t);
       if (!up) return;                                                // already at full
       var avgNow = tierAvg(t), avgUp = tierAvg(up);
@@ -865,8 +889,37 @@
       // already understates true bandwidth (it amortizes decode + the pipeline's
       // concurrency cap), and a wrong upgrade self-corrects — the new tier's
       // critical-set re-measure can step back down (bounded by the downgrade cap).
-      if (rate >= avgUp * 20) { upgraded = true; startScrub(up); }
+      if (rate >= avgUp * 20) { upgraded = true; climbs++; startScrub(up); }
     }
+
+    // ---- rolling climb (the ladder up that actually works on phones) ----
+    // maybeUpgrade needs the WHOLE reel to finish — but a bounded mobile store
+    // only schedules near the playhead, so completion may never come, and one
+    // cold-start mismeasure (cellular's classic TCP ramp) would pin an iPhone at
+    // the 304px crawl tier for the entire visit. Instead: every few seconds,
+    // read the store's ACTIVE-time throughput (finishes / busy-seconds — idle
+    // gaps between playhead moves don't dilute it). Once fresh evidence shows
+    // the next tier up sustains ~20fps with 1.3x margin, climb one step. The
+    // canvas never clears, so the climb is invisible except for sharpening.
+    var climbSample = { f: 0, s: 0 };
+    var climbTimer = win.setInterval(function () {
+      if (inst.destroyed) { win.clearInterval(climbTimer); return; }
+      if (still || !store || !readyFired || climbs >= 2) return;
+      var up = upgradeTier(tier);
+      if (!up) return;                                                // already at full quality
+      var f = store.finished(), s = store.activeSeconds();
+      var df = f - climbSample.f, ds = s - climbSample.s;
+      if (df < 24) return;                                            // keep accumulating evidence
+      climbSample = { f: f, s: s };
+      var avgUp = tierAvg(up);
+      // Floor the divisor at 0.25s: on a blazing pipe 24 tiny frames finish in
+      // milliseconds of active time — dividing by the true ds would claim an
+      // absurd rate from a paper-thin sample. The floor UNDERSTATES fast links
+      // (they climb anyway, comfortably over the bar) and never flatters slow
+      // ones (their real ds exceeds it), so the estimate errs safe both ways.
+      var rate = (df * tierAvg(tier)) / Math.max(ds, 0.25);           // recent bytes/sec while actually loading
+      if (avgUp > 0 && rate >= avgUp * 20 * 1.3) { climbs++; upgraded = true; startScrub(up); }
+    }, 4000);
 
     var earlyTimer = 0;                                               // 3s partial-progress check (crawl links)
 
@@ -875,6 +928,7 @@
       if (earlyTimer) { win.clearTimeout(earlyTimer); earlyTimer = 0; }
       store = buildStore(t);
       tier = t;
+      climbSample = { f: 0, s: 0 };                                   // fresh store — fresh climb evidence
       var thisStore = store;                                          // guard against stale callbacks after fallback
 
       // Early paint: load frame 1 first and draw it ASAP.
@@ -889,10 +943,17 @@
 
       // Critical set for onReady = frame 1 + a few early frames. Resilient: each
       // ensure is caught so onReady fires even if a frame or two fail to decode.
+      // tFirst = when the FIRST critical frame lands: starting the throughput
+      // clock there (not at request time) keeps DNS/TLS/TCP slow-start out of
+      // the measurement — the cold-start bias that used to double-downgrade a
+      // perfectly good cellular link down to the crawl tier.
       var K = Math.min(count, 12);
       var crit = [];
       var tCrit = (win.performance && win.performance.now) ? win.performance.now() : 0;
-      for (var k = 1; k <= K; k++) crit.push(store.ensure(k).catch(noop));
+      var tFirst = 0;
+      function markFirst() { if (!tFirst) tFirst = win.performance.now(); }
+      for (var k = 1; k <= K; k++) crit.push(store.ensure(k).then(function (v) { markFirst(); return v; }, function () { markFirst(); }));
+      function measuredSecs() { return Math.max(0.001, (win.performance.now() - (tFirst || tCrit)) / 1000); }
 
       // On a crawl link the full critical set can take 10s+ — don't sit behind
       // the splash that long. After 3s, decide from PARTIAL progress and step
@@ -902,14 +963,14 @@
         if (inst.destroyed || store !== thisStore || readyFired) return;
         var loaded = store.loadedCount();
         if (loaded >= K) return;                                      // done — the .then will handle it
-        var next = measuredNext(t, Math.max(1, loaded), tCrit);
+        var next = measuredNext(t, Math.max(1, loaded - 1), measuredSecs());
         if (next) { downgrades++; startScrub(next); }
       }, 3000);
       Promise.all(crit).then(function () {
         if (inst.destroyed || store !== thisStore) return;            // don't fire ready for a superseded tier
 
         if (earlyTimer) { win.clearTimeout(earlyTimer); earlyTimer = 0; }
-        var nextTier = measuredNext(t, K, tCrit);                     // measured-throughput ladder (below)
+        var nextTier = measuredNext(t, K - 1, measuredSecs());        // measured-throughput ladder (below)
         if (nextTier) { downgrades++; startScrub(nextTier); return; } // reveal happens on the lighter tier
 
         fireReady();
@@ -942,6 +1003,7 @@
       win.removeEventListener('orientationchange', onResize);
       if (ro) { try { ro.disconnect(); } catch (e) {} ro = null; }
       if (earlyTimer) { try { win.clearTimeout(earlyTimer); } catch (e) {} earlyTimer = 0; }
+      if (climbTimer) { try { win.clearInterval(climbTimer); } catch (e) {} climbTimer = 0; }
       if (store) { try { store.destroy(); } catch (e) {} store = null; }
     };
 
