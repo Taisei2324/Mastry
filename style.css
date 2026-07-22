@@ -1,3 +1,13 @@
+/* ── self-hosted variable fonts — zero external dependency (the Google Fonts
+   link proved flaky on some networks: stalls, silently dropped faces).
+   Pairing: Cormorant Garamond (delicate high-contrast serif — the hero's
+   original minimalist voice) × Jost (geometric Bauhaus-precision sans for
+   body/UI — totally different classification, equally quiet). Japanese glyphs
+   (Noto Serif JP) still ride Google with system fallback. ── */
+@font-face{font-family:'Cormorant Garamond';src:url('fonts/cormorant-var.woff2') format('woff2-variations');font-weight:300 700;font-style:normal;font-display:swap;}
+@font-face{font-family:'Cormorant Garamond';src:url('fonts/cormorant-var-italic.woff2') format('woff2-variations');font-weight:300 700;font-style:italic;font-display:swap;}
+@font-face{font-family:'Jost';src:url('fonts/jost-var.woff2') format('woff2-variations');font-weight:100 900;font-style:normal;font-display:swap;}
+
 /* ═══════════════════════════════════════════════════════════
    MASTRY — Sparkling Water with Mastic
    Minimalist editorial · Chios × Japan
@@ -47,7 +57,7 @@
   --nav-h:76px;
   --ease:cubic-bezier(.22,1,.36,1);
   --serif:'Cormorant Garamond',serif;
-  --sans:'Inter',sans-serif;
+  --sans:'Jost',sans-serif;
   --jp:'Noto Serif JP',serif;
 }
 
@@ -233,7 +243,7 @@ input,select,textarea{accent-color:var(--olive);}
 /* height enlarged from 520vh to absorb the underwater "slow zone" (scrubber.js
    SLOW): the extra travel goes to the water frames so everything else keeps its
    original scroll speed. Keep in sync with SLOW.factor/band. */
-.cine{position:relative;height:655vh;background:#0f150e;}
+.cine{position:relative;height:480vh;background:#0f150e;}  /* track shortened 655->480vh: each scroll covers more of the journey; the exponential pacing is normalised to track length, so the fast->slow shape is unchanged */
 .cine__sticky{
   position:sticky;top:0;height:100svh;overflow:hidden;
   background:#121a12;                       /* dark base — no white flash before frame 1 */
@@ -596,12 +606,6 @@ body.cine-end .cine__end-title{transform:none;}
 .footer{
   background:var(--dark);color:rgba(249,245,233,.6);
   padding:60px clamp(20px,7vw,110px) 36px;position:relative;
-}
-/* seigaiha scalloped edge rising into the page */
-.footer::before{
-  content:"";position:absolute;top:-15px;left:0;right:0;height:16px;pointer-events:none;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='16'%3E%3Cpath d='M0 16 A16 16 0 0 1 32 16 Z' fill='%231F2A1C'/%3E%3C/svg%3E") repeat-x;
-  background-size:32px 16px;
 }
 .footer__top{
   display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;

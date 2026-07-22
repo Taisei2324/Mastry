@@ -27,95 +27,281 @@
   }
   setTimeout(dismissLoader, 3500);              /* safety: never trap the visitor */
 
-  /* ── cinematic auto-scroll (ice glide) ──
-     Once the hero is ready the page GLIDES down through the pinned cinematic on
-     its own — one smooth, constant-velocity motion that plays the bottle's
-     journey. The first genuine interaction (wheel, touch, drag, or a navigation
-     key) UNLOCKS it: the glide releases instantly and the visitor scrolls freely
-     from there, and it never re-locks. Honours reduced-motion and won't hijack a
-     visitor who has already started scrolling.
+  /* ── stage 2: the rest of the site ──
+     TWO-STAGE LOADING. Stage 1 (loading screen): the network belongs to the
+     hero frames alone — everything marked data-src (the ~1.4MB-each flavour
+     bottles) sits at zero bytes. Stage 2 (animation playing): stream those in
+     SEQUENTIALLY — one request at a time — so the still-buffering frame reel
+     keeps priority and the glide never starves. One-shot; never re-runs. */
+  function loadRestOfSite() {
+    if (loadRestOfSite.done) return;
+    loadRestOfSite.done = true;
+    var queue = Array.prototype.slice.call(document.querySelectorAll("img[data-src]"));
+    (function next() {
+      var img = queue.shift();
+      if (!img) return;
+      img.onload = img.onerror = function () { img.onload = img.onerror = null; next(); };
+      img.src = img.getAttribute("data-src");
+      img.removeAttribute("data-src");
+    })();
+  }
 
-     Why this also fixes Safari: driving the scroll on a steady rAF cadence keeps
-     the scrub engine's own loop running frame-to-frame, instead of depending on
-     Safari's coalesced/deferred wheel + momentum scroll events (the source of the
-     stutter). We also neutralise CSS `scroll-behavior:smooth` for the duration,
-     which otherwise fights every programmatic scrollTo on Safari and Chrome. */
-  var startAutoScroll = function () {};         /* no-op unless enabled just below */
+  /* ── hero scroll-speed GOVERNOR (no automation — the visitor drives) ──
+     The page never scrolls on its own. Instead, the hero enforces a MAXIMUM
+     downward scroll speed that decays toward the arrival: generous at the top,
+     ~1/4 of that by the last frames, so nobody can blow through the cinematic —
+     but under the limit the visitor scrolls completely freely, at any rhythm,
+     pausing or reversing whenever they like.
+
+       - limit(y) = V0 · e^(−DECAY · y/heroEnd)   (gradually slower toward the end)
+       - the ceiling also TIGHTENS when the frame buffer runs low, so fast
+         scrolling can never outrun the loader on a slow connection (the cause
+         of the old stutter) — frames stream in like a player, position follows
+       - upward scrolling is never limited; once past the hero, nothing is
+       - nav anchor clicks (Story / Order / …) bypass the governor briefly so
+         in-page navigation still jumps instantly past the hero
+       - honours prefers-reduced-motion (no governor at all) */
+  (function () {
+    if (reduceMotion) return;
+    var cineEl = document.getElementById("cine");
+    if (!cineEl) return;
+
+    var V0 = 3600;                              /* px/s ceiling at the top of the hero */
+    var DECAY = 1.15;                           /* ceiling falls to e^-1.15 ≈ 32% by the arrival */
+    var KEEP = 10;                              /* frames that must be decoded ahead for full speed */
+    var allowed = 0, lastT = 0, heroEnd = 0, bypassUntil = 0;
+    /* TOUCH DEVICES: never clamp. A phone's momentum scroll is animated by the
+       OS itself; writing scrollTo against it every frame is a tug-of-war that
+       reads as constant jank ("very laggy on mobile"). So the law applies to
+       WHEEL input only (which we own end-to-end, no fight); coarse-pointer
+       devices scroll natively and rely on the exponential frame pacing + the
+       engine's nearest-ready rendering instead. */
+    var COARSE = false;
+    try { COARSE = window.matchMedia("(pointer: coarse)").matches; } catch (e) {}
+
+    function limitAt(y) {
+      var p = heroEnd > 0 ? Math.min(1, Math.max(0, y / heroEnd)) : 1;
+      return V0 * Math.exp(-DECAY * p);
+    }
+    function buffered(m) {
+      try { return (window.MastryScrubber && window.MastryScrubber.status) ? window.MastryScrubber.status(m) : -1; }
+      catch (e) { return -1; }
+    }
+    function measure() { heroEnd = Math.max(0, cineEl.offsetTop + cineEl.offsetHeight - window.innerHeight); }
+
+    /* THE LAW, with zero self-motion: every pixel of movement happens
+       SYNCHRONOUSLY inside the visitor's own input event. Wheel input is taken
+       over entirely (preventDefault — the browser never scrolls, so there is no
+       overshoot, nothing to snap back, no jitter); each event may advance at
+       most limit × (time since the previous event), and anything beyond the
+       ceiling is simply VOID — not banked, not replayed. Stop scrolling and the
+       page stops that same instant. Upward is always free. */
+    var lastWheelT = 0;
+    function setY(y) {
+      /* MUST be 'instant': 'auto' defers to the page's CSS scroll-behavior
+         (smooth) and turns every write into a ~600ms ANIMATION — the governor
+         then fights its own animation and the law crawls. Older engines that
+         reject 'instant' fall back to a plain write with CSS smooth suspended. */
+      try { window.scrollTo({ top: y, left: 0, behavior: "instant" }); }
+      catch (e) {
+        var el = document.documentElement, prev = el.style.scrollBehavior;
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, Math.round(y));
+        el.style.scrollBehavior = prev;
+      }
+    }
+    function onWheel(e) {
+      if (window.__noSpeedLimit || reduceMotion) return;
+      var now = performance.now();
+      var y = window.scrollY || 0;
+      if (now < bypassUntil || y >= heroEnd) { lastWheelT = now; return; }  /* past hero / anchor nav — native */
+      var dy = e.deltaY;
+      if (e.deltaMode === 1) dy *= 16; else if (e.deltaMode === 2) dy *= window.innerHeight;
+      if (!dy) return;                                        /* horizontal-only — let it be */
+      e.preventDefault();
+      if (dy < 0) {                                           /* upward is always free + instant */
+        setY(Math.max(0, y + dy));
+        allowed = Math.max(0, y + dy);
+        lastWheelT = now;
+        return;
+      }
+      /* budget for THIS event = ceiling speed × time since the last event
+         (capped, so idle time doesn't accumulate into a burst allowance) */
+      var gap = lastWheelT ? Math.min(0.15, (now - lastWheelT) / 1000) : 0.016;
+      lastWheelT = now;
+      var v = limitAt(y);
+      var ahead = buffered(KEEP);
+      if (ahead >= 0 && ahead < KEEP) v *= ahead / KEEP;      /* buffer low → tighter ceiling (0 = hold) */
+      var take = Math.min(dy, v * gap);                       /* excess intent is VOID, never banked */
+      if (take <= 0) return;
+      var ny = Math.min(heroEnd, y + take);
+      if (ny > y) { setY(ny); allowed = ny; }
+    }
+
+    /* Backstop for inputs that scroll natively (touch, keyboard): a gentle
+       per-frame ceiling — overshoot is eased back (viscosity, not a fight).
+       This only ever REACTS to the visitor's motion; with no input the page
+       position is never touched. */
+    function tick(now) {
+      requestAnimationFrame(tick);
+      var dt = lastT ? (now - lastT) / 1000 : 0;
+      lastT = now;
+      if (dt <= 0 || dt > 0.25) return;          /* first tick / hidden tab — don't accumulate */
+      var y = window.scrollY || 0;
+      if (COARSE || window.__noSpeedLimit || now < bypassUntil || y >= heroEnd) { allowed = Math.min(y, heroEnd); return; }
+      var v = limitAt(allowed);
+      var ahead = buffered(KEEP);
+      if (ahead >= 0 && ahead < KEEP) v *= ahead / KEEP;
+      var cap = allowed + v * dt;
+      if (y > cap + 2) {
+        var back = cap + (y - cap) * 0.55;        /* absorb ~half the overshoot per frame */
+        setY(back);
+        allowed = cap;
+      } else {
+        allowed = y > 0 ? y : 0;                 /* under the limit (or upward) — untouched */
+      }
+    }
+
+    /* in-page anchor navigation must still work: bypass while the browser's
+       smooth scroll animates to the target (it sails through the hero fast). */
+    document.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
+      if (a) bypassUntil = performance.now() + 1500;
+    }, true);
+
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("wheel", onWheel, { passive: false });
+    requestAnimationFrame(tick);
+  })();
+
+  /* ── MOBILE hero guide — a slow auto-advance the visitor always outranks ──
+     Touch devices get no governor (native momentum must never be fought) and no
+     wheel — so on a phone the cinematic only plays if the visitor keeps dragging.
+     This guide advances the hero SLOWLY on its own, as a suggestion, not a lock:
+
+       - the instant a finger touches the glass the guide pauses; the visitor
+         scrolls back and forth completely freely (iOS momentum included —
+         every scroll event while paused re-arms the stillness timer)
+       - after ~2.6s of true stillness it gently resumes from wherever they
+         left the page (fresh ease-in ramp, so it never lurches)
+       - it streams like a player: advance is scaled by the scrubber's decoded
+         buffer (MastryScrubber.status), so it can never outrun the loader
+       - a soft deceleration zone eases the arrival at the ledge
+       - at the end of the hero — or if the visitor moves past it (anchor nav
+         included) — the guide retires for good; the content below is theirs
+       - desktop is untouched (no automation there — the visitor drives) */
+  var startHeroGuide = function () {};          /* no-op unless enabled just below */
   (function () {
     if (reduceMotion) return;                   /* auto-motion: honour the OS setting */
     var cineEl = document.getElementById("cine");
     if (!cineEl) return;
+    var GUIDED = false;
+    try { GUIDED = window.matchMedia("(pointer: coarse)").matches; } catch (e) {}
+    if (!GUIDED && (window.innerWidth || 9999) <= 760) GUIDED = true;
+    if (!GUIDED) return;                        /* mobile/touch only */
 
-    var running = false, unlocked = false, rafId = 0, t0 = 0, fromY = 0, toY = 0, dur = 0;
-    var rootEl = document.documentElement;
-    var prevBehavior = "";
+    var KEEP = 10;                              /* decoded frames needed ahead for full speed (matches the governor) */
+    var FULL_MS = 22000;                        /* ~22s for the whole hero — slow, watchable */
+    var RAMP_MS = 1100;                         /* gentle ease-in after every (re)start */
+    var ARRIVE_PX = 520;                        /* deceleration zone before the ledge */
+    var IDLE_RESUME = 2600;                     /* stillness before gently resuming */
 
-    /* ice glide: short ease-in, long CONSTANT-velocity cruise, short ease-out — a
-       trapezoidal speed profile (no fast middle), so the motion reads frictionless. */
-    function iceEase(t) {
-      if (t <= 0) return 0;
-      if (t >= 1) return 1;
-      var R = 0.16;                             /* ramp fraction at each end */
-      var cruise = 1 - 2 * R;
-      var v = 1 / (cruise + R);                 /* cruise speed, area-normalised to 1 */
-      if (t < R) return v * (t * t) / (2 * R);
-      if (t < R + cruise) return v * (R / 2 + (t - R));
-      var td = t - R - cruise;
-      return v * (R / 2 + cruise + td - (td * td) / (2 * R));
+    var running = false, done = false, touching = false;
+    var rafId = 0, lastT = 0, runT = 0, resumeTimer = 0;
+
+    function getY() { return window.scrollY || 0; }
+    function heroEnd() { return Math.max(0, cineEl.offsetTop + cineEl.offsetHeight - window.innerHeight); }
+    function setY(y) {
+      /* 'instant', for the same reason as the governor: 'auto' defers to CSS
+         scroll-behavior:smooth and turns every write into a ~600ms animation. */
+      try { window.scrollTo({ top: y, left: 0, behavior: "instant" }); }
+      catch (e) {
+        var el = document.documentElement, prev = el.style.scrollBehavior;
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, Math.round(y));
+        el.style.scrollBehavior = prev;
+      }
+    }
+    function buffered(m) {
+      try { return (window.MastryScrubber && window.MastryScrubber.status) ? window.MastryScrubber.status(m) : -1; }
+      catch (e) { return -1; }
     }
 
-    function restoreBehavior() { rootEl.style.scrollBehavior = prevBehavior; }
-    function stop() {
-      if (!running) return;
+    function stopGlide() {
       running = false;
       if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
-      restoreBehavior();                        /* hand back CSS smooth for anchor links */
     }
-    function unlock() {                          /* the visitor took over — release for good */
-      if (unlocked) return;
-      unlocked = true;
-      stop();
-      EVENTS.forEach(function (type) { window.removeEventListener(type, onIntent, INTENT_OPTS); });
+    function retire() {                          /* the guide's work is done — drop everything */
+      if (done) return;
+      done = true;
+      stopGlide();
+      if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = 0; }
+      EVENTS.forEach(function (t) { window.removeEventListener(t, onIntent, PASSIVE); });
+      window.removeEventListener("scroll", onIdleScroll, PASSIVE);
     }
+
     function tick(now) {
       if (!running) return;
-      var p = dur > 0 ? Math.min((now - t0) / dur, 1) : 1;
-      var y = fromY + (toY - fromY) * iceEase(p);
-      try { window.scrollTo({ top: y, left: 0, behavior: "auto" }); }
-      catch (e) { window.scrollTo(0, y); }      /* older Safari: object form unsupported */
-      if (p < 1) rafId = requestAnimationFrame(tick);
-      else stop();                              /* reached the end of the hero — hand off */
+      rafId = requestAnimationFrame(tick);
+      var dt = lastT ? (now - lastT) / 1000 : 0;
+      lastT = now;
+      if (dt <= 0 || dt > 0.25) return;          /* first tick / hidden tab — no lurch */
+      runT += dt * 1000;
+      var end = heroEnd();
+      var y = getY();
+      if (y >= end - 2) { retire(); return; }    /* arrived — hand the page over */
+      var v = end / (FULL_MS / 1000);            /* cruise px/s, paced to the track length */
+      var r = Math.min(1, runT / RAMP_MS);
+      v *= r * r * (3 - 2 * r);                  /* smoothstep ease-in on every (re)start */
+      var left = end - y;
+      if (left < ARRIVE_PX) v *= Math.max(0.12, left / ARRIVE_PX);   /* soft arrival */
+      var ahead = buffered(KEEP);
+      if (ahead >= 0 && ahead < KEEP) v *= ahead / KEEP;             /* buffer low → slow; dry → hold */
+      var ny = Math.min(end, y + v * dt);
+      if (ny > y) setY(ny);
     }
 
-    startAutoScroll = function () {
-      if (unlocked || running) return;
-      if ((window.scrollY || window.pageYOffset || 0) > 4) return;   /* visitor already moved */
-      fromY = window.scrollY || window.pageYOffset || 0;
-      toY = Math.max(0, cineEl.offsetTop + cineEl.offsetHeight - window.innerHeight);
-      var dist = toY - fromY;
-      if (dist <= 0) return;
-      dur = Math.min(18000, Math.max(10000, dist / 0.38));   /* ~10–18s glide, paced to the hero */
-      prevBehavior = rootEl.style.scrollBehavior;
-      rootEl.style.scrollBehavior = "auto";     /* stop CSS smooth from fighting the glide */
-      t0 = performance.now();
-      running = true;
+    function begin() {
+      if (done || running || touching) return;
+      if (getY() >= heroEnd() - 8) { retire(); return; }
+      running = true; lastT = 0; runT = 0;
       rafId = requestAnimationFrame(tick);
+    }
+    /* gentle resume — only after true stillness, never under a finger */
+    function armResume() {
+      if (done) return;
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(function () {
+        resumeTimer = 0;
+        if (done || running || touching) return;
+        begin();
+      }, IDLE_RESUME);
+    }
+
+    startHeroGuide = function () {
+      if (done || running) return;
+      if (touching) { armResume(); return; }
+      begin();
     };
 
-    /* Genuine user-intent events unlock; the glide's own scrollTo does NOT (we
-       never listen to 'scroll'). Navigation keys count; typing in a field doesn't. */
-    var EVENTS = ["wheel", "touchstart", "touchmove", "pointerdown", "mousedown", "keydown"];
-    var INTENT_OPTS = { passive: true };
-    var NAV_KEYS = { ArrowDown: 1, ArrowUp: 1, PageDown: 1, PageUp: 1, Home: 1, End: 1, " ": 1, Spacebar: 1 };
+    var EVENTS = ["touchstart", "touchmove", "touchend", "touchcancel", "pointerdown", "wheel", "keydown"];
+    var PASSIVE = { passive: true };
     function onIntent(e) {
-      if (e.type === "keydown") {
-        var tag = (e.target && e.target.tagName) || "";
-        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;  /* let forms type */
-        if (!NAV_KEYS[e.key]) return;           /* only navigation keys mean "take over" */
-      }
-      unlock();
+      if (e.type === "touchstart" || e.type === "touchmove") touching = true;
+      else if (e.type === "touchend" || e.type === "touchcancel") touching = false;
+      stopGlide();                              /* the visitor is in charge, instantly */
+      if (!touching) armResume();               /* finger down = wait; lifted = count stillness */
     }
-    EVENTS.forEach(function (type) { window.addEventListener(type, onIntent, INTENT_OPTS); });
+    /* iOS momentum keeps scrolling after the finger lifts — every scroll event
+       while PAUSED re-arms the timer, so the guide resumes only once the page
+       has truly settled. The guide's own writes never re-arm (running=true). */
+    function onIdleScroll() {
+      if (done || running) return;
+      if (resumeTimer) armResume();
+    }
+    EVENTS.forEach(function (t) { window.addEventListener(t, onIntent, PASSIVE); });
+    window.addEventListener("scroll", onIdleScroll, PASSIVE);
   })();
 
   /* ── hero: scroll-scrub cinematic (frames.js manifest + scrubber.js engine) ──
@@ -126,19 +312,29 @@
     var cineEl = document.getElementById("cine");
     var canvas = document.getElementById("heroCanvas");
     if (!cineEl || !canvas || !window.MastryScrubber || !window.MASTRY_FRAMES) return;
-    var root = document.documentElement;
+    var onProgressEnd = false;                   /* last end-card state (write class only on change) */
     window.MastryScrubber.init({
       canvas: canvas, manifest: window.MASTRY_FRAMES, scrollEl: cineEl,
       onReady: function () {
         document.body.classList.add("cine-ready");
         dismissLoader();                         /* first frames decoded — reveal now, keep buffering */
-        setTimeout(startAutoScroll, 800);        /* let the splash finish fading, then glide */
+        /* stage 2: give the hero frames a short bandwidth head start, then
+           stream the rest of the site while the visitor watches/scrolls. */
+        setTimeout(loadRestOfSite, 2200);
+        setTimeout(startHeroGuide, 1400);        /* mobile-only slow guide (no-op on desktop) */
       },
-      onProgress: function (p) {                 /* eased progress from the engine */
+      onProgress: function (p, frame) {          /* eased progress from the engine */
         if (p < 0) p = 0; else if (p > 1) p = 1;
-        root.style.setProperty("--cp", p.toFixed(4));
-        /* end card fades in once the bottle has arrived on the ledge (last ~10%) */
-        document.body.classList.toggle("cine-end", p >= 0.9);
+        window.__cineFrame = frame;              /* instrumentation: current painted frame (cheap plain write) */
+        /* NOTE: no per-tick style writes here. Setting a :root custom property
+           every animation frame invalidates style for the whole document (the
+           old --cp write — nothing consumed it) and reads as jank, especially
+           in Safari. Only flip the end-card class when it actually changes. */
+        var end = p >= 0.9;
+        if (end !== onProgressEnd) {
+          onProgressEnd = end;
+          document.body.classList.toggle("cine-end", end);
+        }
       },
       onLoadProgress: function () {}
     });
