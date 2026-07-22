@@ -175,6 +175,135 @@
     requestAnimationFrame(tick);
   })();
 
+  /* ── MOBILE hero guide — a slow auto-advance the visitor always outranks ──
+     Touch devices get no governor (native momentum must never be fought) and no
+     wheel — so on a phone the cinematic only plays if the visitor keeps dragging.
+     This guide advances the hero SLOWLY on its own, as a suggestion, not a lock:
+
+       - the instant a finger touches the glass the guide pauses; the visitor
+         scrolls back and forth completely freely (iOS momentum included —
+         every scroll event while paused re-arms the stillness timer)
+       - after ~2.6s of true stillness it gently resumes from wherever they
+         left the page (fresh ease-in ramp, so it never lurches)
+       - it streams like a player: advance is scaled by the scrubber's decoded
+         buffer (MastryScrubber.status), so it can never outrun the loader
+       - a soft deceleration zone eases the arrival at the ledge
+       - at the end of the hero — or if the visitor moves past it (anchor nav
+         included) — the guide retires for good; the content below is theirs
+       - desktop is untouched (no automation there — the visitor drives) */
+  var startHeroGuide = function () {};          /* no-op unless enabled just below */
+  (function () {
+    if (reduceMotion) return;                   /* auto-motion: honour the OS setting */
+    var cineEl = document.getElementById("cine");
+    if (!cineEl) return;
+    var GUIDED = false;
+    try { GUIDED = window.matchMedia("(pointer: coarse)").matches; } catch (e) {}
+    if (!GUIDED && (window.innerWidth || 9999) <= 760) GUIDED = true;
+    if (!GUIDED) return;                        /* mobile/touch only */
+
+    var KEEP = 10;                              /* decoded frames needed ahead for full speed (matches the governor) */
+    var FULL_MS = 22000;                        /* ~22s for the whole hero — slow, watchable */
+    var RAMP_MS = 1100;                         /* gentle ease-in after every (re)start */
+    var ARRIVE_PX = 520;                        /* deceleration zone before the ledge */
+    var IDLE_RESUME = 2600;                     /* stillness before gently resuming */
+
+    var running = false, done = false, touching = false;
+    var rafId = 0, lastT = 0, runT = 0, resumeTimer = 0;
+
+    function getY() { return window.scrollY || 0; }
+    function heroEnd() { return Math.max(0, cineEl.offsetTop + cineEl.offsetHeight - window.innerHeight); }
+    function setY(y) {
+      /* 'instant', for the same reason as the governor: 'auto' defers to CSS
+         scroll-behavior:smooth and turns every write into a ~600ms animation. */
+      try { window.scrollTo({ top: y, left: 0, behavior: "instant" }); }
+      catch (e) {
+        var el = document.documentElement, prev = el.style.scrollBehavior;
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, Math.round(y));
+        el.style.scrollBehavior = prev;
+      }
+    }
+    function buffered(m) {
+      try { return (window.MastryScrubber && window.MastryScrubber.status) ? window.MastryScrubber.status(m) : -1; }
+      catch (e) { return -1; }
+    }
+
+    function stopGlide() {
+      running = false;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+    }
+    function retire() {                          /* the guide's work is done — drop everything */
+      if (done) return;
+      done = true;
+      stopGlide();
+      if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = 0; }
+      EVENTS.forEach(function (t) { window.removeEventListener(t, onIntent, PASSIVE); });
+      window.removeEventListener("scroll", onIdleScroll, PASSIVE);
+    }
+
+    function tick(now) {
+      if (!running) return;
+      rafId = requestAnimationFrame(tick);
+      var dt = lastT ? (now - lastT) / 1000 : 0;
+      lastT = now;
+      if (dt <= 0 || dt > 0.25) return;          /* first tick / hidden tab — no lurch */
+      runT += dt * 1000;
+      var end = heroEnd();
+      var y = getY();
+      if (y >= end - 2) { retire(); return; }    /* arrived — hand the page over */
+      var v = end / (FULL_MS / 1000);            /* cruise px/s, paced to the track length */
+      var r = Math.min(1, runT / RAMP_MS);
+      v *= r * r * (3 - 2 * r);                  /* smoothstep ease-in on every (re)start */
+      var left = end - y;
+      if (left < ARRIVE_PX) v *= Math.max(0.12, left / ARRIVE_PX);   /* soft arrival */
+      var ahead = buffered(KEEP);
+      if (ahead >= 0 && ahead < KEEP) v *= ahead / KEEP;             /* buffer low → slow; dry → hold */
+      var ny = Math.min(end, y + v * dt);
+      if (ny > y) setY(ny);
+    }
+
+    function begin() {
+      if (done || running || touching) return;
+      if (getY() >= heroEnd() - 8) { retire(); return; }
+      running = true; lastT = 0; runT = 0;
+      rafId = requestAnimationFrame(tick);
+    }
+    /* gentle resume — only after true stillness, never under a finger */
+    function armResume() {
+      if (done) return;
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(function () {
+        resumeTimer = 0;
+        if (done || running || touching) return;
+        begin();
+      }, IDLE_RESUME);
+    }
+
+    startHeroGuide = function () {
+      if (done || running) return;
+      if (touching) { armResume(); return; }
+      begin();
+    };
+
+    var EVENTS = ["touchstart", "touchmove", "touchend", "touchcancel", "pointerdown", "wheel", "keydown"];
+    var PASSIVE = { passive: true };
+    function onIntent(e) {
+      if (e.type === "touchstart" || e.type === "touchmove") touching = true;
+      else if (e.type === "touchend" || e.type === "touchcancel") touching = false;
+      stopGlide();                              /* the visitor is in charge, instantly */
+      if (!touching) armResume();               /* finger down = wait; lifted = count stillness */
+    }
+    /* iOS momentum keeps scrolling after the finger lifts — every scroll event
+       while PAUSED re-arms the timer, so the guide resumes only once the page
+       has truly settled. The guide's own writes never re-arm (running=true). */
+    function onIdleScroll() {
+      if (done || running) return;
+      if (resumeTimer) armResume();
+    }
+    EVENTS.forEach(function (t) { window.addEventListener(t, onIntent, PASSIVE); });
+    window.addEventListener("scroll", onIdleScroll, PASSIVE);
+  })();
+
   /* ── hero: scroll-scrub cinematic (frames.js manifest + scrubber.js engine) ──
      A tall pinned track scrubs 505 rendered frames onto #heroCanvas as you
      scroll. onProgress drives the phase overlays (data-cine) + the marker (--cp).
@@ -192,6 +321,7 @@
         /* stage 2: give the hero frames a short bandwidth head start, then
            stream the rest of the site while the visitor watches/scrolls. */
         setTimeout(loadRestOfSite, 2200);
+        setTimeout(startHeroGuide, 1400);        /* mobile-only slow guide (no-op on desktop) */
       },
       onProgress: function (p, frame) {          /* eased progress from the engine */
         if (p < 0) p = 0; else if (p > 1) p = 1;
