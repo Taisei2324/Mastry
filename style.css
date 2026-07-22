@@ -669,3 +669,46 @@ body.cine-end .cine__end-title{transform:none;}
   .reveal--fade{opacity:1;transition:none;}
   .nav.hidden{transform:none;}
 }
+
+/* ═══ CANDLELIT NIGHT 🕯 — only when the clock theme is dark ═══
+   A warm candle ambience laid over the espresso night theme: an amber glow
+   breathing up from below the viewport (the unseen candle), a faint warm
+   vignette pulling the edges in, and a soft halo on the gold end-card line.
+   Two fixed pseudo-layers animating OPACITY ONLY (compositor work — no layout,
+   no paint storms, safe over the hero canvas). Their periods are deliberately
+   incommensurate (7.3s / 4.7s) so the flicker never reads as a loop. The day
+   theme is untouched; reduced-motion keeps the warmth but stills the flame. */
+:root[data-theme="dark"] body::after{
+  content:"";position:fixed;inset:0;z-index:80;pointer-events:none;
+  background:
+    radial-gradient(120% 85% at 50% 118%, var(--amber-glow) 0%, var(--amber-soft) 34%, transparent 62%),
+    radial-gradient(150% 125% at 50% 45%, transparent 60%, rgba(9,6,3,.38) 100%);
+  opacity:.82;
+  animation:candleBreathe 7.3s ease-in-out infinite;
+}
+:root[data-theme="dark"] body::before{
+  content:"";position:fixed;inset:0;z-index:80;pointer-events:none;
+  background:radial-gradient(85% 55% at 50% 112%, rgba(224,164,88,.13) 0%, transparent 55%);
+  opacity:.5;
+  animation:candleWaver 4.7s ease-in-out infinite;
+}
+/* uneven keyframe spacing = organic waver, small amplitude = candle, not strobe */
+@keyframes candleBreathe{
+  0%,100%{opacity:.82} 13%{opacity:.9} 26%{opacity:.76} 39%{opacity:.88}
+  52%{opacity:.8} 64%{opacity:.92} 78%{opacity:.74} 90%{opacity:.86}
+}
+@keyframes candleWaver{
+  0%,100%{opacity:.5} 17%{opacity:.62} 33%{opacity:.42} 49%{opacity:.58}
+  66%{opacity:.38} 83%{opacity:.6}
+}
+/* the gold line of the end-card catches the candle */
+:root[data-theme="dark"] .cine__end-b{
+  text-shadow:0 0 18px var(--amber-glow), 0 0 46px rgba(224,164,88,.18);
+}
+:root[data-theme="dark"] .cine__end-a{
+  text-shadow:0 2px 26px rgba(0,0,0,.4);
+}
+@media (prefers-reduced-motion:reduce){
+  :root[data-theme="dark"] body::after,
+  :root[data-theme="dark"] body::before{animation:none;}
+}
