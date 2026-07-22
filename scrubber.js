@@ -753,6 +753,31 @@
     }
     function clampFrameIdx(f) { f = Math.round(f); return f < 1 ? 1 : (f > count ? count : f); }
 
+    // ---- decode-ahead warmer (desktop WebKit) ----
+    // Desktop keeps HTMLImageElements (pinning 505 full-HD ImageBitmaps would be
+    // GBs), but macOS Safari purges an element's decoded pixels under memory
+    // pressure just like iOS does — the next drawImage then re-decodes the webp
+    // SYNCHRONOUSLY on the main thread: mid-scrub jank with every frame "loaded".
+    // Re-issuing decode() on the frames just ahead of the playhead re-decodes
+    // them OFF-thread before a draw needs the pixels; on an already-warm image
+    // it resolves immediately, so this is nearly free on Chromium/Firefox.
+    // ImageBitmaps (the phone stores) own their pixels and have no .decode.
+    var WARM_AHEAD = 14, WARM_BEHIND = 4, warmCenter = -99;
+    function warmAhead(frame, dir) {
+      var moved = frame > warmCenter ? frame - warmCenter : warmCenter - frame;
+      if (moved < 3) return;                                          // throttle: re-warm every few frames of travel
+      warmCenter = frame;
+      var from = frame - (dir < 0 ? WARM_AHEAD : WARM_BEHIND);
+      var to = frame + (dir < 0 ? WARM_BEHIND : WARM_AHEAD);
+      for (var i = from; i <= to; i++) {
+        if (i < 1 || i > count) continue;
+        var im = store.get(i);
+        if (im && typeof im.decode === 'function') {
+          try { im.decode().catch(function () {}); } catch (e) {}
+        }
+      }
+    }
+
     // Contiguous READY frames ahead of the displayed position — the page's
     // buffer-aware auto-glide asks this to pace itself like a streaming player
     // (start only when buffered, hold when the buffer runs dry). Returns -1 in
@@ -813,6 +838,7 @@
 
       var frame = clampFrameIdx(currentFloat);
       store.focus(clampFrameIdx(targetFloat));                        // preload AHEAD, toward the destination
+      warmAhead(frame, targetFloat >= currentFloat ? 1 : -1);         // keep upcoming decoded pixels warm (Safari)
 
       var img = store.get(frame);
       var exact = !!img;
