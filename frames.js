@@ -2,25 +2,31 @@
 // Loaded via <script src="frames.js"></script>. Defines one global, no exports.
 // Frame i (1-based) = <tier dir> + String(i).padStart(pad,"0") + "." + ext
 // scrubber.js picks the tier: SHAPE follows the DEVICE (a phone — coarse pointer
-// with a phone-sized shorter side, ANY orientation — loads ONLY the pre-trimmed
-// 400x810 tier, cut on disk so the ~70% of each landscape frame a phone never
-// shows is never downloaded); CONNECTION picks resolution within the landscape
-// shape on desktop, with a measured ladder that steps down AND climbs back up.
+// with a phone-sized shorter side, ANY orientation — loads the pre-trimmed
+// portrait center-crop tiers, cut on disk so the ~70% of each landscape frame a
+// phone never shows is never downloaded); CONNECTION picks resolution WITHIN the
+// chosen shape. Phones now have TWO portrait tiers: baseP (mobile-hd/, native
+// 608x1080) is the default, and basePLow (mobile-final-render/, 400x810) is the
+// lighter fallback a MEASURED-slow phone link steps down to — the same measured
+// ladder that steps down AND climbs back up now runs on phones as well as desktop.
 window.MASTRY_FRAMES = {
   base:     "frames/",       // 1920x1080 landscape — desktop default (~15.4 MB)
   baseLow:  "frames-720/",   // 1280x720 landscape (~8.8 MB), desktop on SLOW connections
                              //   (data-saver / 2g / 3g / weak 4g) so the hero still arrives fast.
-  baseP: "mobile-final-render/", // 400x810 portrait, physically trimmed — the ONLY tier
-                             //   phones load (~3.5 MB total, ~7 KB/frame). Light enough
-                             //   that no lower phone tier exists: a slow cellular link
-                             //   still streams it, and the buffer-aware pacing (guide +
-                             //   governor) absorbs the rest. iOS (no Network Information
-                             //   API) -> this tier by device shape, never by guesswork.
-  basePLow: "",              // empty -> slow-net phones resolve to baseP as well
+  baseP: "mobile-hd/",       // native-resolution 608x1080 center crop — the phone default.
+                             //   Full portrait quality (decoded RGBA ≈ 2.63 MB/frame). iOS
+                             //   (no Network Information API) -> this tier by device shape,
+                             //   never by guesswork; a MEASURED-slow phone link steps down
+                             //   to basePLow (see the measured ladder in scrubber.js).
+  basePLow: "mobile-final-render/", // 400x810 light fallback for measured-slow phone links
+                             //   (~3.6 MB total, ~7 KB/frame, decoded ≈ 1.30 MB/frame). The
+                             //   old phone default, now the slow-link floor; the rolling climb
+                             //   lifts a phone back up to baseP once throughput proves out.
   baseLite:  "frames-lite/", // 854x480 landscape (~3.8 MB) — desktop CRAWL tier, chosen when
                              //   MEASURED throughput can't sustain the picked tier (~300 kbps
                              //   at its worst): the glide plays instead of slideshow-stepping.
-  basePLite: "",             // empty -> phones never crawl (400x810 is already lighter than lite)
+  basePLite: "",             // empty -> phones never crawl: basePLow (400x810) is already the
+                             //   slow-link floor, so the measured ladder never steps portrait to a lite tier
   ext:     "webp",
   count:   505,             // all 505 frames kept
   pad:     4,               // zero-pad width -> "0001"
@@ -30,6 +36,7 @@ window.MASTRY_FRAMES = {
   totalBytes: 16180572,     // desktop 1080p tier total bytes (report/preload budgeting)
   tierBytes: {              // exact per-tier totals (report/preload budgeting + measured ladder)
     "frames/": 16180572, "frames-720/": 9277500,
-    "frames-lite/": 3838434, "mobile-final-render/": 3622844
+    "frames-lite/": 3838434, "mobile-final-render/": 3622844,
+    "mobile-hd/": 7951802
   }
 };

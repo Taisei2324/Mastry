@@ -583,13 +583,15 @@
     //   center-crop tiers (manifest.baseP / basePLow) — the exact 9:16 slice that
     //   cover-fit would crop out of the landscape frames anyway, pre-cut on disk so
     //   the ~70% of each landscape frame a phone never shows is never downloaded
-    //   (~5.4 MB instead of ~15.4 MB; identical pixels on screen). Landscape phones
-    //   (rare for a scroll page) exceed 760px width → landscape tiers, still correct.
+    //   (the portrait crop is a fraction of the ~15.4 MB landscape reel; identical
+    //   pixels on screen). Landscape phones (rare for a scroll page) exceed 760px
+    //   width → landscape tiers, still correct.
     // RESOLUTION follows the CONNECTION: a slow link (data-saver, 2g/3g, or a weak
-    //   "low" 4g) loads the lighter tier of the chosen shape (720-tall) so the hero
-    //   still arrives quickly. The Network Information API is absent on iOS Safari →
-    //   treated as "not slow" → an iPhone gets the full portrait tier (its max
-    //   quality) — NOT the 15 MB desktop reel it used to be handed.
+    //   "low" 4g) loads the lighter tier of the chosen shape (720-tall on desktop,
+    //   the 400x810 basePLow on phones) so the hero still arrives quickly. The
+    //   Network Information API is absent on iOS Safari → treated as "not slow" →
+    //   an iPhone gets the full portrait tier (baseP mobile-hd, its max quality) —
+    //   NOT the 15 MB desktop reel it used to be handed.
     // MEMORY BOUNDING follows the VIEWPORT: screens small in EITHER dimension hold
     //   only a decoded window (phones in any orientation have a tight image
     //   budget); desktops hold the whole reel.
@@ -845,8 +847,8 @@
       //   playhead and stream the rest (HTTP-cached, so revisits re-decode, not
       //   re-download). Window is sized per TIER's decoded frame cost to land
       //   ~230-365MB held: landscape 1080p ≈ 8.3MB/frame → 44; landscape 720p ≈
-      //   3.7MB → 90; portrait 608x1080 ≈ 2.6MB → 120; portrait 406x720 ≈ 1.2MB →
-      //   190. In every case maxDecoded > 2×maxRadius so the farthest held frame
+      //   3.7MB → 90; portrait 608x1080 ≈ 2.63MB → 120 (~316MB); portrait 400x810
+      //   ≈ 1.30MB → 190 (~247MB). In every case maxDecoded > 2×maxRadius so the farthest held frame
       //   sits outside the schedule window and eviction can't thrash against the
       //   preloader. The portrait tiers' cheaper frames buy a much wider decoded
       //   window — flings that used to hit the 1080p re-decode stutter now land
@@ -859,8 +861,8 @@
               : { concurrency: 6, window: 90,  maxRadius: 110, maxDecoded: 250 })// small landscape lite (640x360 ≈ .92MB dec): ~230MB
         : t.portrait
           ? (t.low
-              ? { concurrency: 4, window: 70, maxRadius: 90, maxDecoded: 190 } // (unreachable while basePLow is empty)
-              : { concurrency: 6, window: 80, maxRadius: 100, maxDecoded: 220 })// phone 400x810 trimmed (≈1.3MB dec): ~286MB, wide window — flings land on held frames
+              ? { concurrency: 4, window: 70, maxRadius: 90, maxDecoded: 190 } // phone fallback: mobile-final-render 400x810 (≈1.30MB dec): 190×1.30 ≈ 247MB — the measured-slow-link tier (REACHABLE now basePLow is non-empty); maxDecoded(190)>2×maxRadius(90) so eviction can't thrash the preloader
+              : { concurrency: 5, window: 50, maxRadius: 55, maxDecoded: 120 })// phone primary: mobile-hd 608x1080 native (≈2.63MB dec): 120×2.63 ≈ 316MB — maxDecoded(120)>2×maxRadius(55) so the farthest held frame sits outside the fill window and eviction can't thrash the preloader
           : t.low
             ? { concurrency: 4, window: 40, maxRadius: 40, maxDecoded: 90 } // small landscape 720p: ~333MB
             : { concurrency: 3, window: 20, maxRadius: 20, maxDecoded: 44 };// small landscape 1080p: ~365MB
@@ -946,7 +948,7 @@
     // maybeUpgrade needs the WHOLE reel to finish — but a bounded mobile store
     // only schedules near the playhead, so completion may never come, and one
     // cold-start mismeasure (cellular's classic TCP ramp) would pin an iPhone at
-    // the 304px crawl tier for the entire visit. Instead: every few seconds,
+    // the 400x810 basePLow fallback for the entire visit. Instead: every few seconds,
     // read the store's ACTIVE-time throughput (finishes / busy-seconds — idle
     // gaps between playhead moves don't dilute it). Once fresh evidence shows
     // the next tier up sustains ~20fps with 1.3x margin, climb one step. The
