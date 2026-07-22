@@ -134,12 +134,20 @@
     if (r.sw <= 0 || r.sh <= 0 || r.dw <= 0 || r.dh <= 0) return false;
 
     // Premium downscaling: frames are usually higher-res than their display area.
+    // (drawQuality is module state set once at init: 'medium' on small/mobile
+    // viewports — visually identical at those scale factors, measurably cheaper
+    // per paint on phone GPUs — 'high' everywhere else.)
     ctx.imageSmoothingEnabled = true;
-    try { if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high'; } catch (e) { /* unsupported */ }
+    try { if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = drawQuality; } catch (e) { /* unsupported */ }
 
-    ctx.drawImage(img, r.sx, r.sy, r.sw, r.sh, r.dx, r.dy, r.dw, r.dh);
+    // try/catch: a closed ImageBitmap (evicted between get() and paint) throws
+    // InvalidStateError — treat exactly like an undecoded frame: paint nothing,
+    // keep the previous frame on screen, never break the rAF loop.
+    try { ctx.drawImage(img, r.sx, r.sy, r.sw, r.sh, r.dx, r.dy, r.dw, r.dh); }
+    catch (e) { return false; }
     return true;
   }
+  var drawQuality = 'high';                       // init() lowers this on small viewports
 
 
   /* ===========================================================================
@@ -160,6 +168,7 @@
     var windowRadius = Math.max(0, opts.window == null ? 60 : (opts.window | 0));
     var maxRadius = (opts.maxRadius != null && opts.maxRadius > 0) ? (opts.maxRadius | 0) : Infinity; // cap outward fill (mobile: don't preload the whole reel)
     var maxDecoded = Math.max(0, opts.maxDecoded == null ? 0 : (opts.maxDecoded | 0)); // held-frame cap; 0 = unbounded (hold all)
+    var pinDecoded = !!opts.pinDecoded && typeof window.createImageBitmap === 'function'; // hold ImageBitmaps (phones) — see attemptLoad
     var onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : null;
     var onReadyFrame = typeof opts.onReadyFrame === 'function' ? opts.onReadyFrame : null;
 
@@ -183,6 +192,17 @@
     var pinned = new Set();                                           // ensure()'d frames, FIFO top priority
     var ensureResolvers = new Map();                                 // i -> { resolve, reject }
     var ensureCache = new Map();                                     // i -> shared Promise
+    // ---- throughput bookkeeping (drives the quality ladder's climb-back-up) ----
+    // finishes counts EVERY completed load (reloads after eviction included);
+    // activeMs accumulates only wall time with at least one request in flight,
+    // so finishes/activeSeconds is honest bytes-per-second evidence even on a
+    // bounded mobile store that idles between playhead moves.
+    var finishes = 0;
+    var activeMs = 0, activeSince = 0;
+    function nowMs() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
+    function slotDrained() {                                          // last in-flight request settled
+      if (inFlightCount === 0 && activeSince) { activeMs += nowMs() - activeSince; activeSince = 0; }
+    }
 
     function clampFrame(i) { i = i | 0; return i < 1 ? 1 : (i > count ? count : i); }
     function frameUrl(i) { return base + String(i).padStart(pad, '0') + '.' + ext; }
@@ -237,6 +257,7 @@
 
     function startLoad(i) {
       state[i] = STATE_LOADING;
+      if (inFlightCount === 0) activeSince = nowMs();                 // pipe going busy — start the active clock
       inFlightCount++;                                                // the ONE place a slot is claimed
       attemptLoad(i, 0);
     }
@@ -258,20 +279,35 @@
       };
 
       img.onload = function () {
-        // Bytes in — prefer a full decode() before "ready" so the first draw
-        // never pays decode cost on the main thread (no jank, no white flash).
-        // decode() may reject for some browsers/formats; per spec that is NOT a
-        // failure — onload already proves the image is usable, so we fall through
-        // to ready whether decode() resolves or rejects.
-        if (typeof img.decode === 'function') img.decode().then(onDecodeSettled, onDecodeSettled);
-        else onDecodeSettled();
+        // Bytes in — get DECODED pixels before "ready" so the first draw never
+        // pays decode cost on the main thread (no jank, no white flash).
+        //
+        // pinDecoded (phones): decode into an ImageBitmap and store THAT. An
+        // HTMLImageElement's decoded bitmap lives in the browser's own small
+        // image cache — iOS/WebKit purges it constantly under memory pressure,
+        // and the next drawImage then RE-DECODES the webp synchronously on the
+        // main thread: the mid-scroll "1fps" stutter on iPhone, even with every
+        // frame "loaded". An ImageBitmap owns its pixels (usually GPU-backed):
+        // draws stay draws, never decodes. Memory stays bounded because these
+        // stores also cap maxDecoded and evict() closes bitmaps deterministically.
+        //
+        // Fallback (or desktop, where holding 505 full bitmaps would be GBs):
+        // decode() then keep the element. decode() may reject for some
+        // browsers/formats; per spec that is NOT a failure — onload already
+        // proves the image is usable, so we settle ready either way.
+        if (pinDecoded) {
+          window.createImageBitmap(img).then(settle, legacyDecode);
+        } else legacyDecode();
+        function legacyDecode() {
+          if (typeof img.decode === 'function') img.decode().then(function () { settle(img); }, function () { settle(img); });
+          else settle(img);
+        }
+        function settle(src) {
+          img.onload = img.onerror = null;
+          inFlightImgs.delete(i);
+          finishLoad(i, src && src.width ? src : img);
+        }
       };
-
-      function onDecodeSettled() {
-        img.onload = img.onerror = null;
-        inFlightImgs.delete(i);
-        finishLoad(i, img);
-      }
 
       img.src = frameUrl(i);
     }
@@ -281,6 +317,8 @@
       state[i] = STATE_READY;
       imgs[i] = img;
       inFlightCount--;
+      slotDrained();
+      finishes++;
       heldReady++;
       if (!everSeen[i]) { everSeen[i] = 1; readyCount++; }           // first-ever load -> bump monotonic progress
       pinned.delete(i);
@@ -297,6 +335,7 @@
       if (destroyed) return;
       state[i] = STATE_FAILED;                                        // terminal: pickNext never picks it -> no deadlock
       inFlightCount--;
+      slotDrained();
       pinned.delete(i);
       settleEnsure(i, new Error('frame ' + i + ' failed: ' + frameUrl(i)), null);
       schedulePump();
@@ -339,6 +378,8 @@
       return best;
     }
     function evict(i) {
+      var v = imgs[i];
+      if (v && typeof v.close === 'function') { try { v.close(); } catch (e) {} } // ImageBitmap: free the pixels NOW, not at GC's leisure
       imgs[i] = null;                                                // drop the decoded bitmap (GC-eligible)
       state[i] = STATE_IDLE;                                          // reloadable on revisit
       heldReady--;
@@ -406,6 +447,10 @@
       return p;
     }
     function loadedCount() { return readyCount; }
+    function finished() { return finishes; }                          // every completed load, reloads included
+    function activeSeconds() {                                        // wall time the pipe was actually busy
+      return (activeMs + (activeSince ? nowMs() - activeSince : 0)) / 1000;
+    }
 
     function destroy() {
       if (destroyed) return;
@@ -416,7 +461,11 @@
       ensureResolvers.forEach(function (r) { r.reject(new Error('FrameStore: destroyed')); });
       ensureResolvers.clear();
       ensureCache.clear();
-      for (var i = 0; i <= count; i++) imgs[i] = null;
+      for (var i = 0; i <= count; i++) {
+        var v = imgs[i];
+        if (v && typeof v.close === 'function') { try { v.close(); } catch (e) {} } // release bitmap pixels on teardown/tier swap
+        imgs[i] = null;
+      }
       state.fill(STATE_IDLE);
       everSeen.fill(0);
       inFlightCount = 0;
@@ -428,7 +477,8 @@
     return {
       total: count,
       get: get, isReady: isReady, nearestReady: nearestReady,
-      focus: focus, setBudget: setBudget, ensure: ensure, loadedCount: loadedCount, destroy: destroy
+      focus: focus, setBudget: setBudget, ensure: ensure, loadedCount: loadedCount,
+      finished: finished, activeSeconds: activeSeconds, destroy: destroy
     };
   }
 
@@ -469,7 +519,10 @@
 
     // Hard guards — if we can't possibly run, still let the page proceed.
     if (!canvas || !canvas.getContext || !manifest) { safeCall(onReady); return; }
-    var ctx = canvas.getContext('2d');
+    /* alpha:false = an OPAQUE canvas: the compositor skips per-pixel blending
+       every frame (the frames are full-bleed photos — nothing shows through).
+       Cheapest composite path, which matters most on mobile GPUs. */
+    var ctx = canvas.getContext('2d', { alpha: false }) || canvas.getContext('2d');
     if (!ctx) { safeCall(onReady); return; }
 
     var count = Math.max(0, manifest.count | 0);
@@ -550,6 +603,7 @@
     var hasPLite = nonEmptyStr(manifest.basePLite);
     var vw = win.innerWidth || 9999, vh = win.innerHeight || 9999;
     var smallViewport = mmMatches('(max-width:760px)') || vw <= 760;
+    drawQuality = smallViewport ? 'medium' : 'high';                  // cheaper per-paint filtering on phone GPUs (visually identical at these scales)
     var boundedViewport = mmMatches('(max-width:760px), (max-height:760px)') || Math.min(vw, vh) <= 760;
     var portraitViewport = mmMatches('(orientation: portrait)') || vh >= vw;
     function detectSlowNet() {
@@ -575,10 +629,15 @@
       } catch (e) {}
       return false;
     }
+    // Touch device with a phone-sized shorter screen side = a phone in ANY
+    // orientation — a phone held sideways at load must still get the trimmed
+    // tier, never the 15 MB desktop reel. (pointer:coarse) is the PRIMARY
+    // pointer, so touch-screen laptops (mouse/trackpad primary) stay desktop.
+    var phoneDevice = mmMatches('(pointer: coarse)') && Math.min(vw, vh) <= 760;
     var tier = {
       low: detectSlowNet(),
       lite: detectCrawlNet(),
-      portrait: hasP && smallViewport && portraitViewport,            // the phone case
+      portrait: hasP && (phoneDevice || (smallViewport && portraitViewport)), // the phone case, any orientation
       bounded: boundedViewport
     };
     // Per-branch gating: a requested lite/low/portrait dir that isn't in the
@@ -696,6 +755,16 @@
     // buffer-aware auto-glide asks this to pace itself like a streaming player
     // (start only when buffered, hold when the buffer runs dry). Returns -1 in
     // still mode / before the store exists, meaning "not applicable, don't gate".
+    // Introspection for tuning/diagnosis (harmless to call in production).
+    inst.debug = function () {
+      return {
+        tier: { low: !!tier.low, lite: !!tier.lite, portrait: !!tier.portrait, bounded: !!tier.bounded },
+        base: baseFor(tier), downgrades: downgrades, climbs: climbs, ready: readyFired,
+        finished: store ? store.finished() : -1,
+        activeSeconds: store ? Math.round(store.activeSeconds() * 100) / 100 : -1,
+        loaded: store ? store.loadedCount() : -1
+      };
+    };
     inst.status = function (margin) {
       if (still || !store) return -1;
       var m = (margin | 0) > 0 ? (margin | 0) : 12;
@@ -790,8 +859,8 @@
               : { concurrency: 6, window: 90,  maxRadius: 110, maxDecoded: 250 })// small landscape lite (640x360 ≈ .92MB dec): ~230MB
         : t.portrait
           ? (t.low
-              ? { concurrency: 4, window: 70, maxRadius: 90, maxDecoded: 190 } // phone portrait 720: ~223MB
-              : { concurrency: 4, window: 50, maxRadius: 55, maxDecoded: 120 })// phone portrait 1080: ~315MB
+              ? { concurrency: 4, window: 70, maxRadius: 90, maxDecoded: 190 } // (unreachable while basePLow is empty)
+              : { concurrency: 6, window: 80, maxRadius: 100, maxDecoded: 220 })// phone 400x810 trimmed (≈1.3MB dec): ~286MB, wide window — flings land on held frames
           : t.low
             ? { concurrency: 4, window: 40, maxRadius: 40, maxDecoded: 90 } // small landscape 720p: ~333MB
             : { concurrency: 3, window: 20, maxRadius: 20, maxDecoded: 44 };// small landscape 1080p: ~365MB
@@ -802,6 +871,7 @@
         window: cfg.window,
         maxRadius: cfg.maxRadius,
         maxDecoded: cfg.maxDecoded,
+        pinDecoded: t.bounded,                   // phones: hold ImageBitmaps so iOS can't purge-and-re-decode mid-scroll (desktop holds 505 elements — bitmaps there would be GBs)
         onProgress: function (loaded, total) {
           if (inst.destroyed) return;
           safeCall(onLoadProgress, loaded, total);
@@ -821,18 +891,21 @@
     // phone plays the lite reel smoothly instead of slideshow-stepping the heavy
     // one. HTTP-cached repeat visits measure instant → no downgrade. Returns the
     // next tier to try, or null to stay.
-    function measuredNext(t, framesLoaded, tStart) {
-      if (!(tStart > 0) || downgrades >= 2 || t.lite || framesLoaded <= 0) return null;
-      var secs = Math.max(0.001, (win.performance.now() - tStart) / 1000);
+    function measuredNext(t, framesLoaded, secs) {
+      if (downgrades >= 2 || t.lite || !(framesLoaded > 0) || !(secs > 0.05)) return null;
       var avgNow = tierAvg(t);
       if (!(avgNow > 0)) return null;                                 // no tierBytes — can't measure
       var rate = (framesLoaded * avgNow) / secs;                      // measured bytes/sec
       // Thresholds are deliberately forgiving: the first hit on a cold CDN (DNS,
       // TLS, edge misses) measures slower than the link really is, and dropping
-      // quality is the visible cost. Only leave a tier that truly can't play
-      // (<14fps arrival), and prefer the 720 middle step whenever it plausibly
-      // sustains — the crawl tier is a last resort, not a first response.
-      if (rate / avgNow >= 14) return null;                           // current tier playable — stay
+      // quality is the visible cost — callers start the clock at the FIRST frame's
+      // completion so connection setup never counts against the link. Only leave a
+      // tier that truly can't play (<14fps arrival), prefer the 720 middle step
+      // whenever it plausibly sustains, and demand a HARDER failure (<9fps) before
+      // the second step down — the crawl tier is for genuinely starved links only,
+      // because pixel-wise it reads as "super bad" on a Retina phone.
+      var bar = t.low ? 9 : 14;
+      if (rate / avgNow >= bar) return null;                          // current tier playable — stay
       var lowT = { lite: false, low: true, portrait: t.portrait, bounded: t.bounded };
       var liteT = { lite: true, low: t.low, portrait: t.portrait, bounded: t.bounded };
       if (!t.low && tierAvg(lowT) > 0 && rate / tierAvg(lowT) >= 14) return lowT; // low is enough
@@ -849,13 +922,14 @@
     // painted (the canvas never clears) while the better ones stream in around
     // the playhead, so the swap is invisible except for sharpening.
     var upgraded = false;
+    var climbs = 0;                                                   // total up-steps taken (lite→low→full is 2)
     function upgradeTier(t) {
       if (t.lite) return { lite: false, low: true, portrait: t.portrait, bounded: t.bounded };
       if (t.low) return { lite: false, low: false, portrait: t.portrait, bounded: t.bounded };
       return null;
     }
     function maybeUpgrade(t, totalSecs) {
-      if (upgraded || inst.destroyed || still || !(totalSecs > 0)) return;
+      if (upgraded || climbs >= 2 || inst.destroyed || still || !(totalSecs > 0)) return;
       var up = upgradeTier(t);
       if (!up) return;                                                // already at full
       var avgNow = tierAvg(t), avgUp = tierAvg(up);
@@ -865,8 +939,37 @@
       // already understates true bandwidth (it amortizes decode + the pipeline's
       // concurrency cap), and a wrong upgrade self-corrects — the new tier's
       // critical-set re-measure can step back down (bounded by the downgrade cap).
-      if (rate >= avgUp * 20) { upgraded = true; startScrub(up); }
+      if (rate >= avgUp * 20) { upgraded = true; climbs++; startScrub(up); }
     }
+
+    // ---- rolling climb (the ladder up that actually works on phones) ----
+    // maybeUpgrade needs the WHOLE reel to finish — but a bounded mobile store
+    // only schedules near the playhead, so completion may never come, and one
+    // cold-start mismeasure (cellular's classic TCP ramp) would pin an iPhone at
+    // the 304px crawl tier for the entire visit. Instead: every few seconds,
+    // read the store's ACTIVE-time throughput (finishes / busy-seconds — idle
+    // gaps between playhead moves don't dilute it). Once fresh evidence shows
+    // the next tier up sustains ~20fps with 1.3x margin, climb one step. The
+    // canvas never clears, so the climb is invisible except for sharpening.
+    var climbSample = { f: 0, s: 0 };
+    var climbTimer = win.setInterval(function () {
+      if (inst.destroyed) { win.clearInterval(climbTimer); return; }
+      if (still || !store || !readyFired || climbs >= 2) return;
+      var up = upgradeTier(tier);
+      if (!up) return;                                                // already at full quality
+      var f = store.finished(), s = store.activeSeconds();
+      var df = f - climbSample.f, ds = s - climbSample.s;
+      if (df < 24) return;                                            // keep accumulating evidence
+      climbSample = { f: f, s: s };
+      var avgUp = tierAvg(up);
+      // Floor the divisor at 0.25s: on a blazing pipe 24 tiny frames finish in
+      // milliseconds of active time — dividing by the true ds would claim an
+      // absurd rate from a paper-thin sample. The floor UNDERSTATES fast links
+      // (they climb anyway, comfortably over the bar) and never flatters slow
+      // ones (their real ds exceeds it), so the estimate errs safe both ways.
+      var rate = (df * tierAvg(tier)) / Math.max(ds, 0.25);           // recent bytes/sec while actually loading
+      if (avgUp > 0 && rate >= avgUp * 20 * 1.3) { climbs++; upgraded = true; startScrub(up); }
+    }, 4000);
 
     var earlyTimer = 0;                                               // 3s partial-progress check (crawl links)
 
@@ -875,6 +978,7 @@
       if (earlyTimer) { win.clearTimeout(earlyTimer); earlyTimer = 0; }
       store = buildStore(t);
       tier = t;
+      climbSample = { f: 0, s: 0 };                                   // fresh store — fresh climb evidence
       var thisStore = store;                                          // guard against stale callbacks after fallback
 
       // Early paint: load frame 1 first and draw it ASAP.
@@ -889,10 +993,17 @@
 
       // Critical set for onReady = frame 1 + a few early frames. Resilient: each
       // ensure is caught so onReady fires even if a frame or two fail to decode.
+      // tFirst = when the FIRST critical frame lands: starting the throughput
+      // clock there (not at request time) keeps DNS/TLS/TCP slow-start out of
+      // the measurement — the cold-start bias that used to double-downgrade a
+      // perfectly good cellular link down to the crawl tier.
       var K = Math.min(count, 12);
       var crit = [];
       var tCrit = (win.performance && win.performance.now) ? win.performance.now() : 0;
-      for (var k = 1; k <= K; k++) crit.push(store.ensure(k).catch(noop));
+      var tFirst = 0;
+      function markFirst() { if (!tFirst) tFirst = win.performance.now(); }
+      for (var k = 1; k <= K; k++) crit.push(store.ensure(k).then(function (v) { markFirst(); return v; }, function () { markFirst(); }));
+      function measuredSecs() { return Math.max(0.001, (win.performance.now() - (tFirst || tCrit)) / 1000); }
 
       // On a crawl link the full critical set can take 10s+ — don't sit behind
       // the splash that long. After 3s, decide from PARTIAL progress and step
@@ -902,14 +1013,14 @@
         if (inst.destroyed || store !== thisStore || readyFired) return;
         var loaded = store.loadedCount();
         if (loaded >= K) return;                                      // done — the .then will handle it
-        var next = measuredNext(t, Math.max(1, loaded), tCrit);
+        var next = measuredNext(t, Math.max(1, loaded - 1), measuredSecs());
         if (next) { downgrades++; startScrub(next); }
       }, 3000);
       Promise.all(crit).then(function () {
         if (inst.destroyed || store !== thisStore) return;            // don't fire ready for a superseded tier
 
         if (earlyTimer) { win.clearTimeout(earlyTimer); earlyTimer = 0; }
-        var nextTier = measuredNext(t, K, tCrit);                     // measured-throughput ladder (below)
+        var nextTier = measuredNext(t, K - 1, measuredSecs());        // measured-throughput ladder (below)
         if (nextTier) { downgrades++; startScrub(nextTier); return; } // reveal happens on the lighter tier
 
         fireReady();
@@ -942,6 +1053,7 @@
       win.removeEventListener('orientationchange', onResize);
       if (ro) { try { ro.disconnect(); } catch (e) {} ro = null; }
       if (earlyTimer) { try { win.clearTimeout(earlyTimer); } catch (e) {} earlyTimer = 0; }
+      if (climbTimer) { try { win.clearInterval(climbTimer); } catch (e) {} climbTimer = 0; }
       if (store) { try { store.destroy(); } catch (e) {} store = null; }
     };
 
@@ -969,7 +1081,10 @@
   function status(margin) {
     return (activeInstance && activeInstance.status) ? activeInstance.status(margin) : -1;
   }
+  function debug() {
+    return (activeInstance && activeInstance.debug) ? activeInstance.debug() : null;
+  }
 
   // The ONE global. Nothing else leaks from this closure.
-  win.MastryScrubber = { init: init, destroy: destroy, status: status };
+  win.MastryScrubber = { init: init, destroy: destroy, status: status, debug: debug };
 })();

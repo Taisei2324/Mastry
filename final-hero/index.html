@@ -64,7 +64,7 @@
      Android the scrubber may drop to the 720 tier of the same shape — the cost of
      this hint being one tier off is a single ~11-20KB frame, the win every other
      time is first-paint latency. -->
-<link rel="preload" as="image" href="frames-p/0001.webp" media="(max-width:760px) and (orientation:portrait)" />
+<link rel="preload" as="image" href="mobile-final-render/0001.webp" media="(max-width:760px) and (orientation:portrait)" />
 <link rel="preload" as="image" href="frames/0001.webp" media="(min-width:761px), (orientation:landscape)" />
 </head>
 <body>
@@ -135,15 +135,15 @@
   <div class="flavours__stage">
     <div class="flavours__bottlewrap" data-speed="-0.045">
       <div class="flavours__halo" aria-hidden="true"></div>
-      <!-- TWO-STAGE LOAD: these ~1.4MB-each PNGs carry data-src (not src) so they
-           download ZERO bytes while the loading screen has the network — lazy
-           loading isn't enough (slow connections balloon the browser's lazy
-           margin and fetch them during the hero load). script.js swaps src in
-           sequentially once the glide is playing (stage 2). -->
-      <img class="flavours__bottle is-active" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/brand%20new%20original%20catalog.png" alt="Mastry Original Mastic bottle" data-flavour="original" decoding="async" />
-      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/Mastry%20ad%20yuzu.png" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" decoding="async" />
-      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/Ume%20mastry%20Ad.png" alt="Mastry Ume Mastic bottle" data-flavour="ume" decoding="async" />
-      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/hinoki%20mastry%20ad.png" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" decoding="async" />
+      <!-- TWO-STAGE LOAD: these bottle shots (~55-62KB webp each) carry data-src
+           (not src) so they download ZERO bytes while the loading screen has the
+           network — lazy loading isn't enough (slow connections balloon the
+           browser's lazy margin and fetch them during the hero load). script.js
+           swaps src in sequentially once the glide is playing (stage 2). -->
+      <img class="flavours__bottle is-active" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/flavours/original.webp" alt="Mastry Original Mastic bottle" data-flavour="original" decoding="async" />
+      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/flavours/yuzu.webp" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" decoding="async" />
+      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/flavours/ume.webp" alt="Mastry Ume Mastic bottle" data-flavour="ume" decoding="async" />
+      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/flavours/hinoki.webp" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" decoding="async" />
     </div>
 
     <div class="flavours__panel" data-speed="0.03">
