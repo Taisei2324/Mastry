@@ -134,12 +134,20 @@
     if (r.sw <= 0 || r.sh <= 0 || r.dw <= 0 || r.dh <= 0) return false;
 
     // Premium downscaling: frames are usually higher-res than their display area.
+    // (drawQuality is module state set once at init: 'medium' on small/mobile
+    // viewports — visually identical at those scale factors, measurably cheaper
+    // per paint on phone GPUs — 'high' everywhere else.)
     ctx.imageSmoothingEnabled = true;
-    try { if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high'; } catch (e) { /* unsupported */ }
+    try { if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = drawQuality; } catch (e) { /* unsupported */ }
 
-    ctx.drawImage(img, r.sx, r.sy, r.sw, r.sh, r.dx, r.dy, r.dw, r.dh);
+    // try/catch: a closed ImageBitmap (evicted between get() and paint) throws
+    // InvalidStateError — treat exactly like an undecoded frame: paint nothing,
+    // keep the previous frame on screen, never break the rAF loop.
+    try { ctx.drawImage(img, r.sx, r.sy, r.sw, r.sh, r.dx, r.dy, r.dw, r.dh); }
+    catch (e) { return false; }
     return true;
   }
+  var drawQuality = 'high';                       // init() lowers this on small viewports
 
 
   /* ===========================================================================
@@ -160,6 +168,7 @@
     var windowRadius = Math.max(0, opts.window == null ? 60 : (opts.window | 0));
     var maxRadius = (opts.maxRadius != null && opts.maxRadius > 0) ? (opts.maxRadius | 0) : Infinity; // cap outward fill (mobile: don't preload the whole reel)
     var maxDecoded = Math.max(0, opts.maxDecoded == null ? 0 : (opts.maxDecoded | 0)); // held-frame cap; 0 = unbounded (hold all)
+    var pinDecoded = !!opts.pinDecoded && typeof window.createImageBitmap === 'function'; // hold ImageBitmaps (phones) — see attemptLoad
     var onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : null;
     var onReadyFrame = typeof opts.onReadyFrame === 'function' ? opts.onReadyFrame : null;
 
@@ -270,20 +279,35 @@
       };
 
       img.onload = function () {
-        // Bytes in — prefer a full decode() before "ready" so the first draw
-        // never pays decode cost on the main thread (no jank, no white flash).
-        // decode() may reject for some browsers/formats; per spec that is NOT a
-        // failure — onload already proves the image is usable, so we fall through
-        // to ready whether decode() resolves or rejects.
-        if (typeof img.decode === 'function') img.decode().then(onDecodeSettled, onDecodeSettled);
-        else onDecodeSettled();
+        // Bytes in — get DECODED pixels before "ready" so the first draw never
+        // pays decode cost on the main thread (no jank, no white flash).
+        //
+        // pinDecoded (phones): decode into an ImageBitmap and store THAT. An
+        // HTMLImageElement's decoded bitmap lives in the browser's own small
+        // image cache — iOS/WebKit purges it constantly under memory pressure,
+        // and the next drawImage then RE-DECODES the webp synchronously on the
+        // main thread: the mid-scroll "1fps" stutter on iPhone, even with every
+        // frame "loaded". An ImageBitmap owns its pixels (usually GPU-backed):
+        // draws stay draws, never decodes. Memory stays bounded because these
+        // stores also cap maxDecoded and evict() closes bitmaps deterministically.
+        //
+        // Fallback (or desktop, where holding 505 full bitmaps would be GBs):
+        // decode() then keep the element. decode() may reject for some
+        // browsers/formats; per spec that is NOT a failure — onload already
+        // proves the image is usable, so we settle ready either way.
+        if (pinDecoded) {
+          window.createImageBitmap(img).then(settle, legacyDecode);
+        } else legacyDecode();
+        function legacyDecode() {
+          if (typeof img.decode === 'function') img.decode().then(function () { settle(img); }, function () { settle(img); });
+          else settle(img);
+        }
+        function settle(src) {
+          img.onload = img.onerror = null;
+          inFlightImgs.delete(i);
+          finishLoad(i, src && src.width ? src : img);
+        }
       };
-
-      function onDecodeSettled() {
-        img.onload = img.onerror = null;
-        inFlightImgs.delete(i);
-        finishLoad(i, img);
-      }
 
       img.src = frameUrl(i);
     }
@@ -354,6 +378,8 @@
       return best;
     }
     function evict(i) {
+      var v = imgs[i];
+      if (v && typeof v.close === 'function') { try { v.close(); } catch (e) {} } // ImageBitmap: free the pixels NOW, not at GC's leisure
       imgs[i] = null;                                                // drop the decoded bitmap (GC-eligible)
       state[i] = STATE_IDLE;                                          // reloadable on revisit
       heldReady--;
@@ -435,7 +461,11 @@
       ensureResolvers.forEach(function (r) { r.reject(new Error('FrameStore: destroyed')); });
       ensureResolvers.clear();
       ensureCache.clear();
-      for (var i = 0; i <= count; i++) imgs[i] = null;
+      for (var i = 0; i <= count; i++) {
+        var v = imgs[i];
+        if (v && typeof v.close === 'function') { try { v.close(); } catch (e) {} } // release bitmap pixels on teardown/tier swap
+        imgs[i] = null;
+      }
       state.fill(STATE_IDLE);
       everSeen.fill(0);
       inFlightCount = 0;
@@ -489,7 +519,10 @@
 
     // Hard guards — if we can't possibly run, still let the page proceed.
     if (!canvas || !canvas.getContext || !manifest) { safeCall(onReady); return; }
-    var ctx = canvas.getContext('2d');
+    /* alpha:false = an OPAQUE canvas: the compositor skips per-pixel blending
+       every frame (the frames are full-bleed photos — nothing shows through).
+       Cheapest composite path, which matters most on mobile GPUs. */
+    var ctx = canvas.getContext('2d', { alpha: false }) || canvas.getContext('2d');
     if (!ctx) { safeCall(onReady); return; }
 
     var count = Math.max(0, manifest.count | 0);
@@ -570,6 +603,7 @@
     var hasPLite = nonEmptyStr(manifest.basePLite);
     var vw = win.innerWidth || 9999, vh = win.innerHeight || 9999;
     var smallViewport = mmMatches('(max-width:760px)') || vw <= 760;
+    drawQuality = smallViewport ? 'medium' : 'high';                  // cheaper per-paint filtering on phone GPUs (visually identical at these scales)
     var boundedViewport = mmMatches('(max-width:760px), (max-height:760px)') || Math.min(vw, vh) <= 760;
     var portraitViewport = mmMatches('(orientation: portrait)') || vh >= vw;
     function detectSlowNet() {
@@ -822,6 +856,7 @@
         window: cfg.window,
         maxRadius: cfg.maxRadius,
         maxDecoded: cfg.maxDecoded,
+        pinDecoded: t.bounded,                   // phones: hold ImageBitmaps so iOS can't purge-and-re-decode mid-scroll (desktop holds 505 elements — bitmaps there would be GBs)
         onProgress: function (loaded, total) {
           if (inst.destroyed) return;
           safeCall(onLoadProgress, loaded, total);
