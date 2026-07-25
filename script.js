@@ -13,295 +13,536 @@
   var loader = document.getElementById("loader");
   var loaderDone = false;
   var loaderStart = Date.now();
-  var MIN_SPLASH = reduceMotion ? 0 : 550;
+  /* Set by the scrubber's onReady (below): the hero canvas holds real painted
+     frames, so the splash bottle has a live target to fly onto. Stays false on
+     the 3.5s zero-frames bail — the handoff then collapses to a plain fade. */
+  var engineReady = false;
+  /* Long enough to SEE the bottle flip even when the hero buffers instantly.
+     Unconditional: reduce-motion (often just Windows "animation effects: off")
+     must not skip the splash — it's the pre-buffer stage, not decoration.
+     PHONES hold longer on purpose (same device test as the engine's tier pick):
+     slower decodes + flakier networks -> more headroom so frames never skip. */
+  var phoneLike = (function () {
+    try {
+      return matchMedia("(pointer: coarse)").matches &&
+             Math.min(window.innerWidth || 9999, window.innerHeight || 9999) <= 760;
+    } catch (e) { return false; }
+  })();
+  var MIN_SPLASH = phoneLike ? 4200 : 2400;
+  /* PORTRAIT-reel predicate, mirroring the engine's tier pick exactly: a phone
+     in any orientation, or a phone-sized portrait viewport — NOT every device.
+     Shared by the deep-prefetch tier choice AND the splash→hero fly so both
+     resolve to the SAME reel (a mismatch lands the bottle on the wrong crop —
+     tier drift between copies of this test has bitten this project before). */
+  function isPortraitReel() {
+    try {
+      return phoneLike ||
+             (matchMedia("(max-width:760px)").matches &&
+              matchMedia("(orientation: portrait)").matches);
+    } catch (e) { return false; }
+  }
+  /* While the splash is up, ALL scrolling is locked: overflow is clamped via
+     html.is-loading (set inline in the page head) and iOS touch scrolling —
+     which ignores overflow on the body — is blocked here. Unlocked on reveal. */
+  function blockTouch(e) { e.preventDefault(); }
+  document.addEventListener("touchmove", blockTouch, { passive: false });
+  /* IMPATIENCE — the lock above stops the page moving, but the events still
+     fire, which is exactly the signal we want: a visitor rubbing the screen on
+     the splash is saying "show me now". A single graze must not count, so a
+     gesture only registers as a real scroll attempt when it repeats inside a
+     short window, travels, or arrives with real wheel momentum. The flag
+     downgrades the splash's ambitions (skip the deep 4K phase, below); it
+     never bypasses the base reel — that is the no-skip guarantee. */
+  var GESTURES = ["touchstart", "touchmove", "wheel"];
+  var gestureHits = 0, lastGestureAt = 0, touchY = null, touchTravel = 0;
+  function markImpatient() {
+    if (impatient) return;
+    impatient = true;
+    cancelDeep();                     /* stop probe/sweep bytes the visitor doesn't want to wait for */
+    if (deepPhase) dismissLoader();   /* deep phase = base fully cached, so revealing now is safe */
+  }
+  function onSplashGesture(e) {
+    if (loaderDone || impatient) return;
+    var now = Date.now();
+    if (now - lastGestureAt > 500) gestureHits = 0;
+    lastGestureAt = now;
+    if (e.type === "touchstart") {
+      touchY = e.touches && e.touches[0] ? e.touches[0].clientY : null;
+      return;                                   /* a tap is curiosity, not scroll intent */
+    }
+    if (e.type === "wheel" && Math.abs(e.deltaY || 0) > 30) { markImpatient(); return; }
+    if (e.type === "touchmove") {
+      var y = e.touches && e.touches[0] ? e.touches[0].clientY : null;
+      if (touchY != null && y != null) { touchTravel += Math.abs(y - touchY); touchY = y; }
+      if (touchTravel > 24) { markImpatient(); return; }
+    }
+    if (++gestureHits >= 2) markImpatient();
+  }
+  GESTURES.forEach(function (t) { window.addEventListener(t, onSplashGesture, { passive: true }); });
+  /* Unlock ONLY after the splash has fully faded (owner, 2026-07-24): the
+     impatience gesture that triggers a reveal must never carry the page down
+     the hero — the visitor lands on frame 1 with the film in front of them.
+     Scroll is pinned to the top for the same reason: is-loading keeps scrollY
+     at 0, but the reset is cheap insurance against any pre-lock drift. */
+  function unlockScroll() {
+    try { window.scrollTo(0, 0); } catch (e) {}
+    document.documentElement.classList.remove("is-loading");
+    document.removeEventListener("touchmove", blockTouch, { passive: false });
+    try { if (window.__loaderSpinStop) window.__loaderSpinStop(); } catch (e) {}  /* splash gone — release the spin's rAF */
+  }
+  var LOADER_FADE = 700;                         /* matches #loader's .7s opacity transition */
+  var FAST_FADE   = 400;                         /* impatient exit — quick, fly-less reveal (matches .done--fast) */
+  var FLY_DELAY   = 100;                         /* wordmark starts settling, then the bottle launches */
+  var FLY_DUR     = 1400;                        /* matches .loader__spinwrap.is-flying transition — a slow glide, not a flash */
+  var FADE_AT     = 700;                         /* crossfade starts at 50% of the fly: the page reveals AROUND the moving
+                                                    bottle and it docks last onto the already-visible hero — the slow fly
+                                                    costs no extra lockout (fade end == fly end) */
+  var GLIDE_AFTER = 2300;                        /* auto-glide this long after the fade COMPLETES */
   function dismissLoader() {
     if (loaderDone || !loader) return;
+    try { if (/[?&]hold(loader)?\b/.test(location.search)) return; } catch (e) {}  /* ?hold — keep the splash up to inspect it */
     loaderDone = true;
-    var wait = Math.max(0, MIN_SPLASH - (Date.now() - loaderStart));
-    /* Add the class synchronously when the minimum has elapsed. A NESTED
+    cancelDeep();                     /* reveal ends the splash's network ambitions (no-op if the sweep finished) */
+    GESTURES.forEach(function (t) { window.removeEventListener(t, onSplashGesture, { passive: true }); });
+    /* One floor gates the handoff: the MIN_SPLASH minimum. The splash bottle no
+       longer has to come to REST before the fly — the canvas spin driver
+       (inline in the page head) keeps it turning for the whole wait and is told
+       the dock moment at handoff, so it eases out THROUGH the glide and lands
+       label-front exactly as it docks. */
+    var now = Date.now();
+    var wait = Math.max(0, MIN_SPLASH - (now - loaderStart));
+    /* Kick the handoff synchronously when the floors have elapsed. A NESTED
        setTimeout here can be starved for seconds behind a heavy frame-load burst
        (the outer timer fires on time, but a freshly-queued macrotask waits) —
        which would keep the splash up long after it should clear. */
-    if (wait <= 0) loader.classList.add("done");
-    else setTimeout(function () { loader.classList.add("done"); }, wait);
-  }
-  setTimeout(dismissLoader, 3500);              /* safety: never trap the visitor */
-
-  /* ── stage 2: the rest of the site ──
-     TWO-STAGE LOADING. Stage 1 (loading screen): the network belongs to the
-     hero frames alone — everything marked data-src (the ~1.4MB-each flavour
-     bottles) sits at zero bytes. Stage 2 (animation playing): stream those in
-     SEQUENTIALLY — one request at a time — so the still-buffering frame reel
-     keeps priority and the glide never starves. One-shot; never re-runs. */
-  function loadRestOfSite() {
-    if (loadRestOfSite.done) return;
-    loadRestOfSite.done = true;
-    var queue = Array.prototype.slice.call(document.querySelectorAll("img[data-src]"));
-    (function next() {
-      var img = queue.shift();
-      if (!img) return;
-      img.onload = img.onerror = function () { img.onload = img.onerror = null; next(); };
-      img.src = img.getAttribute("data-src");
-      img.removeAttribute("data-src");
-    })();
+    if (wait <= 0) beginHandoff();
+    else setTimeout(beginHandoff, wait);
   }
 
-  /* ── hero scroll-speed GOVERNOR (no automation — the visitor drives) ──
-     The page never scrolls on its own. Instead, the hero enforces a MAXIMUM
-     downward scroll speed that decays toward the arrival: generous at the top,
-     ~1/4 of that by the last frames, so nobody can blow through the cinematic —
-     but under the limit the visitor scrolls completely freely, at any rhythm,
-     pausing or reversing whenever they like.
-
-       - limit(y) = V0 · e^(−DECAY · y/heroEnd)   (gradually slower toward the end)
-       - the ceiling also TIGHTENS when the frame buffer runs low, so fast
-         scrolling can never outrun the loader on a slow connection (the cause
-         of the old stutter) — frames stream in like a player, position follows
-       - upward scrolling is never limited; once past the hero, nothing is
-       - nav anchor clicks (Story / Order / …) bypass the governor briefly so
-         in-page navigation still jumps instantly past the hero
-       - honours prefers-reduced-motion (no governor at all) */
+  /* ── splash → hero bottle handoff ──
+     The canvas spin driver is still turning when this runs; beginHandoff books
+     its ease-out so it rests label-front — the same pose as hero frame 1 — at
+     the exact dock moment. The bottle GLIDES right + rescales (1.4s, long-tail
+     ease) so head-to-toe it docks EXACTLY on the hero bottle painted on the
+     cover-fit canvas beneath; the whole-loader crossfade starts mid-glide and
+     completes as it docks. We NEVER animate opacity/filter on the canvas
+     itself: it is baked opaque on the paper colour and would draw its rectangle.
+     Every abnormal path (impatient visitor, zero-frames engine bail, mid-fly
+     resize, unreadable geometry) collapses to the plain fade — the fly is a
+     bonus, never a gate. reduced-motion deliberately does NOT skip it: the
+     splash spin is unconditional (Windows falsely reports reduce), so the
+     handoff is too. */
+  var revealed = false;
+  var WIND_DOWN = 2000;                          /* visible slow-down: the spin eases to rest LABEL-FRONT over
+                                                    this window, then the loader fades. */
+  function commitFade(fast) {
+    if (revealed) return;                        /* one-way latch: land-timer + abort can race */
+    revealed = true;
+    window.removeEventListener("resize", abortFly);
+    window.removeEventListener("orientationchange", abortFly);
+    var wrap = loader.querySelector(".loader__spinwrap");
+    if (wrap) wrap.style.willChange = "";        /* flight over — drop the compositor hint */
+    var fadeMs = fast ? FAST_FADE : LOADER_FADE;
+    var wind   = fast ? 0 : WIND_DOWN;           /* impatient/fast exit skips the overtime and just fades */
+    /* Ease the spin down to label-front over the wind-down window (a slow,
+       visible deceleration that ALWAYS rests on the front), then fade. */
+    try { if (window.__loaderSpinLand) window.__loaderSpinLand(wind || fadeMs); } catch (e) {}
+    if (fast) {
+      loader.classList.add("done--fast");
+      loader.classList.add("done");              /* quick crossfade, no overtime */
+    } else {
+      /* hold the loader opaque THROUGH the slow-down so the deceleration is seen,
+         then run the whole-loader crossfade once the bottle has halted front. */
+      setTimeout(function () { loader.classList.add("done"); }, wind);
+    }
+    /* Unlock + glide re-based to when the fade COMPLETES (after the overtime). */
+    setTimeout(unlockScroll, wind + fadeMs);
+    setTimeout(startAutoScroll, wind + fadeMs + GLIDE_AFTER);
+  }
+  function abortFly() { commitFade(false); }     /* mid-fly resize/rotation: target rect is stale — fade NOW, skip the hold */
+  function beginHandoff() {
+    /* NO FLY (owner 2026-07-25): the splash bottle is PINNED onto the hero
+       bottle's on-screen spot from the start (inline placeSpin, same reel
+       fractions as computeFlip), so it spins IN PLACE exactly where the hero
+       bottle is — it never moves. Dismissal is a straight whole-loader
+       crossfade; the spin eases to rest label-front by fade-end. computeFlip /
+       abortFly are kept below only as reference (unused). */
+    loader.classList.add("is-leaving");          /* vertical LOADING settles out */
+    commitFade(!!impatient);
+  }
+  /* FLIP math, pure reads. Match bottle HEIGHT (uniform scale — never squish)
+     and align bottle CENTRE. Rects are read LIVE at dismissal, not cached at
+     load: the iOS URL bar can resize the viewport between the two. For
+     `translate(T) scale(k)` about the wrapper centre O, a screen point p maps
+     to  p' = O + T + k·(p − O)  — solve T so the splash bottle centre lands on
+     the hero bottle centre. Returns null on degenerate geometry -> plain fade. */
+  function computeFlip(wrap, canvas) {
+    var S = wrap.getBoundingClientRect();
+    var C = canvas.getBoundingClientRect();
+    if (!(S.width > 0 && S.height > 0 && C.width > 0 && C.height > 0)) return null;
+    /* Bottle box inside the reel FRAME (measured off the immutable renders —
+       re-measure if the reel is ever re-rendered). Reel choice mirrors the
+       engine via isPortraitReel(); both landscape tiers share one aspect, both
+       portrait tiers share the other, so fractions hold across quality tiers. */
+    var reel = isPortraitReel()
+      ? { cx: 0.6300, top: 0.3095, bottom: 0.6285, aspect: 608 / 1080 }
+      : { cx: 0.5422, top: 0.3095, bottom: 0.6285, aspect: 1920 / 1080 };
+    /* cover-fit: the frame scales until it covers the canvas — one axis exact,
+       the other cropped and centred. Only the frame's ASPECT matters. */
+    var areaAspect = C.width / C.height, sfW, sfH, offX, offY;
+    if (reel.aspect >= areaAspect) { sfH = C.height; sfW = sfH * reel.aspect; offY = 0; offX = (C.width - sfW) / 2; }
+    else                           { sfW = C.width;  sfH = sfW / reel.aspect; offX = 0; offY = (C.height - sfH) / 2; }
+    var tgtCX = C.left + offX + reel.cx * sfW;
+    var tgtCY = C.top  + offY + ((reel.top + reel.bottom) / 2) * sfH;
+    var tgtH  = (reel.bottom - reel.top) * sfH;
+    /* Bottle box inside the 2:3 splash img — per theme (the two bakes frame
+       the bottle slightly differently). */
+    var light = (document.documentElement.getAttribute("data-theme") || "dark") === "light";
+    var box = light ? { cx: 0.504, top: 0.099, bottom: 0.917 }
+                    : { cx: 0.504, top: 0.109, bottom: 0.906 };
+    var srcCX = S.left + box.cx * S.width;
+    var srcCY = S.top  + ((box.top + box.bottom) / 2) * S.height;
+    var srcH  = (box.bottom - box.top) * S.height;
+    if (!(srcH > 0 && tgtH > 0)) return null;
+    var k = tgtH / srcH;
+    var Ox = S.left + S.width / 2, Oy = S.top + S.height / 2;
+    return { k: k, tx: tgtCX - Ox - k * (srcCX - Ox), ty: tgtCY - Oy - k * (srcCY - Oy) };
+  }
+  /* SCROLL cue: hides once the journey starts moving (visitor scroll or the
+     auto-glide — both move scrollY past the threshold). */
   (function () {
-    if (reduceMotion) return;
-    var cineEl = document.getElementById("cine");
-    if (!cineEl) return;
-
-    var V0 = 3600;                              /* px/s ceiling at the top of the hero */
-    var DECAY = 1.15;                           /* ceiling falls to e^-1.15 ≈ 32% by the arrival */
-    var KEEP = 10;                              /* frames that must be decoded ahead for full speed */
-    var allowed = 0, lastT = 0, heroEnd = 0, bypassUntil = 0;
-    /* TOUCH DEVICES: never clamp. A phone's momentum scroll is animated by the
-       OS itself; writing scrollTo against it every frame is a tug-of-war that
-       reads as constant jank ("very laggy on mobile"). So the law applies to
-       WHEEL input only (which we own end-to-end, no fight); coarse-pointer
-       devices scroll natively and rely on the exponential frame pacing + the
-       engine's nearest-ready rendering instead. */
-    var COARSE = false;
-    try { COARSE = window.matchMedia("(pointer: coarse)").matches; } catch (e) {}
-
-    function limitAt(y) {
-      var p = heroEnd > 0 ? Math.min(1, Math.max(0, y / heroEnd)) : 1;
-      return V0 * Math.exp(-DECAY * p);
-    }
-    function buffered(m) {
-      try { return (window.MastryScrubber && window.MastryScrubber.status) ? window.MastryScrubber.status(m) : -1; }
-      catch (e) { return -1; }
-    }
-    function measure() { heroEnd = Math.max(0, cineEl.offsetTop + cineEl.offsetHeight - window.innerHeight); }
-
-    /* THE LAW, with zero self-motion: every pixel of movement happens
-       SYNCHRONOUSLY inside the visitor's own input event. Wheel input is taken
-       over entirely (preventDefault — the browser never scrolls, so there is no
-       overshoot, nothing to snap back, no jitter); each event may advance at
-       most limit × (time since the previous event), and anything beyond the
-       ceiling is simply VOID — not banked, not replayed. Stop scrolling and the
-       page stops that same instant. Upward is always free. */
-    var lastWheelT = 0;
-    function setY(y) {
-      /* MUST be 'instant': 'auto' defers to the page's CSS scroll-behavior
-         (smooth) and turns every write into a ~600ms ANIMATION — the governor
-         then fights its own animation and the law crawls. Older engines that
-         reject 'instant' fall back to a plain write with CSS smooth suspended. */
-      try { window.scrollTo({ top: y, left: 0, behavior: "instant" }); }
-      catch (e) {
-        var el = document.documentElement, prev = el.style.scrollBehavior;
-        el.style.scrollBehavior = "auto";
-        window.scrollTo(0, Math.round(y));
-        el.style.scrollBehavior = prev;
+    function onFirstMove() {
+      if ((window.scrollY || window.pageYOffset || 0) > 40) {
+        document.body.classList.add("cine-moving");
+        window.removeEventListener("scroll", onFirstMove);
       }
     }
-    function onWheel(e) {
-      if (window.__noSpeedLimit || reduceMotion) return;
-      var now = performance.now();
-      var y = window.scrollY || 0;
-      if (now < bypassUntil || y >= heroEnd) { lastWheelT = now; return; }  /* past hero / anchor nav — native */
-      var dy = e.deltaY;
-      if (e.deltaMode === 1) dy *= 16; else if (e.deltaMode === 2) dy *= window.innerHeight;
-      if (!dy) return;                                        /* horizontal-only — let it be */
-      e.preventDefault();
-      if (dy < 0) {                                           /* upward is always free + instant */
-        setY(Math.max(0, y + dy));
-        allowed = Math.max(0, y + dy);
-        lastWheelT = now;
+    window.addEventListener("scroll", onFirstMove, { passive: true });
+  })();
+  /* DELIBERATE pre-buffer gate: the splash's job is to load frames AHEAD so the
+     hero never lags or skips. Hold until a deep buffer is decoded:
+       - TARGET_FRAMES reached (desktop streams the whole reel after ready), or
+       - the stream goes quiet with a healthy buffer (a phone tier only
+         schedules ~56 frames around the playhead — once that window is full
+         nothing more arrives while parked, so waiting longer buys nothing), or
+       - a hard cap so nobody is ever trapped, or
+       - ZERO frames by 3.5s (engine broken / frames 404) -> reveal the page. */
+  var framesSeen = 0;
+  var TARGET_FRAMES = 160;                       /* fallback gate for ancient browsers without fetch() */
+  /* POLICY (owner, 2026-07-23 — reverses the earlier no-cap doctrine): nobody
+     waits more than 10s on the splash, period. Load-driven INSIDE that
+     ceiling: the gate still prefers to reveal on a fully-cached base reel,
+     and only the ceiling can cut a slow link short — the engine's
+     nearestReady covers any gap and the prefetch keeps running after reveal
+     (the auto-glide's 10-18s tail absorbs the rest).
+     STALL_MS removed: HARD_CAP 10s dominates — see 2026-07-23 policy reversal. */
+  var HARD_CAP = 10000;
+
+  /* DEEP PREFETCH, ALL DEVICES — the engine schedules frames near the
+     playhead (on phones a deliberate decoded-RAM guard of ~56 frames), so a
+     fast scroll used to outrun the network mid-reel and fall back to the
+     nearest loaded frame: visible skipping. Instead the splash DOWNLOADS the
+     ENTIRE reel into the HTTP cache — bytes on disk, zero decode RAM — and
+     the gate below waits until every frame is on the device. Scrubbing then
+     never touches the network anywhere in the film: decode-from-cache is
+     fast, so NO skipped frames, start to finish, at any scroll speed.
+     Tier choice mirrors the engine (portrait dir on phones). 1080p FLOOR
+     (owner, 2026-07-24): the 720 tiers are retired — the manifests carry no
+     baseLow/basePLow, so the low branches below resolve to the 1080p reel;
+     `slow` now only vetoes the 4K phase, never lowers the base. */
+  var PREFETCH_N = Infinity;                     /* full reel — all of m.count */
+  var prefetched = 0;
+  var prefetchTotal = 0;
+
+  /* DEEP 4K PHASE (mobile page only — the manifest must carry baseHi) — the
+     connection's REAL speed decides what the splash buys: the base reel is
+     always the floor (reveal never happens before it's fully cached), and a
+     measured WiFi/5G-class link on a patient visitor extends the splash to
+     download the ENTIRE 4K reel too (bytes into HTTP cache, zero decode RAM),
+     so the retina overlay paints from disk and the hero is 4K from frame 1 —
+     but ONLY when the whole reel projects to land inside the 10s ceiling.
+     Speed is measured against the 4K TIER ITSELF (6 mid-reel probe frames) —
+     never against the base download, which the immutable cache makes look
+     infinitely fast on every repeat visit. Impatient visitors (scroll attempts
+     on the locked splash) skip the 4K phase; if it's already running, they
+     reveal instantly — base is on disk, so that's always safe. */
+  var impatient = false;
+  var deepIntent = null;                         /* null = undecided, then true/false (informational) */
+  var deepPhase = false;                         /* sweep running: base done, 4K downloading */
+  var deepDeciding = false;                      /* base done, probe still in flight — bounded grace hold */
+  var deepGot = 0, deepTotal = 0;
+  var cancelDeep = function () {};               /* aborts probe + sweep; rebound below when eligible */
+
+  (function () {
+    var m = window.MASTRY_FRAMES;
+    if (!m || !(m.count | 0) || typeof fetch !== "function") return;
+    var slow = false;
+    try {
+      var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      if (c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || "") || c.effectiveType === "3g" ||
+                (c.effectiveType === "4g" && c.downlink > 0 && c.downlink < 2))) slow = true;
+    } catch (e) {}
+    /* portrait tier under the same conditions as the engine — shared with the
+       splash→hero fly via isPortraitReel() so both resolve the SAME reel */
+    var portrait = isPortraitReel();
+    var base = (portrait && m.baseP) ? (slow && m.basePLow ? m.basePLow : m.baseP)
+                                     : (slow && m.baseLow ? m.baseLow : m.base);
+    if (!base) return;
+    prefetchTotal = Math.min(PREFETCH_N, m.count | 0);
+    var pad = m.pad == null ? 4 : (m.pad | 0), ext = m.ext || "webp";
+    var next = 1, inflight = 0, CONC = 6;
+    function frameUrl(dir, i) { var s = String(i); while (s.length < pad) s = "0" + s; return dir + s + "." + ext; }
+    function settle() {
+      inflight--; prefetched++;
+      if (prefetched >= prefetchTotal) onBaseDone();   /* chained off the completing settle — no poll-gap race */
+      else pump();
+    }
+    function pump() {
+      while (inflight < CONC && next <= prefetchTotal) {
+        inflight++;
+        fetch(frameUrl(base, next++), { credentials: "same-origin" })
+          .then(function (r) { return r && r.arrayBuffer ? r.arrayBuffer() : null; })  /* drain the body so it lands in cache */
+          .then(settle, settle);
+      }
+    }
+    pump();
+
+    /* ---- deep 4K eligibility: phones-only manifest, capable DEVICE, non-slow
+       link. The device answer comes from the ENGINE's profile (model class /
+       RAM decide the resolution — the connection only decides how much we
+       pre-download); read the mirror, never re-derive. ---- */
+    var hiDir = m.baseHi ? String(m.baseHi) : "";
+    var retina4k = false;
+    try {
+      retina4k = !!(window.MastryScrubber && window.MastryScrubber.deviceProfile &&
+                    window.MastryScrubber.deviceProfile().retina4k);
+    } catch (e) {}
+    var deepEligible = !!hiDir && retina4k && portrait && !slow;   /* desktop manifest has no baseHi — never enters */
+    if (!deepEligible) { deepIntent = false; return; }
+    deepTotal = m.count | 0;
+
+    /* Deep entry is BUDGET-driven, not floor-driven: at base-done we know the
+       elapsed time t and the probed rate — enter the 4K phase only if the
+       whole 118.7Mb reel projects to land inside the 10s ceiling, with a
+       utilization haircut (505 tiny files at CONC 6 sustain below a 6-file
+       burst rate) and a settle reserve. A fixed Mbps floor double-fails:
+       blocks an early finisher a slower link could serve, admits a late one
+       that blows the cap. */
+    var DEEP_MBITS = 118.7;                      /* mobile-4k/ reel: 14,831,366 B */
+    var DEEP_UTIL = 0.75;                        /* probe-to-sustained haircut */
+    var DEEP_RESERVE = 0.5;                      /* seconds — decode/settle tail */
+    var PROBE_GRACE = 1500;                      /* ms to wait at base-done for a still-flying probe */
+    var PROBE_MIN_BYTES = 120000;                /* don't judge a link on a sliver */
+    var probeMbps = -1;                          /* -1 = unresolved; Infinity = 4K already cached */
+    var probeCtl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    var sweepCtl = null;
+    var batteryVeto = false;
+    try {
+      if (navigator.getBattery) navigator.getBattery().then(function (b) {
+        if (b && b.level < 0.2 && !b.charging) batteryVeto = true;   /* a dying phone shouldn't buy luxury pixels */
+      }, function () {});
+    } catch (e) {}
+
+    cancelDeep = function () {
+      try { if (probeCtl) probeCtl.abort(); } catch (e) {}
+      try { if (sweepCtl) sweepCtl.abort(); } catch (e) {}
+    };
+
+    /* ---- probe: 6 mid-reel 4K frames (~176KB), timed as one burst ----
+       Mid-reel (250-255) so it never collides with the engine's hiStore, which
+       prefetches the OPENING frames at init. A cached 4K reel resolves in a few
+       ms (→ instant yes); a live link qualifies on aggregate byte-rate. */
+    (function () {
+      var ids = [250, 251, 252, 253, 254, 255];
+      var t0 = Date.now(), got = 0, done = 0;
+      function finish(bytes) {
+        got += bytes;
+        if (++done < ids.length || probeMbps >= 0) return;
+        var secs = (Date.now() - t0) / 1000;
+        probeMbps = secs < 0.12 ? Infinity                              /* cached reel — instant yes */
+                  : got >= PROBE_MIN_BYTES ? (got * 8 / 1e6) / secs
+                  : 0;                                                  /* errors/slivers read as slow */
+      }
+      ids.forEach(function (i) {
+        fetch(frameUrl(hiDir, i), { credentials: "same-origin", signal: probeCtl && probeCtl.signal })
+          .then(function (r) { return r && r.arrayBuffer ? r.arrayBuffer() : null; })
+          .then(function (buf) { finish(buf ? buf.byteLength : 0); },
+                function () { finish(0); });
+      });
+    })();
+
+    /* ---- base complete: decide the 4K phase (runs synchronously in settle) ----
+       Decision = budget math: remaining ceiling minus reserve, floored at 2s
+       (below that the upside is marginal — the overlay streams 4K at rest
+       regardless; deep is a luxury, never worth risking the ceiling).
+       A still-flying probe gets a bounded grace (usually free: a cache-fast
+       base lands well inside MIN_SPLASH anyway); still unresolved after the
+       grace = slow by demonstration. */
+    function onBaseDone() {
+      if (probeMbps < 0 && !impatient && !batteryVeto) {
+        deepDeciding = true;                     /* gate holds (bounded) while the probe lands */
+        var graceEnd = Date.now() + PROBE_GRACE;
+        (function waitProbe() {
+          if (loaderDone) { deepDeciding = false; return; }
+          if (probeMbps < 0 && !impatient && Date.now() < graceEnd &&
+              Date.now() - loaderStart < 7500) { setTimeout(waitProbe, 100); return; }
+          deepDeciding = false;
+          decideDeep();
+        })();
         return;
       }
-      /* budget for THIS event = ceiling speed × time since the last event
-         (capped, so idle time doesn't accumulate into a burst allowance) */
-      var gap = lastWheelT ? Math.min(0.15, (now - lastWheelT) / 1000) : 0.016;
-      lastWheelT = now;
-      var v = limitAt(y);
-      var ahead = buffered(KEEP);
-      if (ahead >= 0 && ahead < KEEP) v *= ahead / KEEP;      /* buffer low → tighter ceiling (0 = hold) */
-      var take = Math.min(dy, v * gap);                       /* excess intent is VOID, never banked */
-      if (take <= 0) return;
-      var ny = Math.min(heroEnd, y + take);
-      if (ny > y) { setY(ny); allowed = ny; }
+      decideDeep();
     }
-
-    /* Backstop for inputs that scroll natively (touch, keyboard): a gentle
-       per-frame ceiling — overshoot is eased back (viscosity, not a fight).
-       This only ever REACTS to the visitor's motion; with no input the page
-       position is never touched. */
-    function tick(now) {
-      requestAnimationFrame(tick);
-      var dt = lastT ? (now - lastT) / 1000 : 0;
-      lastT = now;
-      if (dt <= 0 || dt > 0.25) return;          /* first tick / hidden tab — don't accumulate */
-      var y = window.scrollY || 0;
-      if (COARSE || window.__noSpeedLimit || now < bypassUntil || y >= heroEnd) { allowed = Math.min(y, heroEnd); return; }
-      var v = limitAt(allowed);
-      var ahead = buffered(KEEP);
-      if (ahead >= 0 && ahead < KEEP) v *= ahead / KEEP;
-      var cap = allowed + v * dt;
-      if (y > cap + 2) {
-        var back = cap + (y - cap) * 0.55;        /* absorb ~half the overshoot per frame */
-        setY(back);
-        allowed = cap;
-      } else {
-        allowed = y > 0 ? y : 0;                 /* under the limit (or upward) — untouched */
+    function decideDeep() {
+      if (impatient || batteryVeto || probeMbps <= 0) { deepIntent = false; cancelDeep(); return; }
+      var t = (Date.now() - loaderStart) / 1000;
+      var budget = HARD_CAP / 1000 - t - DEEP_RESERVE;
+      if (budget < 2 || probeMbps < DEEP_MBITS / (DEEP_UTIL * budget)) {
+        deepIntent = false;                      /* can't land 4K inside the ceiling — reveal on base */
+        return;
       }
+      deepIntent = true;
+      deepPhase = true;
+      sweepCtl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      /* the engine's hiStore owns the opening frames (focus(1) kick at init) —
+         sweep 16..505 first so the two never race the same URLs, then close 1..15 */
+      var order = [], oi;
+      for (oi = 16; oi <= deepTotal; oi++) order.push(oi);
+      for (oi = 1; oi <= 15; oi++) order.push(oi);
+      var k = 0, live = 0;
+      function done4k() { live--; deepGot++; pump4k(); }
+      function pump4k() {
+        if (impatient || loaderDone) return;
+        while (live < CONC && k < order.length) {
+          live++;
+          fetch(frameUrl(hiDir, order[k++]), { credentials: "same-origin", signal: sweepCtl && sweepCtl.signal })
+            .then(function (r) { return r && r.arrayBuffer ? r.arrayBuffer() : null; })
+            .then(done4k, done4k);
+        }
+      }
+      pump4k();
     }
-
-    /* in-page anchor navigation must still work: bypass while the browser's
-       smooth scroll animates to the target (it sails through the hero fast). */
-    document.addEventListener("click", function (e) {
-      var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
-      if (a) bypassUntil = performance.now() + 1500;
-    }, true);
-
-    measure();
-    window.addEventListener("resize", measure);
-    window.addEventListener("wheel", onWheel, { passive: false });
-    requestAnimationFrame(tick);
   })();
 
-  /* ── MOBILE hero guide — a slow auto-advance the visitor always outranks ──
-     Touch devices get no governor (native momentum must never be fought) and no
-     wheel — so on a phone the cinematic only plays if the visitor keeps dragging.
-     This guide advances the hero SLOWLY on its own, as a suggestion, not a lock:
+  function bufferCheck() {
+    if (loaderDone) return;
+    var now = Date.now();
+    var elapsed = now - loaderStart;
+    /* phones: done = whole reel downloaded; desktop: done = 160 decoded ahead */
+    var baseDone = prefetchTotal > 0 ? prefetched >= prefetchTotal
+                                     : framesSeen >= TARGET_FRAMES;
+    if (framesSeen === 0) {
+      if (elapsed >= 3500) { dismissLoader(); return; }  /* engine broken/frames 404 — never trap anyone */
+    } else if (elapsed >= HARD_CAP) {
+      /* the 10s ceiling dominates every phase: reveal with whatever's cached
+         (partial base on a crawling link, partial 4K on a lying probe) —
+         prefetch keeps running after reveal, nearestReady covers the gaps */
+      cancelDeep();
+      dismissLoader(); return;
+    } else if (deepPhase) {
+      /* luxury 4K phase — base is 100% on disk, so both exits reveal safely */
+      if (deepGot >= deepTotal || impatient) {
+        cancelDeep();
+        dismissLoader(); return;
+      }
+    } else if (deepDeciding) {
+      /* base done, probe mid-flight — bounded grace (≤1.5s, onBaseDone owns it) */
+    } else if (baseDone) {
+      dismissLoader(); return;
+    }
+    setTimeout(bufferCheck, 300);
+  }
+  setTimeout(bufferCheck, 1000);
 
-       - the instant a finger touches the glass the guide pauses; the visitor
-         scrolls back and forth completely freely (iOS momentum included —
-         every scroll event while paused re-arms the stillness timer)
-       - after ~2.6s of true stillness it gently resumes from wherever they
-         left the page (fresh ease-in ramp, so it never lurches)
-       - it streams like a player: advance is scaled by the scrubber's decoded
-         buffer (MastryScrubber.status), so it can never outrun the loader
-       - a soft deceleration zone eases the arrival at the ledge
-       - at the end of the hero — or if the visitor moves past it (anchor nav
-         included) — the guide retires for good; the content below is theirs
-       - desktop is untouched (no automation there — the visitor drives) */
-  var startHeroGuide = function () {};          /* no-op unless enabled just below */
+  /* ── cinematic auto-scroll (ice glide) ──
+     Once the hero is ready the page GLIDES down through the pinned cinematic on
+     its own — one smooth, constant-velocity motion that plays the bottle's
+     journey. The first genuine interaction (wheel, touch, drag, or a navigation
+     key) UNLOCKS it: the glide releases instantly and the visitor scrolls freely
+     from there, and it never re-locks. Honours reduced-motion and won't hijack a
+     visitor who has already started scrolling.
+
+     Why this also fixes Safari: driving the scroll on a steady rAF cadence keeps
+     the scrub engine's own loop running frame-to-frame, instead of depending on
+     Safari's coalesced/deferred wheel + momentum scroll events (the source of the
+     stutter). We also neutralise CSS `scroll-behavior:smooth` for the duration,
+     which otherwise fights every programmatic scrollTo on Safari and Chrome. */
+  var startAutoScroll = function () {};         /* no-op unless enabled just below */
   (function () {
     if (reduceMotion) return;                   /* auto-motion: honour the OS setting */
     var cineEl = document.getElementById("cine");
     if (!cineEl) return;
-    var GUIDED = false;
-    try { GUIDED = window.matchMedia("(pointer: coarse)").matches; } catch (e) {}
-    if (!GUIDED && (window.innerWidth || 9999) <= 760) GUIDED = true;
-    if (!GUIDED) return;                        /* mobile/touch only */
 
-    var KEEP = 10;                              /* decoded frames needed ahead for full speed (matches the governor) */
-    var FULL_MS = 22000;                        /* ~22s for the whole hero — slow, watchable */
-    var RAMP_MS = 1100;                         /* gentle ease-in after every (re)start */
-    var ARRIVE_PX = 520;                        /* deceleration zone before the ledge */
-    var IDLE_RESUME = 2600;                     /* stillness before gently resuming */
+    var running = false, unlocked = false, rafId = 0, t0 = 0, fromY = 0, toY = 0, dur = 0;
+    var rootEl = document.documentElement;
+    var prevBehavior = "";
 
-    var running = false, done = false, touching = false;
-    var rafId = 0, lastT = 0, runT = 0, resumeTimer = 0;
-
-    function getY() { return window.scrollY || 0; }
-    function heroEnd() { return Math.max(0, cineEl.offsetTop + cineEl.offsetHeight - window.innerHeight); }
-    function setY(y) {
-      /* 'instant', for the same reason as the governor: 'auto' defers to CSS
-         scroll-behavior:smooth and turns every write into a ~600ms animation. */
-      try { window.scrollTo({ top: y, left: 0, behavior: "instant" }); }
-      catch (e) {
-        var el = document.documentElement, prev = el.style.scrollBehavior;
-        el.style.scrollBehavior = "auto";
-        window.scrollTo(0, Math.round(y));
-        el.style.scrollBehavior = prev;
-      }
-    }
-    function buffered(m) {
-      try { return (window.MastryScrubber && window.MastryScrubber.status) ? window.MastryScrubber.status(m) : -1; }
-      catch (e) { return -1; }
+    /* ice glide: short ease-in, long CONSTANT-velocity cruise, short ease-out — a
+       trapezoidal speed profile (no fast middle), so the motion reads frictionless. */
+    function iceEase(t) {
+      if (t <= 0) return 0;
+      if (t >= 1) return 1;
+      var R = 0.16;                             /* ramp fraction at each end */
+      var cruise = 1 - 2 * R;
+      var v = 1 / (cruise + R);                 /* cruise speed, area-normalised to 1 */
+      if (t < R) return v * (t * t) / (2 * R);
+      if (t < R + cruise) return v * (R / 2 + (t - R));
+      var td = t - R - cruise;
+      return v * (R / 2 + cruise + td - (td * td) / (2 * R));
     }
 
-    function stopGlide() {
+    function restoreBehavior() { rootEl.style.scrollBehavior = prevBehavior; }
+    function stop() {
+      if (!running) return;
       running = false;
       if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      restoreBehavior();                        /* hand back CSS smooth for anchor links */
     }
-    function retire() {                          /* the guide's work is done — drop everything */
-      if (done) return;
-      done = true;
-      stopGlide();
-      if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = 0; }
-      EVENTS.forEach(function (t) { window.removeEventListener(t, onIntent, PASSIVE); });
-      window.removeEventListener("scroll", onIdleScroll, PASSIVE);
+    function unlock() {                          /* the visitor took over — release for good */
+      if (unlocked) return;
+      unlocked = true;
+      stop();
+      EVENTS.forEach(function (type) { window.removeEventListener(type, onIntent, INTENT_OPTS); });
     }
-
     function tick(now) {
       if (!running) return;
-      rafId = requestAnimationFrame(tick);
-      var dt = lastT ? (now - lastT) / 1000 : 0;
-      lastT = now;
-      if (dt <= 0 || dt > 0.25) return;          /* first tick / hidden tab — no lurch */
-      runT += dt * 1000;
-      var end = heroEnd();
-      var y = getY();
-      if (y >= end - 2) { retire(); return; }    /* arrived — hand the page over */
-      var v = end / (FULL_MS / 1000);            /* cruise px/s, paced to the track length */
-      var r = Math.min(1, runT / RAMP_MS);
-      v *= r * r * (3 - 2 * r);                  /* smoothstep ease-in on every (re)start */
-      var left = end - y;
-      if (left < ARRIVE_PX) v *= Math.max(0.12, left / ARRIVE_PX);   /* soft arrival */
-      var ahead = buffered(KEEP);
-      if (ahead >= 0 && ahead < KEEP) v *= ahead / KEEP;             /* buffer low → slow; dry → hold */
-      var ny = Math.min(end, y + v * dt);
-      if (ny > y) setY(ny);
+      var p = dur > 0 ? Math.min((now - t0) / dur, 1) : 1;
+      var y = fromY + (toY - fromY) * iceEase(p);
+      try { window.scrollTo({ top: y, left: 0, behavior: "auto" }); }
+      catch (e) { window.scrollTo(0, y); }      /* older Safari: object form unsupported */
+      if (p < 1) rafId = requestAnimationFrame(tick);
+      else stop();                              /* reached the end of the hero — hand off */
     }
 
-    function begin() {
-      if (done || running || touching) return;
-      if (getY() >= heroEnd() - 8) { retire(); return; }
-      running = true; lastT = 0; runT = 0;
+    startAutoScroll = function () {
+      if (unlocked || running) return;
+      if ((window.scrollY || window.pageYOffset || 0) > 4) return;   /* visitor already moved */
+      fromY = window.scrollY || window.pageYOffset || 0;
+      toY = Math.max(0, cineEl.offsetTop + cineEl.offsetHeight - window.innerHeight);
+      var dist = toY - fromY;
+      if (dist <= 0) return;
+      dur = Math.min(18000, Math.max(10000, dist / 0.38));   /* ~10–18s glide, paced to the hero */
+      prevBehavior = rootEl.style.scrollBehavior;
+      rootEl.style.scrollBehavior = "auto";     /* stop CSS smooth from fighting the glide */
+      t0 = performance.now();
+      running = true;
       rafId = requestAnimationFrame(tick);
-    }
-    /* gentle resume — only after true stillness, never under a finger */
-    function armResume() {
-      if (done) return;
-      if (resumeTimer) clearTimeout(resumeTimer);
-      resumeTimer = setTimeout(function () {
-        resumeTimer = 0;
-        if (done || running || touching) return;
-        begin();
-      }, IDLE_RESUME);
-    }
-
-    startHeroGuide = function () {
-      if (done || running) return;
-      if (touching) { armResume(); return; }
-      begin();
     };
 
-    var EVENTS = ["touchstart", "touchmove", "touchend", "touchcancel", "pointerdown", "wheel", "keydown"];
-    var PASSIVE = { passive: true };
+    /* Genuine user-intent events unlock; the glide's own scrollTo does NOT (we
+       never listen to 'scroll'). Navigation keys count; typing in a field doesn't. */
+    var EVENTS = ["wheel", "touchstart", "touchmove", "pointerdown", "mousedown", "keydown"];
+    var INTENT_OPTS = { passive: true };
+    var NAV_KEYS = { ArrowDown: 1, ArrowUp: 1, PageDown: 1, PageUp: 1, Home: 1, End: 1, " ": 1, Spacebar: 1 };
     function onIntent(e) {
-      if (e.type === "touchstart" || e.type === "touchmove") touching = true;
-      else if (e.type === "touchend" || e.type === "touchcancel") touching = false;
-      stopGlide();                              /* the visitor is in charge, instantly */
-      if (!touching) armResume();               /* finger down = wait; lifted = count stillness */
+      if (e.type === "keydown") {
+        var tag = (e.target && e.target.tagName) || "";
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;  /* let forms type */
+        if (!NAV_KEYS[e.key]) return;           /* only navigation keys mean "take over" */
+      }
+      unlock();
     }
-    /* iOS momentum keeps scrolling after the finger lifts — every scroll event
-       while PAUSED re-arms the timer, so the guide resumes only once the page
-       has truly settled. The guide's own writes never re-arm (running=true). */
-    function onIdleScroll() {
-      if (done || running) return;
-      if (resumeTimer) armResume();
-    }
-    EVENTS.forEach(function (t) { window.addEventListener(t, onIntent, PASSIVE); });
-    window.addEventListener("scroll", onIdleScroll, PASSIVE);
+    EVENTS.forEach(function (type) { window.addEventListener(type, onIntent, INTENT_OPTS); });
   })();
 
   /* ── hero: scroll-scrub cinematic (frames.js manifest + scrubber.js engine) ──
@@ -312,31 +553,23 @@
     var cineEl = document.getElementById("cine");
     var canvas = document.getElementById("heroCanvas");
     if (!cineEl || !canvas || !window.MastryScrubber || !window.MASTRY_FRAMES) return;
-    var onProgressEnd = false;                   /* last end-card state (write class only on change) */
+    var root = document.documentElement;
     window.MastryScrubber.init({
       canvas: canvas, manifest: window.MASTRY_FRAMES, scrollEl: cineEl,
       onReady: function () {
         document.body.classList.add("cine-ready");
-        dismissLoader();                         /* first frames decoded — reveal now, keep buffering */
-        /* stage 2: give the hero frames a short bandwidth head start, then
-           stream the rest of the site while the visitor watches/scrolls. */
-        setTimeout(loadRestOfSite, 2200);
-        setTimeout(startHeroGuide, 1400);        /* mobile-only slow guide (no-op on desktop) */
+        engineReady = true;            /* frame 1 is painted — the splash bottle now has a live fly target */
+        /* NOT dismissLoader() — the splash deliberately stays up while the
+           buffer deepens (bufferCheck above owns dismissal), so the hero
+           starts with frames loaded ahead: no lag, no frame skipping. */
       },
-      onProgress: function (p, frame) {          /* eased progress from the engine */
+      onProgress: function (p) {                 /* eased progress from the engine */
         if (p < 0) p = 0; else if (p > 1) p = 1;
-        window.__cineFrame = frame;              /* instrumentation: current painted frame (cheap plain write) */
-        /* NOTE: no per-tick style writes here. Setting a :root custom property
-           every animation frame invalidates style for the whole document (the
-           old --cp write — nothing consumed it) and reads as jank, especially
-           in Safari. Only flip the end-card class when it actually changes. */
-        var end = p >= 0.9;
-        if (end !== onProgressEnd) {
-          onProgressEnd = end;
-          document.body.classList.toggle("cine-end", end);
-        }
+        root.style.setProperty("--cp", p.toFixed(4));
+        /* end card fades in once the bottle has arrived on the ledge (last ~10%) */
+        document.body.classList.toggle("cine-end", p >= 0.9);
       },
-      onLoadProgress: function () {}
+      onLoadProgress: function (loaded) { framesSeen = loaded; }   /* feeds the pre-buffer gate */
     });
   })();
 
@@ -600,11 +833,51 @@
     }).observe(sceneryFrame);
   }
 
-  /* ── order form (static site — no backend) ── */
+  /* ── order form (static site — no backend) ──
+     Submitting a VALID form opens the order pop-up instead of finishing:
+       step 1 "Before you order" — allergen notice + terms, Decline / Accept
+               (the ACCEPT click is the recorded acknowledgment — click-wrap;
+               deliberately an acknowledgment, NOT a waiver: those are void
+               under consumer law);
+       step 2 "Your order" — read-back of every field, final Place order.
+     Decline / × / backdrop / Esc close the pop-up; the form stays intact. */
   var orderForm = document.getElementById("orderForm");
   if (orderForm) {
     var orderOk = document.getElementById("orderOk");
     var required = orderForm.querySelectorAll("[required]");
+    var ordModal = document.getElementById("ordModal");
+    var ordmTerms = document.getElementById("ordmTerms");
+    var ordmReview = document.getElementById("ordmReview");
+    var prevOverflow = "";
+
+    function openOrderModal() {
+      if (!ordModal) return;
+      /* read-back: the review step shows exactly what was typed */
+      var sel = document.getElementById("fproduct");
+      document.getElementById("ovFlavour").textContent = sel && sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text : "";
+      document.getElementById("ovQty").textContent = (document.getElementById("fqty") || {}).value || "";
+      document.getElementById("ovName").textContent = (document.getElementById("fname") || {}).value || "";
+      document.getElementById("ovEmail").textContent = (document.getElementById("femail") || {}).value || "";
+      document.getElementById("ovAddress").textContent = (document.getElementById("faddress") || {}).value || "";
+      ordmTerms.hidden = false;
+      ordmReview.hidden = true;
+      ordModal.hidden = false;
+      prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
+    function closeOrderModal() {
+      if (!ordModal) return;
+      ordModal.hidden = true;
+      document.body.style.overflow = prevOverflow;
+    }
+    function placeOrder() {
+      closeOrderModal();
+      orderForm.querySelectorAll(".fg, .fg-row, .btn, .order__note").forEach(function (el) {
+        el.style.display = "none";
+      });
+      orderOk.hidden = false;
+    }
+
     orderForm.addEventListener("submit", function (e) {
       e.preventDefault();
       var valid = true;
@@ -620,10 +893,118 @@
         }
       });
       if (!valid) return;
-      orderForm.querySelectorAll(".fg, .fg-row, .btn, .order__note").forEach(function (el) {
-        el.style.display = "none";
-      });
-      orderOk.hidden = false;
+      if (ordModal) openOrderModal();                /* review before anything is final */
+      else placeOrder();                             /* pop-up markup missing — degrade to the old flow */
     });
+
+    if (ordModal) {
+      document.getElementById("ordmAccept").addEventListener("click", function () {
+        ordmTerms.hidden = true;                     /* acknowledgment given — show the read-back */
+        ordmReview.hidden = false;
+      });
+      document.getElementById("ordmBack").addEventListener("click", function () {
+        ordmReview.hidden = true;
+        ordmTerms.hidden = false;
+      });
+      document.getElementById("ordmDecline").addEventListener("click", closeOrderModal);
+      document.getElementById("ordmClose").addEventListener("click", closeOrderModal);
+      document.getElementById("ordmPlace").addEventListener("click", placeOrder);
+      ordModal.addEventListener("click", function (e) { if (e.target === ordModal) closeOrderModal(); });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !ordModal.hidden) closeOrderModal(); });
+    }
   }
+
+  /* ── language switch (EN / 日本語) ──
+     EN is the authored DOM; Japanese lives in the dictionary below. The toggle
+     swaps [data-i18n] text, [data-i18n-html] markup, and [data-i18n-ph]
+     placeholders — originals are cached on the first pass so switching back to
+     EN is lossless. The choice persists (mastry-lang); a first visit follows
+     the browser language, so drinkmastry.jp visitors open in Japanese. */
+  (function () {
+    var JA = {
+      "nav.story": "ストーリー",
+      "nav.flavours": "フレーバー",
+      "nav.order": "注文",
+      "nav.merch": "グッズ",
+      "nav.find": "ご注文はこちら",
+      "stats.sugar": "糖類",
+      "stats.calories": "カロリー",
+      "stats.ingredients": "原材料",
+      "stats.islands": "島",
+      /* Certificate of Composition (essence section). Latin lab notation —
+         per 100 ml, 0.00% ABV, Pistacia lentiscus, coordinates, units —
+         deliberately untranslated (correct in both locales). */
+      "cert.resinLine": "H₂O · CO₂ · 樹脂",
+      "cert.fig": "図1 — <i>Pistacia lentiscus</i>、ヒオス島",
+      "cert.energy": "エネルギー",
+      "cert.protein": "たんぱく質",
+      "cert.fat": "脂質",
+      "cert.carb": "炭水化物",
+      "cert.sugars": "うち糖類",
+      "cert.salt": "食塩相当量",
+      "cert.islandsLine": "ヒオス島 ↔ 日本",
+      "cert.abv": "0.00% ABV · カフェインゼロ",
+      "cert.note": "「0」表示は食品表示基準（100mlあたり5kcal未満・糖類0.5g未満）に基づきます。",
+      "flavours.title": "四つの水、<em>ひとつの樹脂。</em>",
+      /* flavour.* deliberately ABSENT: owner call 2026-07-24 — flavour names
+         stay in English in Japanese mode (missing key = engine keeps the
+         authored EN text) */
+      "order.eyebrow": "注文",
+      "order.title": "マストリーを<br /><em>ご注文。</em>",
+      "order.sub": "ご希望の商品とお届け先をお知らせください。1営業日以内にメールにてご確認いたします。",
+      "order.email": "メール",
+      "order.origin": "産地",
+      "order.originVal": "ギリシャ・ヒオス島 × 日本",
+      "order.ships": "発送元",
+      "order.shipsVal": "日本 · 3〜5営業日",
+      "form.name": "お名前",
+      "form.namePh": "例：山田 太郎",
+      "form.flavour": "フレーバー",
+      "form.select": "選択してください",
+      "form.qty": "数量",
+      "form.address": "お届け先住所",
+      "form.addressPh": "例：東京都〇〇区〇〇1-2-3",
+      "form.submit": "注文する",
+      "form.note": "世界各国へ配送いたします。ご注文をもって<a href=\"legal.html#terms\">販売条件</a>・<a href=\"care.html#allergens\">アレルゲン情報</a>に同意いただいたものとみなします。",
+      "form.ok": "ありがとうございます — ご注文を承りました。hello@mastry.jp より確認メールをお送りします。",
+      "footer.tagline": "ギリシャ・ヒオス島のマスティック · 日本にて仕上げ",
+      "footer.copyright": "© 2026 Mastry. マスティックのスパークリングウォーター。",
+      "footer.care": "カスタマーサポート",
+      "footer.legal": "法的情報"
+    };
+    var toggle = document.getElementById("langToggle");
+    if (!toggle) return;                                 /* pages without the switch stay EN */
+    var nodes = null;
+    function collect() {
+      nodes = [];
+      document.querySelectorAll("[data-i18n],[data-i18n-html],[data-i18n-ph]").forEach(function (el) {
+        if (el.dataset.i18n) nodes.push({ el: el, key: el.dataset.i18n, kind: "text", orig: el.textContent });
+        if (el.dataset.i18nHtml) nodes.push({ el: el, key: el.dataset.i18nHtml, kind: "html", orig: el.innerHTML });
+        if (el.dataset.i18nPh) nodes.push({ el: el, key: el.dataset.i18nPh, kind: "ph", orig: el.getAttribute("placeholder") || "" });
+      });
+    }
+    var lang = "en";
+    function apply(l) {
+      if (!nodes) collect();
+      nodes.forEach(function (n) {
+        var v = l === "ja" ? JA[n.key] : null;
+        if (n.kind === "ph") n.el.setAttribute("placeholder", v != null ? v : n.orig);
+        else if (n.kind === "html") n.el.innerHTML = v != null ? v : n.orig;
+        else n.el.textContent = v != null ? v : n.orig;
+      });
+      document.documentElement.lang = l === "ja" ? "ja" : "en";
+      toggle.querySelectorAll("[data-lang-opt]").forEach(function (s) {
+        s.classList.toggle("on", s.dataset.langOpt === l);
+      });
+      lang = l;
+      try { localStorage.setItem("mastry-lang", l); } catch (e) {}
+      try { measureStage(); } catch (e) {}               /* text lengths changed — re-measure parallax layout */
+    }
+    toggle.addEventListener("click", function () { apply(lang === "ja" ? "en" : "ja"); });
+    var saved = null;
+    try { saved = localStorage.getItem("mastry-lang"); } catch (e) {}
+    var initial = (saved === "ja" || saved === "en") ? saved
+                : (/^ja\b/i.test(navigator.language || "") ? "ja" : "en");
+    if (initial === "ja") apply("ja");
+  })();
 })();

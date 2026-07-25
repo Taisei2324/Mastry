@@ -1,495 +1,547 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Mastry — Sparkling Water with Mastic</title>
-  <link rel="icon" type="image/png" href="images/seal-favicon-64.png" />
-  <link rel="apple-touch-icon" href="images/seal-touch-180.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet" />
-  <style>
-/* ── self-hosted variable fonts — zero external dependency (the Google Fonts
-   link proved flaky on some networks: stalls, silently dropped faces).
-   Pairing: Cormorant Garamond (delicate high-contrast serif — the hero's
-   original minimalist voice) × Jost (geometric Bauhaus-precision sans for
-   body/UI — totally different classification, equally quiet). Japanese glyphs
-   (Noto Serif JP) still ride Google with system fallback. ── */
-@font-face{font-family:'Cormorant Garamond';src:url('fonts/cormorant-var.woff2') format('woff2-variations');font-weight:300 700;font-style:normal;font-display:swap;}
-@font-face{font-family:'Cormorant Garamond';src:url('fonts/cormorant-var-italic.woff2') format('woff2-variations');font-weight:300 700;font-style:italic;font-display:swap;}
-@font-face{font-family:'Jost';src:url('fonts/jost-var.woff2') format('woff2-variations');font-weight:100 900;font-style:normal;font-display:swap;}
-
-
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    html{-webkit-text-size-adjust:100%;overflow-x:hidden;scroll-behavior:smooth;}
-    body{font-family:'Jost',sans-serif;background:#0d0d0d;color:#f5f0e8;overflow-x:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
-    :root{--sage:#4a6040;--cream:#f5f0e8;--muted:rgba(245,240,232,0.55);--border:rgba(245,240,232,0.12);--nav-h:56px;--tab-h:calc(54px + env(safe-area-inset-bottom));}
-
-    /* LOADING SCREEN */
-    #loadingScreen{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .7s ease;overflow:hidden;}
-    #loadingScreen.hidden{opacity:0;pointer-events:none;}
-    .ls-bg{position:absolute;inset:-4%;background:url('images/IMG_0043.jpg') center/cover no-repeat;filter:brightness(0.62) saturate(0.85);animation:lsBgDrift 3s ease-in-out infinite alternate;}
-    @keyframes lsBgDrift{from{transform:translateX(0) scale(1);}to{transform:translateX(-2%) scale(1.04);}}
-    .ls-vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 20%,rgba(0,0,0,0.65) 100%);}
-    .ls-haze{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(180,210,240,.18) 0%,rgba(140,180,220,.08) 25%,transparent 50%,rgba(0,0,0,.5) 100%);}
-    .ls-center{position:relative;z-index:2;width:min(520px,86vw);overflow:visible;}
-    .ls-ref{width:100%;height:auto;display:block;visibility:hidden;pointer-events:none;}
-    .ls-shad{position:absolute;inset:0;opacity:0;transition:opacity .4s ease;pointer-events:none;}
-    .ls-shad-color{position:absolute;inset:0;-webkit-mask:url('images/loading screen.png') top left/100% auto no-repeat;mask:url('images/loading screen.png') top left/100% auto no-repeat;}
-    .ls-shad-r{transform:translate(-4px,0);}
-    .ls-shad-c{transform:translate(4px,0);}
-    .ls-slices{position:absolute;inset:0;display:flex;align-items:center;}
-    .ls-sl{position:relative;height:100%;overflow:visible;transform-origin:center center;will-change:transform,opacity,filter;}
-    .ls-clip{position:absolute;inset:0;overflow:hidden;}
-    .ls-clip img{position:absolute;top:0;display:block;height:auto;}
-    .ls-final{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity 200ms ease;}
-    #lsBottom{position:absolute;bottom:20px;left:0;right:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:12px;}
-    #lsBottom span{font-family:'Jost',sans-serif;font-size:9px;font-weight:300;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.38);}
-    #lsIcon{animation:lsPulse 1.4s ease-in-out infinite;}
-    @keyframes lsPulse{0%,100%{opacity:.18;}50%{opacity:.72;}}
-
-    /* NAV */
-    .m-nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);display:flex;align-items:center;justify-content:space-between;padding:0 16px;padding-top:env(safe-area-inset-top);background:rgba(13,13,13,0.92);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:100;}
-    .m-nav__logo{font-size:0.95rem;font-weight:900;letter-spacing:0.22em;color:var(--cream);text-decoration:none;}
-    .m-nav__right{display:flex;align-items:center;gap:4px;}
-    .m-nav__cart,.m-nav__menu{position:relative;background:none;border:none;color:var(--cream);padding:8px;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center;}
-    .m-nav__badge{position:absolute;top:2px;right:2px;background:var(--sage);color:#fff;font-size:0.55rem;font-weight:800;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;}
-    section{scroll-margin-top:var(--nav-h);}
-
-    /* HUD MENU */
-    .m-hud-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
-    .m-hud-bg.open{display:block;}
-    .m-hud{position:fixed;top:0;right:0;bottom:0;width:min(320px,88vw);background:#0f0f0f;border-left:1px solid var(--border);z-index:501;transform:translateX(100%);transition:transform .3s cubic-bezier(0.32,0.72,0,1);display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom);overflow-y:auto;}
-    .m-hud.open{transform:translateX(0);}
-    .m-hud__header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
-    .m-hud__brand{font-size:0.9rem;font-weight:900;letter-spacing:0.22em;color:var(--cream);}
-    .m-hud__close{background:none;border:none;color:var(--muted);font-size:1.6rem;cursor:pointer;line-height:1;touch-action:manipulation;}
-    .m-hud__section{padding:20px 20px 0;}
-    .m-hud__label{font-size:0.6rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--sage);margin-bottom:12px;display:block;}
-    .m-hud__link{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);text-decoration:none;color:var(--cream);font-size:0.95rem;font-weight:600;letter-spacing:0.01em;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
-    .m-hud__link:last-child{border-bottom:none;}
-    .m-hud__link-arrow{color:var(--muted);font-size:0.8rem;}
-    .m-hud__divider{height:1px;background:var(--border);margin:8px 20px;}
-    .m-hud__info{padding:20px;}
-    .m-hud__info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
-    .m-hud__info-row:last-child{border-bottom:none;}
-    .m-hud__info-label{font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
-    .m-hud__info-val{font-size:0.75rem;color:var(--cream);text-align:right;}
-    .m-hud__net{padding:12px 20px;margin:0 20px 20px;background:#1a1a1a;border:1px solid var(--border);}
-    .m-hud__net-label{font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;display:block;}
-    .m-hud__net-val{font-size:0.78rem;font-weight:600;color:var(--cream);}
-
-    /* HERO */
-    .m-hero{position:relative;width:100%;margin-top:var(--nav-h);background:#0d0d0d;}
-    .m-hero__img{width:100%;height:auto;display:block;}
-    .m-hero__logo{position:absolute;bottom:-8px;left:-6px;width:160px;height:118px;background:transparent;--poster-color:transparent;display:block;pointer-events:auto;}
-    .m-hero__content{padding:16px 20px 20px;background:#0d0d0d;}
-    .m-hero__eyebrow{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:6px;display:block;}
-    .m-hero__title{font-size:clamp(2rem,8.5vw,2.8rem);font-weight:900;line-height:0.95;letter-spacing:-0.03em;color:#fff;margin-bottom:10px;}
-    .m-hero__sub{font-size:0.82rem;line-height:1.6;color:rgba(255,255,255,0.55);margin-bottom:14px;}
-    .m-hero__actions{display:flex;gap:10px;}
-
-    /* BUTTONS */
-    .m-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;font-family:inherit;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;border:none;cursor:pointer;touch-action:manipulation;-webkit-appearance:none;transition:opacity .2s;}
-    .m-btn:active{opacity:0.75;}
-    .m-btn--solid{background:#fff;color:#0d0d0d;}
-    .m-btn--outline{background:transparent;border:1px solid rgba(255,255,255,0.35);color:#fff;}
-    .m-btn--sage{background:var(--sage);color:#fff;min-height:52px;font-size:0.8rem;}
-    .m-btn--dark{background:#1a1a1a;color:var(--cream);border:1px solid var(--border);}
-
-    /* STRIP */
-    .m-strip{background:var(--sage);overflow:hidden;padding:11px 0;}
-    .m-strip__track{display:flex;gap:24px;white-space:nowrap;animation:marquee 28s linear infinite;font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.85);}
-    @keyframes marquee{from{transform:translateX(0);}to{transform:translateX(-50%);}}
-    .m-dot{color:rgba(255,255,255,0.35);}
-
-    /* PRODUCTS */
-    .m-products{padding:44px 20px;background:#0d0d0d;}
-    .m-section-header{margin-bottom:28px;}
-    .m-eyebrow{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--sage);margin-bottom:8px;display:block;}
-    .m-title{font-size:clamp(1.9rem,8.5vw,2.6rem);font-weight:900;line-height:0.95;letter-spacing:-0.03em;color:var(--cream);}
-    .m-lead{font-size:0.87rem;color:var(--muted);line-height:1.7;margin-top:10px;}
-    .m-catalog-scroll{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;margin:0 -20px;padding:0 20px 4px;}
-    .m-catalog-scroll::-webkit-scrollbar{display:none;}
-    .m-card{flex:0 0 72vw;max-width:280px;scroll-snap-align:start;background:#1a1a1a;border:1px solid var(--border);overflow:hidden;cursor:pointer;touch-action:manipulation;}
-    .m-card:active{opacity:0.85;}
-    .m-card__img{width:100%;height:auto;display:block;object-fit:contain;background:#1a1a1a;}
-    .m-card__body{padding:16px 16px 18px;}
-    .m-card__tag{font-size:0.6rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#b07d3a;margin-bottom:6px;display:block;}
-    .m-card__name{font-size:1.3rem;font-weight:900;line-height:1.0;letter-spacing:-0.02em;color:var(--cream);margin-bottom:8px;}
-    .m-card__desc{font-size:0.77rem;color:var(--muted);line-height:1.6;margin-bottom:14px;}
-    .m-card__footer{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:12px;}
-    .m-card__price{font-size:0.77rem;font-weight:600;color:var(--muted);}
-    .m-card__add{font-size:0.67rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--sage);}
-
-    /* PHOTO SECTIONS */
-    .m-photo{position:relative;width:100%;background:#0d0d0d;}
-    .m-photo__img{width:100%;height:auto;display:block;}
-    .m-photo__content{padding:28px 24px 36px;background:#0d0d0d;}
-    .m-photo__caption{font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);display:block;margin-top:10px;}
-    .m-photo__title{font-size:clamp(2rem,9vw,2.8rem);font-weight:900;line-height:0.95;letter-spacing:-0.03em;color:#fff;margin-bottom:10px;}
-    .m-photo__sub{font-size:0.85rem;color:rgba(255,255,255,0.6);line-height:1.65;max-width:340px;}
-
-    /* BOTTLE */
-    .m-bottle{background:#0d0d0d;}
-    .m-bottle__img{width:100%;height:auto;display:block;}
-    .m-bottle__text{padding:28px 24px 44px;}
-    .m-bottle__features{display:flex;flex-direction:column;gap:10px;margin:20px 0 28px;}
-    .m-bottle__feature{display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:10px;}
-    .m-bottle__label{font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
-    .m-bottle__val{font-size:0.78rem;font-weight:600;color:var(--cream);}
-
-    /* ABOUT */
-    .m-about{padding:48px 20px;background:#111;}
-    .m-stats{margin-top:32px;}
-    .m-stat{border-top:1px solid var(--border);padding:18px 0;}
-    .m-stat__num{font-size:3rem;font-weight:900;letter-spacing:-0.04em;line-height:1;color:var(--cream);}
-    .m-stat__unit{font-size:1.1rem;font-weight:700;color:var(--sage);}
-    .m-stat__label{font-size:0.74rem;color:var(--muted);margin-top:4px;}
-
-    /* ORDER */
-    .m-order{padding:48px 20px calc(36px + var(--tab-h));background:#0d0d0d;}
-    .m-form{display:flex;flex-direction:column;gap:16px;margin-top:28px;}
-    .m-field{display:flex;flex-direction:column;gap:6px;}
-    .m-label{font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);}
-    .m-input{background:#1a1a1a;border:1px solid var(--border);color:var(--cream);font-family:inherit;font-size:16px;padding:16px 14px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none;border-radius:0;width:100%;min-height:52px;}
-    .m-input:focus{border-color:var(--sage);}
-    .m-input--select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(245,240,232,0.4)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px;}
-    .m-input--textarea{min-height:96px;resize:none;}
-    .m-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-    .m-form-note{font-size:0.72rem;color:var(--muted);text-align:center;}
-
-    /* FOOTER */
-    .m-footer{background:#080808;padding:28px 20px;padding-bottom:calc(20px + var(--tab-h));border-top:1px solid var(--border);}
-    .m-footer__logo{font-size:0.88rem;font-weight:900;letter-spacing:0.22em;color:#fff;display:block;margin-bottom:10px;}
-    .m-footer__copy{font-size:0.68rem;color:rgba(255,255,255,0.3);line-height:1.6;}
-
-    /* BOTTOM TABS */
-    .m-tabs{position:fixed;bottom:0;left:0;right:0;height:var(--tab-h);padding-bottom:env(safe-area-inset-bottom);background:rgba(13,13,13,0.97);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:100;}
-    .m-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-decoration:none;color:rgba(255,255,255,0.35);font-size:0.55rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;transition:color .18s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
-    .m-tab.active,.m-tab:active{color:var(--sage);}
-
-    /* CART */
-    .m-cart-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;}
-    .m-cart-bg.open{display:block;}
-    .m-cart{position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid var(--border);border-radius:20px 20px 0 0;z-index:201;transform:translateY(100%);transition:transform .32s cubic-bezier(0.32,0.72,0,1);padding-bottom:env(safe-area-inset-bottom);max-height:80svh;display:flex;flex-direction:column;}
-    .m-cart.open{transform:translateY(0);}
-    .m-cart__handle{width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:14px auto 0;}
-    .m-cart__header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);}
-    .m-cart__title{font-size:0.8rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--cream);}
-    .m-cart__close{background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;line-height:1;touch-action:manipulation;}
-    .m-cart__items{flex:1;overflow-y:auto;padding:16px 20px;}
-    .m-cart__empty{font-size:0.85rem;color:var(--muted);}
-    .m-cart-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
-    .m-cart-item__name{flex:1;font-size:0.85rem;font-weight:600;color:var(--cream);}
-    .m-cart-item__controls{display:flex;align-items:center;gap:10px;}
-    .m-cart-item__controls button{background:#1a1a1a;border:1px solid var(--border);color:var(--cream);width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;touch-action:manipulation;}
-    .m-cart-item__qty{font-size:0.85rem;min-width:18px;text-align:center;color:var(--cream);}
-    .m-cart-item__price{font-size:0.78rem;color:var(--muted);}
-    .m-cart-item__rm{background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;touch-action:manipulation;}
-    .m-cart__footer{padding:16px 20px;border-top:1px solid var(--border);}
-    .m-cart__subtotal{display:flex;justify-content:space-between;font-weight:700;color:var(--cream);margin-bottom:14px;font-size:0.9rem;}
-
-    /* SUCCESS */
-    .m-success{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:center;justify-content:center;padding:24px;}
-    .m-success.open{display:flex;}
-    .m-success__box{background:#111;border:1px solid var(--border);padding:44px 32px;text-align:center;width:100%;max-width:340px;}
-    .m-success__icon{font-size:2rem;color:var(--sage);margin-bottom:16px;display:block;}
-    .m-success__title{font-size:1.6rem;font-weight:900;letter-spacing:-0.02em;color:var(--cream);margin-bottom:10px;}
-    .m-success__text{font-size:0.85rem;color:var(--muted);line-height:1.7;margin-bottom:28px;}
-  </style>
-  <script>
-    if(!/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){window.location.replace('index.html');}
-
-    // Network speed detection — runs before anything loads
-    (function(){
-      var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-      var slow = false;
-      if(conn){
-        slow = conn.saveData || ['slow-2g','2g','3g'].indexOf(conn.effectiveType) !== -1;
-      }
-      window.__slowNet = slow;
-      window.__netType = conn ? (conn.effectiveType || 'unknown') : 'unknown';
-    })();
-
-    window.__heroColor=(function(){
-      var hex=['#6B7A32','#F4E8C1','#F7F3E8','#D8C99B','#9A6B43','#263A20','#1F2A1C','#F8F1DC','#FAF8EF','#A8B88A','#8A8678','#EEF2D7','#E1E8BE','#CBD894','#B2C36D','#92A64A','#596830','#46552A','#354322','#26341C','#EEF5EA','#DAE9D2','#BBD3AE','#92B383','#6E9562','#527748','#3F6037','#314C2B','#1D3018','#F4F7EF','#E7EEDB','#D0DCBE','#B8C79E','#8E9F71','#74875B','#5D7049','#485A38','#34452A','#F0FAF7','#DDF1EC','#C3E4DA','#A4D2C4','#83BAAA','#659F90','#4E8376','#3D6A60','#2F554C','#234239','#F3FAFC','#DFEFF3','#C7E2EA','#A8D1DC','#88BBC8','#6FA4B3','#5A8A98','#47717D','#355B66','#264650','#FFFDF3','#FCF8E8','#ECDDAE','#C5B37F','#AC9860','#917C49','#786436','#F6F4EE','#ECE7DB','#D8D1C1','#C4BBA8','#AAA18F','#777061','#625C4F','#4C493F','#38382F','#F6EEE7','#EBD8C8','#D8B99B','#C3936C','#865C3A','#714A2E','#5D3924','#482C1D','#352117','#F7F4D8','#EDE7BF','#DED38E','#B8B66A','#91964F','#71793C','#596532','#425129','#314021','#24341B','#FFF9E8','#F8EDC7','#EEDB9B','#DFC46B','#C6A548','#A88632','#856623','#6F5422','#58431C','#423316','#EEF1EA','#F9F5E9','#E6E0D1','#766A56','#30352C','#1D2E18','#B6A86B','#726A36','#A5A18F','#8B7156','#5B442E','#8A873E','#4E6A35','#7F8A4A','#B9C98C','#DCCB9D','#DDE8C9','#74875A','#9BAE7A','#D7E8E2','#6D9DAA','#CAD6D3','#6C776E'];
-      function h2r(h){return[parseInt(h.slice(1,3),16)/255,parseInt(h.slice(3,5),16)/255,parseInt(h.slice(5,7),16)/255];}
-      var pool=[];hex.map(h2r).forEach(function(c){var mx=Math.max(c[0],c[1],c[2]);if(mx>0.88||mx<0.20)return;var w=mx>=0.45?3:1;for(var i=0;i<w;i++)pool.push(c);});
-      return pool[Math.floor(Math.random()*pool.length)];
-    })();
-  </script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script>
+/* Every reload (not just a hard refresh) starts the hero from the BEGINNING:
+   stop the browser restoring the old scroll position, and force scroll to 0 on
+   load and on back/forward (bfcache) restores. Runs before first paint so there
+   is no jump. */
+(function () {
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
+  function toTop() { try { window.scrollTo(0, 0); } catch (e) {} }
+  toTop();                                        /* fresh load: start at the top, before first paint */
+  /* Reset again ONLY on a genuine back/forward (bfcache) restore. We must NOT
+     reset on 'load' or 'DOMContentLoaded': those fire AFTER the 505 hero frames
+     finish downloading (seconds in), so resetting there yanks a visitor who has
+     already begun scrolling back to frame 1 — the "bungee to the start" bug. */
+  window.addEventListener('pageshow', function (e) { if (e.persisted) toTop(); });
+})();
+</script>
+<title>MASTRY — Sparkling Water with Mastic · Chios × Japan</title>
+<meta name="description" content="Mastry is sparkling water infused with mastic — the crystal resin of Chios, Greece — carbonated and bottled with Japanese precision. Zero sugar. Three ingredients. Two ancient islands." />
+<link rel="icon" href="images/icon-32.png" type="image/png" sizes="32x32" />
+<link rel="icon" href="images/icon-64.png" type="image/png" sizes="64x64" />
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- Fonts loaded NON-render-blocking: the hero paints immediately with system
+     fallbacks and the web fonts swap in when they arrive (display=swap). A
+     render-blocking <link rel="stylesheet"> here freezes first paint until the
+     CSS returns — on a slow/flaky font connection that stalls the whole hero. -->
+<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" />
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" /></noscript>
+<script>
+/* Day/night theme boot — runs before the stylesheet so there is no flash.
+   No manual toggle on this page, so the theme follows the visitor's LOCAL time
+   of access: a seasonal daylight window from the clock (sunrise/sunset shift
+   with the season, temperate-latitude fit) → bright out = light, dark out =
+   dark. No geolocation, no permission prompt. (A stored mastry-theme choice,
+   if ever set, still wins for 12h.) */
+(function () {
+  var t = null;
+  try {
+    t = localStorage.getItem('mastry-theme');
+    var ts = +localStorage.getItem('mastry-theme-ts') || 0;
+    if (Date.now() - ts > 432e5) t = null;              /* choice older than 12h → re-decide by clock */
+  } catch (e) {}
+  if (t !== 'light' && t !== 'dark') {
+    var now = new Date();
+    var doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 864e5);
+    var half = 6.05 + 1.15 * Math.cos(2 * Math.PI * (doy - 172) / 365);  /* half-day length, seasonal */
+    var hr = now.getHours() + now.getMinutes() / 60;
+    t = (hr > 12 - half && hr < 12 + half) ? 'light' : 'dark';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<script>
+/* Splash-first loading: queue the bottle loop + its still BEFORE the body
+   parses, so they beat the 505-frame prefetch storm to the network — without
+   this the splash can sit empty (wordmark on bare paper) while frames hog the
+   connection and the bottle arrives too late to be seen. */
+(function () {
+  var t = document.documentElement.getAttribute("data-theme") || "dark";
+  var still = "images/loader-solid-" + t + "-still.webp";
+  var spin  = "images/loader-sheet-" + t + ".webp";
+  [still, spin].forEach(function (href) {
+    var l = document.createElement("link");
+    l.rel = "preload"; l.as = "image"; l.href = href; l.fetchPriority = "high";
+    document.head.appendChild(l);
+  });
+})();
+</script>
+<link rel="stylesheet" href="style.css" />
+<!-- MOBILE SITE — served to phones at "/" via vercel.json user-agent routing.
+     This page pins the hero to the portrait reel for EVERY visitor, so the
+     preload hint is unconditional. -->
+<meta name="mastry-variant" content="mobile" />
+<link rel="preload" as="image" href="mobile-hq/0001.webp" />
 </head>
 <body>
 
-  <nav class="m-nav">
-    <a href="#home" class="m-nav__logo">MASTRY</a>
-    <div class="m-nav__right">
-      <button class="m-nav__cart" id="cartBtn" aria-label="Open cart">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-        <span class="m-nav__badge" id="cartBadge">0</span>
-      </button>
-      <button class="m-nav__menu" id="menuBtn" aria-label="Open menu">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-      </button>
-    </div>
-  </nav>
+<div id="progress" aria-hidden="true"></div>
 
-  <!-- HUD MENU -->
-  <div class="m-hud-bg" id="hudBg" onclick="closeMenu()"></div>
-  <div class="m-hud" id="hudMenu">
-    <div class="m-hud__header">
-      <span class="m-hud__brand">MASTRY</span>
-      <button class="m-hud__close" onclick="closeMenu()">&times;</button>
-    </div>
-
-    <div class="m-hud__section">
-      <span class="m-hud__label">Navigate</span>
-      <a href="#home" class="m-hud__link" onclick="closeMenu()"><span>Home</span><span class="m-hud__link-arrow">&rsaquo;</span></a>
-      <a href="#products" class="m-hud__link" onclick="closeMenu()"><span>Products</span><span class="m-hud__link-arrow">&rsaquo;</span></a>
-      <a href="merch.html" class="m-hud__link"><span>Merch</span><span class="m-hud__link-arrow">&rsaquo;</span></a>
-      <a href="#explore" class="m-hud__link" onclick="closeMenu()"><span>Japan</span><span class="m-hud__link-arrow">&rsaquo;</span></a>
-      <a href="#greece" class="m-hud__link" onclick="closeMenu()"><span>Greece</span><span class="m-hud__link-arrow">&rsaquo;</span></a>
-      <a href="#about" class="m-hud__link" onclick="closeMenu()"><span>About</span><span class="m-hud__link-arrow">&rsaquo;</span></a>
-      <a href="#order" class="m-hud__link" onclick="closeMenu()"><span>Order</span><span class="m-hud__link-arrow">&rsaquo;</span></a>
-    </div>
-
-    <div class="m-hud__divider"></div>
-
-    <div class="m-hud__section">
-      <span class="m-hud__label">Contact</span>
-    </div>
-    <div class="m-hud__info">
-      <div class="m-hud__info-row"><span class="m-hud__info-label">Email</span><span class="m-hud__info-val">hello@mastry.jp</span></div>
-      <div class="m-hud__info-row"><span class="m-hud__info-label">Website</span><span class="m-hud__info-val">mastry.jp</span></div>
-      <div class="m-hud__info-row"><span class="m-hud__info-label">Origin</span><span class="m-hud__info-val">Chios, Greece × Japan</span></div>
-      <div class="m-hud__info-row"><span class="m-hud__info-label">Ships from</span><span class="m-hud__info-val">Japan · 3–5 days</span></div>
-    </div>
-
-    <div class="m-hud__divider"></div>
-
-    <div class="m-hud__section" style="margin-bottom:12px;">
-      <span class="m-hud__label">Connection</span>
-    </div>
-    <div class="m-hud__net">
-      <span class="m-hud__net-label">Network</span>
-      <span class="m-hud__net-val" id="hudNetVal">Detecting…</span>
+<!-- ══ Loader ══ -->
+<div id="loader" aria-hidden="true">
+  <div class="loader__spinwrap">
+    <div class="loader__breathe">
+      <canvas id="loaderSpin" width="320" height="480" aria-hidden="true"></canvas>
     </div>
   </div>
+  <div class="loader__load" aria-hidden="true">
+    <span class="loader__loadrot"><span class="loader__loadword">LOADING</span><span class="loader__dots"><i>.</i><i>.</i><i>.</i></span></span>
+  </div>
+</div>
+<script>
+/* Splash spin: the bottle turning 360 with the water line bobbing, spinning for
+   as long as the hero reel takes to buffer. The 64-frame turn (frame 0 =
+   label-front, the hero's pose) is a SPRITE SHEET drawn onto a canvas by a
+   rAF driver, so the rotation is ours to command: constant spin while loading,
+   then — when script.js starts the splash→hero fly — a slope-matched cubic
+   ease-out that keeps the bottle turning THROUGH the glide and brings it to
+   rest label-front at the exact moment it docks on the hero. A baked animated
+   WebP can't do this (its rest moment is fixed at bake time; on a slow load the
+   bottle sat frozen for the whole wait). Runs inline so the spin starts on
+   first paint. Canvas, deliberately NOT <video>: iOS Low Power Mode refuses
+   video autoplay. The still background paints instantly while the sheet
+   streams in. */
+(function () {
+  document.documentElement.classList.add("is-loading");   /* scroll locked until the hero reveals (script.js unlocks) */
+  try { if (location.search.indexOf("spintrace") >= 0) window.__spinTrace = []; } catch (e) {}
+  var c = document.getElementById("loaderSpin");
+  if (!c || !c.getContext) return;
+  var ctx = c.getContext("2d");
+  /* PIN the spinning bottle onto the hero bottle's on-screen spot so it spins IN
+     PLACE where the hero bottle will be — the loader just fades to reveal it, no fly.
+     iPHONE (owner 2026-07-25): measure the HERO CANVAS's own box, never
+     window.innerHeight — on iOS Safari the URL bar makes innerHeight disagree with
+     the canvas's real height (and it shifts as the bar collapses), which sized and
+     placed the splash bottle differently from the hero bottle it must overlay.
+     The visual viewport (then the window) is only a pre-canvas fallback. */
+  function placeSpin() {
+    var wrap = document.querySelector(".loader__spinwrap");
+    if (!wrap) return;
+    var cv = document.getElementById("heroCanvas");
+    var r  = cv && cv.getBoundingClientRect();
+    var vv = window.visualViewport;
+    var aw, ah, ax, ay;
+    if (r && r.width > 1 && r.height > 1) { aw = r.width; ah = r.height; ax = r.left; ay = r.top; }
+    else { aw = (vv && vv.width) || window.innerWidth; ah = (vv && vv.height) || window.innerHeight; ax = 0; ay = 0; }
+    var portrait = ah >= aw;
+    var reel = portrait ? { cx: 0.6300, top: 0.3095, bottom: 0.6285, aspect: 608 / 1080 }
+                        : { cx: 0.5422, top: 0.3095, bottom: 0.6285, aspect: 1920 / 1080 };
+    var areaAspect = aw / ah, sfW, sfH, offX, offY;
+    if (reel.aspect >= areaAspect) { sfH = ah; sfW = sfH * reel.aspect; offY = 0; offX = (aw - sfW) / 2; }
+    else                           { sfW = aw; sfH = sfW / reel.aspect; offX = 0; offY = (ah - sfH) / 2; }
+    var hcx = ax + offX + reel.cx * sfW;
+    var hcy = ay + offY + ((reel.top + reel.bottom) / 2) * sfH;
+    var bh  = (reel.bottom - reel.top) * sfH;
+    var box = { cx: 0.498, top: 0.100, bottom: 0.908 };
+    var Sh = bh / (box.bottom - box.top), Sw = Sh * (2 / 3);
+    wrap.style.position = "fixed"; wrap.style.margin = "0"; wrap.style.transform = "none";
+    wrap.style.width = Sw + "px"; wrap.style.height = Sh + "px";
+    wrap.style.left = (hcx - box.cx * Sw) + "px";
+    wrap.style.top  = (hcy - ((box.top + box.bottom) / 2) * Sh) + "px";
+  }
+  placeSpin();
+  window.addEventListener("resize", placeSpin);
+  window.addEventListener("orientationchange", placeSpin);
+  /* iOS: the canvas gets its real box a tick after first paint and the URL bar
+     settles shortly after — re-pin over the first couple of seconds. */
+  (function () {
+    var n = 0, t2 = setInterval(function () { placeSpin(); if (++n > 20) clearInterval(t2); }, 100);
+    window.addEventListener("load", placeSpin);
+    if (window.visualViewport) {
+      visualViewport.addEventListener("resize", placeSpin);
+      visualViewport.addEventListener("scroll", placeSpin);
+    }
+  })();
+  var t = document.documentElement.getAttribute("data-theme") || "dark";
+  c.style.backgroundImage = "url(images/loader-solid-" + t + "-still.webp)";
+  var img = new Image();
+  img.src = "images/loader-sheet-" + t + ".webp";
+  var N = 64, COLS = 8, W = 320, H = 480;
+  var REST_FRAME = 0;                 /* the frame the bottle RESTS on (0..63). Frame 0 = label-front by
+                                         construction — the Blender turntable (2026-07-25) bakes the front
+                                         pose as the sheet's first tile. One turn = 64 frames = 5.625deg
+                                         each; higher = label rotates left. */
+  var TURN_MS = 1920;                 /* one full turn per 1.92s — a steady, continuous spin */
+  var PHASE = REST_FRAME / N;         /* the spin STARTS, every 360deg RETURNS to, and RESTS on frame 0 (front) */
+  var start = performance.now();
+  var landStart = 0, landAt = 0, landFrom = 0, landTurns = 0, landW = 0;
+  var lastFrame = -1, stopped = false;
+  function angleAt(now) {             /* rotation in TURNS since start — continuous forward spin */
+    if (!landAt) return (now - start) / TURN_MS + PHASE;
+    var u = Math.min(1, (now - landStart) / (landAt - landStart));
+    /* cubic Hermite: enters at the constant-spin pace (no speed pop), leaves at
+       zero — the bottle decelerates and rests label-front on landAt */
+    return landFrom + landTurns * (3 - 2 * u) * u * u + landW * ((u - 2) * u + 1) * u;
+  }
+  function draw(now) {
+    if (stopped) return;
+    var f = Math.round(angleAt(now) * N) % N; if (f < 0) f += N;
+    if (f !== lastFrame && img.complete && img.naturalWidth) {
+      lastFrame = f;
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(img, (f % COLS) * W, ((f / COLS) | 0) * H, W, H, 0, 0, W, H);
+      if (window.__spinTrace) __spinTrace.push([Math.round(now), f]);
+    }
+    if (landAt && now >= landAt) { stopped = true; return; }  /* at rest, label-front — hold */
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+  /* script.js calls this at handoff: keep spinning, ease out, and rest label-front
+     `ms` from now. ALWAYS lands on the front (no bail, no freeze). */
+  window.__loaderSpinLand = function (ms) {
+    if (stopped || landAt) return;
+    var now = performance.now();
+    landStart = now; landAt = now + Math.max(200, ms || 0);
+    landFrom = (now - start) / TURN_MS + PHASE;
+    landW = (landAt - now) / TURN_MS;            /* turns the window holds at constant pace */
+    var rest = REST_FRAME / N;                   /* target rest phase — the front pose */
+    var turns = rest - (landFrom - Math.floor(landFrom));
+    if (turns <= 1e-6) turns += 1;               /* already at/just past front — go a full turn forward, never back */
+    if (turns < landW / 2) turns += 1;           /* Hermite needs R >= w/2 to stay forward */
+    while (turns + 1 <= landW) turns += 1;       /* whole extra turns, never faster than the entry pace */
+    landTurns = turns;
+  };
+  window.__loaderSpinStop = function () {         /* HARD guarantee: the resting pose is label-front, wherever the spin was */
+    stopped = true;
+    if (img.complete && img.naturalWidth) {
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(img, (REST_FRAME % COLS) * W, ((REST_FRAME / COLS) | 0) * H, W, H, 0, 0, W, H);
+    }
+  };
+  window.__loaderSpinInfo = function () {   /* debug/verification peek — cheap, no DOM reads */
+    var now = performance.now();
+    return { t: now - start, frame: lastFrame, angle: angleAt(now),
+             landIn: landAt ? landAt - now : null, landTurns: landTurns, stopped: stopped };
+  };
+})();
+</script>
 
-  <section id="home">
-    <div class="m-hero">
-      <img src="" alt="Mastry" class="m-hero__img" id="heroImg" />
-      <script>
-      (function(){
-        // On slow networks use a single lighter image; otherwise random from full set
-        var full=['images/wider and newer web hero.png','images/perfect web hero.png','images/image web hero temple.png','images/web hero half & half.png','images/web hero new striking.png'];
-        var light=['images/perfect web hero.png'];
-        var set = window.__slowNet ? light : full;
-        document.getElementById('heroImg').src = set[Math.floor(Math.random()*set.length)];
-      })();
-      </script>
-      <script>
-      // Only inject model-viewer on fast connections
-      if(!window.__slowNet){
-        document.write('<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"><\/script>');
-        document.write('<model-viewer id="heroModel" src="images/blackfill web hero logo/floating_web_hero_logo2_1.glb" alt="Island 2 Island." camera-controls disable-zoom disable-pan interaction-prompt="none" shadow-intensity="0" exposure="0.7" loading="eager" reveal="auto" min-camera-orbit="auto 65deg auto" max-camera-orbit="auto 115deg auto" class="m-hero__logo"><\/model-viewer>');
-      }
-      </script>
-      <script>
-      if(!window.__slowNet){
-        (function(){
-          function initModel(){
-            var mv=document.getElementById('heroModel');
-            if(!mv)return;
-            var userInteracting=false,resumeTimer=null,theta=0,phiDeg=90,origPhiDeg=90,radius=1,last=performance.now(),RAD=180/Math.PI;
-            mv.addEventListener('pointerdown',function(){userInteracting=true;if(resumeTimer){clearTimeout(resumeTimer);resumeTimer=null;}});
-            function onRelease(){if(resumeTimer){clearTimeout(resumeTimer);resumeTimer=null;}resumeTimer=setTimeout(function(){try{var o=mv.getCameraOrbit();theta=o.theta*RAD;phiDeg=o.phi*RAD;}catch(e){}last=performance.now();userInteracting=false;},180);}
-            mv.addEventListener('pointerup',onRelease);mv.addEventListener('pointercancel',onRelease);
-            mv.addEventListener('load',function(){
-              try{var col=window.__heroColor||[0.60,0.42,0.26],mat=mv.model.materials[0];mat.pbrMetallicRoughness.setMetallicFactor(0);mat.pbrMetallicRoughness.setRoughnessFactor(1.0);mat.setEmissiveFactor([col[0],col[1],col[2]]);}catch(e){}
-              var orbit=mv.getCameraOrbit();origPhiDeg=orbit.phi*RAD;phiDeg=origPhiDeg;theta=orbit.theta*RAD;radius=orbit.radius;last=performance.now();
-              var SLOW=5,FAST=18;
-              function frame(now){var dt=Math.min((now-last)/1000,0.05);last=now;if(!userInteracting){var t=((theta%360)+360)%360,distFront=Math.min(t,360-t),w=Math.min(1,Math.max(0,(distFront-30)/30)),ease=w*w*(3-2*w);theta+=(SLOW+(FAST-SLOW)*ease)*dt;phiDeg+=(origPhiDeg-phiDeg)*(1-Math.exp(-3.5*dt));mv.cameraOrbit=theta.toFixed(2)+'deg '+phiDeg.toFixed(3)+'deg '+radius+'m';}requestAnimationFrame(frame);}
-              requestAnimationFrame(frame);
-            });
-          }
-          if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initModel);}else{initModel();}
-        })();
-      }
-      </script>
-    </div>
-    <div class="m-hero__content">
-      <span class="m-hero__eyebrow">Chios, Greece × Japan</span>
-      <h1 class="m-hero__title">Resin.<br>Water.<br>Nothing else.</h1>
-      <p class="m-hero__sub">The ancient resin of Chios meets the purity of Japanese spring water.</p>
-      <div class="m-hero__actions">
-        <a href="#products" class="m-btn m-btn--solid">Explore the range</a>
-        <a href="#order" class="m-btn m-btn--outline">Order now</a>
+<!-- ══ Nav ══ -->
+<header class="nav" id="nav">
+  <a class="nav__logo" href="#top">MASTRY<span class="nav__logo-jp">マストリー</span></a>
+  <nav class="nav__links" id="navLinks" aria-label="Main">
+    <a href="#story" data-i18n="nav.story">Story</a>
+    <a href="#flavours" data-i18n="nav.flavours">Flavours</a>
+    <a href="#find" data-i18n="nav.order">Order</a>
+    <a href="merch.html" data-i18n="nav.merch">Merch</a>
+  </nav>
+  <a class="nav__cta" href="#find" data-i18n="nav.find">Find Mastry</a>
+  <button class="nav__lang" id="langToggle" aria-label="Switch language / 言語を切り替える">
+    <span data-lang-opt="en" class="on">EN</span><i>/</i><span data-lang-opt="ja">日本語</span>
+  </button>
+  <button class="nav__burger" id="burger" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span>
+  </button>
+</header>
+
+<main id="top">
+
+<!-- ══ Hero — scroll-scrub cinematic ══
+     The bottle's journey plays frame-by-frame as you scroll: a lake in Japan →
+     the topple → the dive → the current → a ledge in Chios. The stage stays
+     PINNED (screen doesn't move) while scroll advances the render. -->
+<section class="cine" id="cine" aria-label="Scroll to follow the bottle from a lake in Japan to a ledge in Chios">
+  <div class="cine__sticky">
+    <canvas id="heroCanvas" aria-hidden="true"></canvas>
+    <!-- minimalist: nothing over the frames but a faint top scrim (nav legibility) -->
+    <div class="cine__scrim" aria-hidden="true"></div>
+
+    <!-- minimalist scroll cue — fades once the journey starts moving -->
+    <div class="cine__hint" aria-hidden="true"><i></i></div>
+
+    <!-- minimalist film credit — the bottom-center brand line from the
+         standalone hero, present for the whole run of the film -->
+    <div class="cine__brand" aria-hidden="true">MASTRY<small>SPARKLING WATER WITH MASTIC</small></div>
+  </div>
+</section>
+
+<!-- ══ Essence — Certificate of Composition ══
+     The stats reframed as an assay certificate: double-hairline frame, the four
+     numerals as heroes, a botanical specimen plate (Pistacia lentiscus engraving)
+     beside the per-100ml assay, and the Chios ↔ Japan coordinate rule.
+     Composition only — never effect (no health/functional claims, ever). -->
+<section class="essence section" id="story">
+  <figure class="cert reveal" aria-labelledby="certCaption">
+    <figcaption class="cert__caption" id="certCaption">分析証明</figcaption>
+
+    <ul class="stats" aria-label="What's inside">
+      <li><span class="stats__n">0</span><span class="stats__cap" data-i18n="stats.sugar">sugar</span><span class="stat__unit">g · 100&nbsp;ml⁻¹</span></li>
+      <li><span class="stats__n">0</span><span class="stats__cap" data-i18n="stats.calories">calories</span><span class="stat__unit">kcal · 100&nbsp;ml⁻¹</span></li>
+      <li><span class="stats__n">3</span><span class="stats__cap" data-i18n="stats.ingredients">ingredients</span><span class="stat__unit" data-i18n="cert.resinLine">H₂O · CO₂ · resin</span></li>
+      <li><span class="stats__n">2</span><span class="stats__cap" data-i18n="stats.islands">islands</span><span class="stat__unit" data-i18n="cert.islandsLine">Chios ↔ Japan</span></li>
+    </ul>
+
+    <div class="cert__mid">
+      <div class="cert__plate">
+        <div class="plate__art" aria-hidden="true">
+          <!-- Pistacia lentiscus, literal: paripinnate leaf (no terminal
+               leaflet — diagnostic), drupe cluster, and the kentos score cut
+               weeping two gold resin tears (one clinging, one falling). -->
+          <svg viewBox="0 0 220 300" focusable="false">
+            <g class="art-stem">
+              <path pathLength="1" d="M88,288 C74,240 82,190 98,150 C110,118 116,82 122,44"/>
+              <path pathLength="1" d="M115,100 C122,101 128,98 132,96"/>
+            </g>
+            <g class="art-leaves">
+              <path pathLength="1" d="M98,150 C82,128 66,108 52,86"/>
+              <path pathLength="1" d="M91.1,140.4 C98.8,137.3 103.4,130.7 102.6,124 C96,125.5 91.4,132.1 91.1,140.4"/>
+              <path pathLength="1" d="M91.1,140.4 C83.1,138.1 75.5,140.3 71.9,146.1 C78,149 85.7,146.7 91.1,140.4"/>
+              <path pathLength="1" d="M80.5,125.7 C88.4,122.3 93.2,115.4 92.6,108.5 C85.9,110.2 81,117.1 80.5,125.7"/>
+              <path pathLength="1" d="M80.5,125.7 C72.2,123.5 64.1,125.8 60.4,131.6 C66.7,134.5 74.7,132.1 80.5,125.7"/>
+              <path pathLength="1" d="M69.9,111 C77.2,108 81.5,101.7 80.8,95.4 C74.6,96.9 70.3,103.1 69.9,111"/>
+              <path pathLength="1" d="M69.9,111 C62.3,108.9 55.1,111 51.7,116.4 C57.4,119.1 64.7,116.9 69.9,111"/>
+              <path pathLength="1" d="M59.4,96.2 C65.4,94 68.8,89.1 68,83.9 C62.9,84.9 59.5,89.8 59.4,96.2"/>
+              <path pathLength="1" d="M59.4,96.2 C53.4,94.2 47.6,95.9 45,100.5 C49.6,102.8 55.4,101.1 59.4,96.2"/>
+            </g>
+            <g class="fruit">
+              <circle pathLength="1" cx="132" cy="96" r="4"/>
+              <circle pathLength="1" cx="140" cy="101" r="3.8"/>
+              <circle pathLength="1" cx="136" cy="108" r="3.6"/>
+            </g>
+            <g class="resin">
+              <path pathLength="1" d="M77,214 L88,209"/>
+              <path pathLength="1" d="M82.5,218 C85.5,222.5 87.5,226.5 87.5,230 C87.5,235 77.5,235 77.5,230 C77.5,226.5 79.5,222.5 82.5,218 Z"/>
+              <path pathLength="1" d="M90,252 C92,255 93.2,257.2 93.2,259 C93.2,262.2 86.8,262.2 86.8,259 C86.8,257.2 88,255 90,252 Z"/>
+            </g>
+          </svg>
+        </div>
+        <p class="plate__fig" data-i18n-html="cert.fig">FIG.&nbsp;1 — <i>Pistacia lentiscus</i>, Chios</p>
+      </div>
+
+      <div class="cert__data">
+        <p class="assay__per"><span aria-hidden="true">—</span>&nbsp;per 100 ml&nbsp;<span aria-hidden="true">—</span></p>
+        <ul class="assay" aria-label="Composition per 100 ml">
+          <li class="assay__row">
+            <span class="assay__k" data-i18n="cert.energy">Energy</span>
+            <span class="assay__lead" aria-hidden="true"></span>
+            <span class="assay__v"><span class="assay__fig">0</span><span class="assay__u">kcal</span></span>
+          </li>
+          <li class="assay__row">
+            <span class="assay__k" data-i18n="cert.protein">Protein</span>
+            <span class="assay__lead" aria-hidden="true"></span>
+            <span class="assay__v"><span class="assay__fig">0</span><span class="assay__u">g</span></span>
+          </li>
+          <li class="assay__row">
+            <span class="assay__k" data-i18n="cert.fat">Fat</span>
+            <span class="assay__lead" aria-hidden="true"></span>
+            <span class="assay__v"><span class="assay__fig">0</span><span class="assay__u">g</span></span>
+          </li>
+          <li class="assay__row">
+            <span class="assay__k" data-i18n="cert.carb">Carbohydrate</span>
+            <span class="assay__lead" aria-hidden="true"></span>
+            <span class="assay__v"><span class="assay__fig">0</span><span class="assay__u">g</span></span>
+          </li>
+          <li class="assay__row assay__row--sub">
+            <span class="assay__k" data-i18n="cert.sugars">of which sugars</span>
+            <span class="assay__lead" aria-hidden="true"></span>
+            <span class="assay__v"><span class="assay__fig">0</span><span class="assay__u">g</span></span>
+          </li>
+          <li class="assay__row">
+            <span class="assay__k" data-i18n="cert.salt">Salt equivalent</span>
+            <span class="assay__lead" aria-hidden="true"></span>
+            <span class="assay__v"><span class="assay__fig">0</span><span class="assay__u">g</span></span>
+          </li>
+        </ul>
       </div>
     </div>
-  </section>
 
-  <div class="m-strip">
-    <div class="m-strip__track">
-      <span>Mastic from Chios</span><span class="m-dot">◈</span><span>Assembled in Japan</span><span class="m-dot">◈</span><span>Zero sugar</span><span class="m-dot">◈</span><span>100% natural flavours</span><span class="m-dot">◈</span><span>2,500 years of heritage</span><span class="m-dot">◈</span><span>mastry.jp</span><span class="m-dot">◈</span><span>Mastic from Chios</span><span class="m-dot">◈</span><span>Assembled in Japan</span><span class="m-dot">◈</span><span>Zero sugar</span><span class="m-dot">◈</span><span>100% natural flavours</span><span class="m-dot">◈</span><span>2,500 years of heritage</span><span class="m-dot">◈</span><span>mastry.jp</span><span class="m-dot">◈</span>
-    </div>
+    <p class="cert__note"><span data-i18n="cert.abv">0.00% ABV · caffeine-free</span><span aria-hidden="true"> · </span><span data-i18n="cert.note">zeros shown per Japanese food-labelling thresholds (&lt;5 kcal · &lt;0.5 g sugars per 100 ml)</span></p>
+  </figure>
+</section>
+
+<!-- ══ Flavours ══ -->
+<section class="flavours section" id="flavours">
+  <div class="flavours__head">
+    <h2 class="section__title reveal" data-i18n-html="flavours.title">Four waters. <em>One resin.</em></h2>
   </div>
 
-  <section class="m-products" id="products">
-    <div class="m-section-header"><span class="m-eyebrow">Chapter two</span><h2 class="m-title">The range.</h2><p class="m-lead">Four expressions. One rare ingredient.</p></div>
-    <div class="m-catalog-scroll">
-      <div class="m-card" onclick="addToCart(1,'Mastry Original',2.62)"><img src="images/brand new original catalog.png" alt="Mastry Original" class="m-card__img" loading="lazy" /><div class="m-card__body"><span class="m-card__tag">Original</span><h3 class="m-card__name">Mastry<br>Original</h3><p class="m-card__desc">Pure Chios Mastic. Delicate pine and cedar notes.</p><div class="m-card__footer"><span class="m-card__price">$2.62 / ¥360</span><span class="m-card__add">+ Add</span></div></div></div>
-      <div class="m-card" onclick="addToCart(2,'Mastry Yuzu',2.84)"><img src="images/Mastry ad yuzu.png" alt="Mastry Yuzu" class="m-card__img" loading="lazy" /><div class="m-card__body"><span class="m-card__tag">Signature</span><h3 class="m-card__name">Mastry<br>Yuzu</h3><p class="m-card__desc">Mastic meets Japanese yuzu citrus. Floral and tart.</p><div class="m-card__footer"><span class="m-card__price">$2.84 / ¥360</span><span class="m-card__add">+ Add</span></div></div></div>
-      <div class="m-card" onclick="addToCart(3,'Mastry Hinoki',2.62)"><img src="images/hinoki mastry ad.png" alt="Mastry Hinoki" class="m-card__img" loading="lazy" /><div class="m-card__body"><span class="m-card__tag">Limited</span><h3 class="m-card__name">Mastry<br>Hinoki</h3><p class="m-card__desc">Mastic with Japanese cypress. Earthy and meditative.</p><div class="m-card__footer"><span class="m-card__price">$2.62 / ¥360</span><span class="m-card__add">+ Add</span></div></div></div>
-      <div class="m-card" onclick="addToCart(4,'Mastry Ume',2.84)"><img src="images/Ume mastry Ad.png" alt="Mastry Ume" class="m-card__img" loading="lazy" /><div class="m-card__body"><span class="m-card__tag">Seasonal</span><h3 class="m-card__name">Mastry<br>Ume</h3><p class="m-card__desc">Mastic and Japanese plum blossom. Gently floral.</p><div class="m-card__footer"><span class="m-card__price">$2.84 / ¥360</span><span class="m-card__add">+ Add</span></div></div></div>
+  <div class="flavours__stage">
+    <div class="flavours__bottlewrap" data-speed="-0.045">
+      <div class="flavours__halo" aria-hidden="true"></div>
+      <img class="flavours__bottle is-active" src="images/flavours/original.webp" alt="Mastry Original Mastic bottle" data-flavour="original" loading="lazy" decoding="async" />
+      <img class="flavours__bottle" src="images/flavours/yuzu.webp" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" loading="lazy" decoding="async" />
+      <img class="flavours__bottle" src="images/flavours/ume.webp" alt="Mastry Ume Mastic bottle" data-flavour="ume" loading="lazy" decoding="async" />
+      <img class="flavours__bottle" src="images/flavours/hinoki.webp" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" loading="lazy" decoding="async" />
     </div>
-  </section>
 
-  <section id="explore"><div class="m-photo"><img src="images/ad 5.png" alt="Mastry in Japan" class="m-photo__img" loading="lazy" /><div class="m-photo__content"><span class="m-eyebrow">Chapter one · Assembled in Japan</span><h2 class="m-photo__title">Born in<br><em>Japan.</em></h2><p class="m-photo__sub">Sourced from pristine mountain springs. Carbonated and bottled to Japanese quality standards.</p><span class="m-photo__caption">Mt. Fuji · Yamanashi, Japan</span></div></div></section>
-
-  <section class="m-bottle"><img src="images/mastry ad.png" alt="Mastry bottle" class="m-bottle__img" loading="lazy" /><div class="m-bottle__text"><span class="m-eyebrow">The bottle</span><h2 class="m-title" style="margin-top:8px;">Crafted to<br>be held.</h2><p class="m-lead" style="margin-top:10px;">Glass bottle. Aluminium cap. Illustrated label depicting the journey from Chios to Japan.</p><div class="m-bottle__features"><div class="m-bottle__feature"><span class="m-bottle__label">Material</span><span class="m-bottle__val">Borosilicate glass</span></div><div class="m-bottle__feature"><span class="m-bottle__label">Volume</span><span class="m-bottle__val">500 ml</span></div><div class="m-bottle__feature"><span class="m-bottle__label">Carbonation</span><span class="m-bottle__val">Medium fine bubble</span></div></div><a href="#order" class="m-btn m-btn--outline">Order Mastry</a></div></section>
-
-  <section><div class="m-photo"><img src="images/ad 3.png" alt="Chios, Greece" class="m-photo__img" loading="lazy" /><div class="m-photo__content"><span class="m-eyebrow">Chapter three · Chios, Greece</span><h2 class="m-photo__title">Ancient<br>resin.</h2><p class="m-photo__sub">Pistacia lentiscus trees weep a tear of resin every morning. Harvested by hand. The same ritual for 2,500 years.</p><span class="m-photo__caption">Chios, Greece · Mastic harvest</span></div></div></section>
-
-  <section id="greece"><div class="m-photo"><img src="images/ad 4.png" alt="Mastry — Acropolis" class="m-photo__img" loading="lazy" /><div class="m-photo__content"><span class="m-eyebrow">Rooted in Greece</span><h2 class="m-photo__title">Rooted in<br>Greece.</h2><p class="m-photo__sub">Mastic has been harvested on the island of Chios for over 2,500 years. It can only grow here, nowhere else on earth.</p><span class="m-photo__caption">Acropolis · Athens, Greece</span></div></div></section>
-
-  <section class="m-about" id="about">
-    <span class="m-eyebrow">Chapter four</span>
-    <h2 class="m-title" style="margin-top:8px;">Two worlds.<br>One water.</h2>
-    <p class="m-lead" style="margin-top:10px;">Mastry was born from a single question: what happens when the rarest natural resin on earth meets the world's most refined water culture?</p>
-    <div class="m-stats">
-      <div class="m-stat"><div><span class="m-stat__num" data-target="0">0</span><span class="m-stat__unit">g</span></div><div class="m-stat__label">Sugar — always</div></div>
-      <div class="m-stat"><div><span class="m-stat__num" data-target="100">0</span><span class="m-stat__unit">%</span></div><div class="m-stat__label">Natural flavours</div></div>
-      <div class="m-stat"><div><span class="m-stat__num" data-target="500">0</span><span class="m-stat__unit">ml</span></div><div class="m-stat__label">Per bottle</div></div>
-      <div class="m-stat"><div><span class="m-stat__num" data-target="2500">0</span><span class="m-stat__unit">yr</span></div><div class="m-stat__label">Years of Mastic heritage</div></div>
+    <div class="flavours__panel" data-speed="0.03">
+      <div class="flavours__list" role="tablist" aria-label="Flavours">
+        <button class="flavours__tab is-active" role="tab" aria-selected="true" data-flavour="original">
+          <span class="flavours__no">01</span><span class="flavours__name" data-i18n="flavour.original">Original Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+        </button>
+        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="yuzu">
+          <span class="flavours__no">02</span><span class="flavours__name" data-i18n="flavour.yuzu">Yuzu Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+        </button>
+        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="ume">
+          <span class="flavours__no">03</span><span class="flavours__name" data-i18n="flavour.ume">Ume Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+        </button>
+        <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="hinoki">
+          <span class="flavours__no">04</span><span class="flavours__name" data-i18n="flavour.hinoki">Hinoki Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+        </button>
+      </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section class="m-order" id="order">
-    <span class="m-eyebrow">Chapter five</span>
-    <h2 class="m-title" style="margin-top:8px;">Order<br>Mastry.</h2>
-    <p class="m-lead" style="margin-top:10px;">International shipping available. We'll confirm within 24 hours.</p>
-    <form class="m-form" id="orderForm">
-      <div class="m-field"><label class="m-label" for="fname">Full name</label><input class="m-input" type="text" id="fname" placeholder="Your name" required autocomplete="name" /></div>
-      <div class="m-field"><label class="m-label" for="femail">Email</label><input class="m-input" type="email" id="femail" placeholder="your@email.com" required autocomplete="email" /></div>
-      <div class="m-row"><div class="m-field"><label class="m-label" for="fproduct">Product</label><select class="m-input m-input--select" id="fproduct" required><option value="">Select</option><option>Mastry Original</option><option>Mastry Yuzu</option><option>Mastry Hinoki</option><option>Mastry Ume</option></select></div><div class="m-field"><label class="m-label" for="fqty">Qty</label><input class="m-input" type="number" id="fqty" min="1" max="48" value="1" required /></div></div>
-      <div class="m-field"><label class="m-label" for="faddress">Delivery address</label><textarea class="m-input m-input--textarea" id="faddress" rows="3" placeholder="Street, City, Country" required></textarea></div>
-      <button type="submit" class="m-btn m-btn--sage">Place Order</button>
-      <p class="m-form-note">International shipping available worldwide.</p>
+<!-- ══ Order / Contact ══ -->
+<section class="order section" id="find">
+  <div class="order__inner">
+    <div class="order__left reveal--fade" data-speed="0.03">
+      <p class="section__eyebrow" data-i18n="order.eyebrow">Order — 注文</p>
+      <h2 class="section__title" data-i18n-html="order.title">Order<br /><em>Mastry.</em></h2>
+      <p class="order__sub" data-i18n="order.sub">Tell us what you'd like and where it's going.
+      We'll confirm by email within a day.</p>
+      <dl class="order__info">
+        <div><dt data-i18n="order.email">Email</dt><dd>hello@mastry.jp</dd></div>
+        <div><dt data-i18n="order.origin">Origin</dt><dd data-i18n="order.originVal">Chios, Greece × Japan</dd></div>
+        <div><dt data-i18n="order.ships">Ships from</dt><dd data-i18n="order.shipsVal">Japan · 3–5 business days</dd></div>
+      </dl>
+    </div>
+
+    <form class="order__form reveal--fade" data-speed="-0.035" id="orderForm" novalidate="novalidate">
+      <div class="fg">
+        <label for="fname" data-i18n="form.name">Full name</label>
+        <input type="text" id="fname" placeholder="Your name" data-i18n-ph="form.namePh" autocomplete="name" required />
+      </div>
+      <div class="fg">
+        <label for="femail" data-i18n="order.email">Email</label>
+        <input type="email" id="femail" placeholder="your@email.com" autocomplete="email" required />
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label for="fproduct" data-i18n="form.flavour">Flavour</label>
+          <select id="fproduct" required>
+            <option value="" data-i18n="form.select">Select</option>
+            <option data-i18n="flavour.original">Original Mastic</option>
+            <option data-i18n="flavour.yuzu">Yuzu Mastic</option>
+            <option data-i18n="flavour.ume">Ume Mastic</option>
+            <option data-i18n="flavour.hinoki">Hinoki Mastic</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="fqty" data-i18n="form.qty">Quantity</label>
+          <input type="number" id="fqty" min="1" max="48" value="1" required />
+        </div>
+      </div>
+      <div class="fg">
+        <label for="faddress" data-i18n="form.address">Delivery address</label>
+        <textarea id="faddress" rows="3" placeholder="Street, City, Country" data-i18n-ph="form.addressPh" required></textarea>
+      </div>
+      <button class="btn btn--solid" type="submit" data-i18n="form.submit">Place order</button>
+      <p class="order__note" data-i18n-html="form.note">International shipping available worldwide.
+      By placing an order you agree to the <a href="legal.html#terms">Terms of Sale</a> ·
+      <a href="care.html#allergens">allergen information</a>.</p>
+      <p class="order__ok" id="orderOk" hidden data-i18n="form.ok">ありがとう — order received. We'll confirm at hello@mastry.jp.</p>
     </form>
-  </section>
 
-  <footer class="m-footer"><span class="m-footer__logo">MASTRY</span><p class="m-footer__copy">© 2026 Mastry · mastry.jp · Chios × Japan</p></footer>
-
-  <nav class="m-tabs" aria-label="Navigation">
-    <a href="#home" class="m-tab active" data-section="home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></a>
-    <a href="#products" class="m-tab" data-section="products"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="7" height="7"/><rect x="15" y="3" width="7" height="7"/><rect x="15" y="14" width="7" height="7"/><rect x="2" y="14" width="7" height="7"/></svg><span>Products</span></a>
-    <a href="#explore" class="m-tab" data-section="explore"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg><span>Explore</span></a>
-    <a href="#about" class="m-tab" data-section="about"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>About</span></a>
-    <a href="#order" class="m-tab" data-section="order"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><span>Order</span></a>
-  </nav>
-
-  <div class="m-cart-bg" id="cartBg" onclick="closeCart()"></div>
-  <div class="m-cart" id="cartDrawer">
-    <div class="m-cart__handle"></div>
-    <div class="m-cart__header"><span class="m-cart__title">Your Cart</span><button class="m-cart__close" onclick="closeCart()">×</button></div>
-    <div class="m-cart__items" id="cartItems"><p class="m-cart__empty">Your cart is empty.</p></div>
-    <div class="m-cart__footer" id="cartFooter" style="display:none"><div class="m-cart__subtotal"><span>Subtotal</span><span id="cartSubtotal">$0.00</span></div><button class="m-btn m-btn--sage" onclick="checkout()">Checkout</button></div>
-  </div>
-  <div class="m-success" id="successOverlay"><div class="m-success__box"><span class="m-success__icon">◈</span><h3 class="m-success__title">Order received.</h3><p class="m-success__text">Thank you for choosing Mastry. We'll confirm within 24 hours.</p><button class="m-btn m-btn--dark" onclick="closeSuccess()">Continue</button></div></div>
-
-  <div id="loadingScreen" aria-hidden="true">
-    <div class="ls-bg"></div><div class="ls-vignette"></div><div class="ls-haze"></div>
-    <div class="ls-center" id="lsCenter">
-      <img src="images/loading screen.png" class="ls-ref" alt="" />
-      <div class="ls-shad ls-shad-r" id="lsShadR"><div class="ls-shad-color" style="background:#5C0000;"></div></div>
-      <div class="ls-shad ls-shad-c" id="lsShadC"><div class="ls-shad-color" style="background:#0022CC;"></div></div>
-      <div class="ls-slices" id="lsSlices"></div>
-      <img src="images/loading screen.png" class="ls-final" id="lsFinal" alt="" />
+    <!-- ══ Order flow — pop-up: accept the terms, review the order, place it.
+         The ACCEPT click is the recorded acknowledgment (click-wrap) — it
+         replaced the inline checkbox; deliberately an acknowledgment, NOT a
+         waiver (blanket liability waivers are void under consumer law). ══ -->
+    <div class="ordm" id="ordModal" hidden role="dialog" aria-modal="true" aria-labelledby="ordmTitle">
+      <div class="ordm__card">
+        <button class="ordm__close" id="ordmClose" aria-label="Close">&times;</button>
+        <div class="ordm__step" id="ordmTerms">
+          <h3 class="ordm__title" id="ordmTitle"><span class="i18n-en">Before you order</span><span class="i18n-ja">ご注文の前に</span></h3>
+          <div class="ordm__body">
+            <p><span class="i18n-en">MASTRY contains mastic — the natural resin known as mastic tears,
+            from <em>Pistacia lentiscus</em>, a tree in the pistachio family (Anacardiaceae).
+            People with a pistachio, cashew, or mango allergy can react to this resin —
+            if that's you, please consult your doctor before drinking. Full details:
+            <a href="care.html#allergens" target="_blank" rel="noopener">allergen information</a>.</span><span class="i18n-ja">MASTRYには、ウルシ科（ピスタチオと同科）の樹木 <em>Pistacia lentiscus</em> から採取される天然樹脂「マスティック（マスティックティアーズ）」が含まれます。ピスタチオ、カシューナッツ、マンゴーにアレルギーのある方は樹脂に反応する可能性があります。該当する方は、飲用前に必ず医師にご相談ください。詳細：<a href="care.html#allergens" target="_blank" rel="noopener">アレルゲン情報</a>。</span></p>
+            <p><span class="i18n-en">By choosing <strong>Accept</strong>, you confirm that you have read the
+            <a href="legal.html#terms" target="_blank" rel="noopener">Terms of Sale</a> and the allergen
+            information, that this product is suitable for your own dietary and allergy needs,
+            and that you are choosing to order and consume it of your own accord.</span><span class="i18n-ja"><strong>同意する</strong>を選択することで、<a href="legal.html#terms" target="_blank" rel="noopener">販売規約</a>およびアレルゲン情報を読んだこと、本製品が自身の食事・アレルギー上の必要に適合することを自ら確認したこと、そして自らの意思で注文・摂取することを選択したことを確認したものとします。</span></p>
+          </div>
+          <div class="ordm__actions">
+            <button type="button" class="btn ordm__ghost" id="ordmDecline"><span class="i18n-en">Decline</span><span class="i18n-ja">同意しない</span></button>
+            <button type="button" class="btn btn--solid" id="ordmAccept"><span class="i18n-en">Accept</span><span class="i18n-ja">同意する</span></button>
+          </div>
+        </div>
+        <div class="ordm__step" id="ordmReview" hidden>
+          <h3 class="ordm__title"><span class="i18n-en">Your order</span><span class="i18n-ja">ご注文内容</span></h3>
+          <dl class="ordm__summary">
+            <div><dt><span class="i18n-en">Flavour</span><span class="i18n-ja">フレーバー</span></dt><dd id="ovFlavour"></dd></div>
+            <div><dt><span class="i18n-en">Quantity</span><span class="i18n-ja">数量</span></dt><dd id="ovQty"></dd></div>
+            <div><dt><span class="i18n-en">Name</span><span class="i18n-ja">お名前</span></dt><dd id="ovName"></dd></div>
+            <div><dt><span class="i18n-en">Email</span><span class="i18n-ja">メール</span></dt><dd id="ovEmail"></dd></div>
+            <div><dt><span class="i18n-en">Delivery address</span><span class="i18n-ja">お届け先</span></dt><dd id="ovAddress"></dd></div>
+          </dl>
+          <p class="ordm__note"><span class="i18n-en">We'll confirm your order by email within one business day.</span><span class="i18n-ja">1営業日以内に確認メールをお送りします。</span></p>
+          <div class="ordm__actions">
+            <button type="button" class="btn ordm__ghost" id="ordmBack"><span class="i18n-en">Back</span><span class="i18n-ja">戻る</span></button>
+            <button type="button" class="btn btn--solid" id="ordmPlace"><span class="i18n-en">Place order</span><span class="i18n-ja">注文を確定する</span></button>
+          </div>
+        </div>
+      </div>
     </div>
-    <div id="lsBottom"><span>Loading. Please do not close this page.</span><span id="lsIcon">◈</span></div>
   </div>
+</section>
 
-  <script>
-  (function(){
-    var ls=document.getElementById('loadingScreen'),slicesEl=document.getElementById('lsSlices'),N=6,CYCLE=2000,SWEEP=CYCLE*0.70,pageLoaded=false,pageStartTime=performance.now();
-    function computeCycle(ms){var t=Math.max(0,Math.min(1,(ms-500)/4500));t=t*t;return Math.round(600+(2000-600)*t);}
-    function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
-    function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
-    function buildSlices(){slicesEl.innerHTML='';for(var i=0;i<N;i++){var sl=document.createElement('div');sl.className='ls-sl';sl.style.flex='0 0 calc(100% / '+N+')';var clip=document.createElement('div');clip.className='ls-clip';var img=document.createElement('img');img.src='images/loading screen.png';img.alt='';img.style.left=(i*-100)+'%';img.style.width=(N*100)+'%';clip.appendChild(img);sl.appendChild(clip);slicesEl.appendChild(sl);}}
-    var startTime=null,exiting=false;
-    setTimeout(function(){document.getElementById('lsShadR').style.opacity='0.75';document.getElementById('lsShadC').style.opacity='0.75';},120);
-    function renderFrame(now){
-      if(!startTime)startTime=now;if(exiting)return;
-      var elapsed=now-startTime,cyclePos=elapsed%CYCLE,t=clamp(cyclePos/SWEEP,0,1),wave=t*(N-1),spread;
-      if(t<0.5){spread=easeInOut(t*2);}else{spread=1-easeInOut((t-0.5)*2);}spread*=Math.sin(t*Math.PI);
-      var slices=slicesEl.querySelectorAll('.ls-sl');
-      for(var i=0;i<slices.length;i++){var sl=slices[i],dist=Math.abs(i-wave),peak=Math.exp(-(dist*dist)/1.8),scale=1+peak*0.45,pull=i-wave,xSpread=pull*2.5*spread,rise=-peak*6;sl.style.opacity='1';sl.style.transform='translateX('+xSpread.toFixed(1)+'px) translateY('+rise.toFixed(1)+'px) scale('+scale.toFixed(3)+')';sl.style.zIndex=String(Math.round(peak*1000));sl.style.filter='blur('+((1-peak)*spread*0.6).toFixed(2)+'px)';}
-      if(pageLoaded&&cyclePos>SWEEP*0.9&&!exiting){
-        exiting=true;
-        var settled=slicesEl.querySelectorAll('.ls-sl');
-        for(var j=0;j<settled.length;j++){settled[j].style.transition='transform 300ms ease-out, filter 300ms ease-out';settled[j].style.transform='translateX(0) translateY(0) scale(1)';settled[j].style.filter='blur(0px)';}
-        setTimeout(function(){slicesEl.style.transition='opacity 240ms ease';slicesEl.style.opacity='0';document.getElementById('lsFinal').style.opacity='1';var sr=document.getElementById('lsShadR'),sc=document.getElementById('lsShadC');sr.style.transition='opacity 500ms ease';sr.style.opacity='0';sc.style.transition='opacity 500ms ease';sc.style.opacity='0';},320);
-        setTimeout(function(){ls.classList.add('hidden');setTimeout(function(){ls.remove();},800);},820);
-        return;
-      }
-      requestAnimationFrame(renderFrame);
-    }
-    buildSlices();
-    setTimeout(function(){requestAnimationFrame(renderFrame);},80);
-    window.addEventListener('load',function(){var ms=performance.now()-pageStartTime;CYCLE=computeCycle(ms);SWEEP=CYCLE*0.70;setTimeout(function(){pageLoaded=true;},Math.max(200,CYCLE*0.5));});
-    setTimeout(function(){pageLoaded=true;},9000);
-  })();
-  </script>
+</main>
 
-  <script>
-    // Cart
-    let cart=[];
-    function addToCart(id,name,price){const ex=cart.find(i=>i.id===id);if(ex)ex.qty++;else cart.push({id,name,price,qty:1});updateCart();openCart();}
-    function removeFromCart(id){cart=cart.filter(i=>i.id!==id);updateCart();}
-    function changeQty(id,d){const item=cart.find(i=>i.id===id);if(!item)return;item.qty+=d;if(item.qty<=0)removeFromCart(id);else updateCart();}
-    function updateCart(){const total=cart.reduce((s,i)=>s+i.qty,0);document.getElementById('cartBadge').textContent=total;const el=document.getElementById('cartItems'),footer=document.getElementById('cartFooter');if(!cart.length){el.innerHTML='<p class="m-cart__empty">Your cart is empty.</p>';footer.style.display='none';return;}el.innerHTML=cart.map(i=>`<div class="m-cart-item"><span class="m-cart-item__name">${i.name}</span><div class="m-cart-item__controls"><button onclick="changeQty(${i.id},-1)">−</button><span class="m-cart-item__qty">${i.qty}</span><button onclick="changeQty(${i.id},1)">+</button></div><span class="m-cart-item__price">$${(i.price*i.qty).toFixed(2)}</span><button class="m-cart-item__rm" onclick="removeFromCart(${i.id})">×</button></div>`).join('');document.getElementById('cartSubtotal').textContent=`$${cart.reduce((s,i)=>s+i.price*i.qty,0).toFixed(2)}`;footer.style.display='block';}
-    function openCart(){document.getElementById('cartDrawer').classList.add('open');document.getElementById('cartBg').classList.add('open');}
-    function closeCart(){document.getElementById('cartDrawer').classList.remove('open');document.getElementById('cartBg').classList.remove('open');}
-    document.getElementById('cartBtn').addEventListener('click',openCart);
-    function checkout(){cart=[];updateCart();closeCart();document.getElementById('successOverlay').classList.add('open');}
-    function closeSuccess(){document.getElementById('successOverlay').classList.remove('open');}
-    document.getElementById('orderForm').addEventListener('submit',e=>{e.preventDefault();document.getElementById('successOverlay').classList.add('open');e.target.reset();});
+<!-- ══ Footer ══ -->
+<footer class="footer">
+  <img class="footer__art" src="images/footer-panorama.webp" alt="" loading="lazy" decoding="async" />
+  <div class="footer__top">
+    <a class="footer__logo" href="#top">MASTRY</a>
+    <nav class="footer__links" aria-label="Footer">
+      <a href="#story" data-i18n="nav.story">Story</a>
+      <a href="#flavours" data-i18n="nav.flavours">Flavours</a>
+      <a href="#find" data-i18n="nav.order">Order</a>
+      <a href="merch.html" data-i18n="nav.merch">Merch</a>
+    </nav>
+  </div>
+  <nav class="footer__legal" aria-label="Legal">
+    <a href="care.html" data-i18n="footer.care">Customer Care</a>
+    <a href="legal.html" data-i18n="footer.legal">Legal</a>
+    <a href="legal.html#tokushoho">特定商取引法に基づく表記</a>
+    <a href="mailto:hello@mastry.jp">hello@mastry.jp</a>
+  </nav>
+  <div class="footer__bottom">
+    <p data-i18n="footer.tagline">Mastic from Chios, Greece · Assembled in Japan</p>
+    <p data-i18n="footer.copyright">© 2026 Mastry. Sparkling water with mastic.</p>
+  </div>
+</footer>
 
-    // HUD menu
-    function openMenu(){document.getElementById('hudMenu').classList.add('open');document.getElementById('hudBg').classList.add('open');document.body.style.overflow='hidden';}
-    function closeMenu(){document.getElementById('hudMenu').classList.remove('open');document.getElementById('hudBg').classList.remove('open');document.body.style.overflow='';}
-    document.getElementById('menuBtn').addEventListener('click',openMenu);
-
-    // Show network info in HUD
-    (function(){
-      var el=document.getElementById('hudNetVal');
-      var conn=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
-      var type=window.__netType||'unknown';
-      var slow=window.__slowNet;
-      var label=type.toUpperCase();
-      if(slow)label+=' — Reduced quality mode';
-      else label+=' — Full quality';
-      if(conn&&conn.saveData)label+=' (Data saver on)';
-      el.textContent=label;
-    })();
-
-    // Stats counter
-    const obs=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(!entry.isIntersecting)return;const el=entry.target,target=+el.dataset.target;const step=Math.max(target/50,1);let cur=0;const t=setInterval(()=>{cur=Math.min(cur+step,target);el.textContent=Math.floor(cur).toLocaleString();if(cur>=target)clearInterval(t);},16);obs.unobserve(el);});},{threshold:0.5});
-    document.querySelectorAll('.m-stat__num').forEach(el=>obs.observe(el));
-
-    // Bottom tab active state
-    const tabs=document.querySelectorAll('.m-tab');
-    const sectionIds=['home','products','explore','greece','about','order'];
-    const sections=sectionIds.map(id=>document.getElementById(id)).filter(Boolean);
-    function updateTabs(){const mid=window.scrollY+window.innerHeight/2;let active=sections[0];for(const s of sections){if(s.offsetTop<=mid)active=s;}tabs.forEach(t=>t.classList.toggle('active',t.dataset.section===active.id));}
-    window.addEventListener('scroll',updateTabs,{passive:true});updateTabs();
-  </script>
+<script>
+/* Mobile-site manifest: ONE tier — the portrait reel — for every visitor of
+   this page (device routing already decided we're on a phone). No landscape
+   dirs listed, so the engine can never fall back into the 15 MB desktop reel. */
+window.MASTRY_FRAMES = {
+  /* Portrait tier cut from the 2160x3840 4K master (exact phone center-trim).
+     1080p FLOOR (owner, 2026-07-24): the 406x720 tier is retired — baseLow /
+     basePLow deliberately absent, so the engine and the splash prefetch both
+     resolve to the 1080p reel on every connection. A slow link or an impatient
+     visitor only skips the 4K phase, never drops below 1080p. Every axis
+     (base/baseP) points portrait — this page is phones-only, so there is no
+     landscape reel to fall into. */
+  base: "mobile-hq/",            /* 608x1080 portrait (~5.6 MB) */
+  baseP: "mobile-hq/",
+  /* RETINA OVERLAY (fast connections only, engine-gated): device-native
+     1284x2282 frames painted over the base tier as each one decodes — full
+     sharpness at rest and during the glide, seamless fallback to the base
+     reel mid-fling. hiCfg is the RAM ceiling: ~12MB per decoded frame. */
+  baseHi: "mobile-4k/",
+  hiCfg: { concurrency: 3, window: 7, maxRadius: 9, maxDecoded: 22 },
+  dprCap: 3,
+  ext: "webp",
+  count: 505,
+  pad: 4,
+  width: 608, height: 1080,
+  poster: "poster.jpg",
+  totalBytes: 5588604,
+  tierBytes: { "mobile-hq/": 5588604, "mobile-hq-720/": 3264834 }
+};
+</script>
+<script src="scrubber.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
