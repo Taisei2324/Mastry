@@ -265,11 +265,48 @@ input,select,textarea{accent-color:var(--olive);}
 .loader__dots i:nth-child(2){animation-delay:.2s;}
 .loader__dots i:nth-child(3){animation-delay:.4s;}
 @keyframes loadfade{from{opacity:0;}to{opacity:1;}}
-/* MOBILE (owner 2026-07-25): vertical LOADING BIGGER and moved DOWN, kept clear of
-   the bottle on the left. */
+/* MOBILE (owner 2026-07-25): vertical LOADING moved DOWN and kept clear of the
+   bottle on the left. Sized in proportion to the bottle rather than the old
+   15vmin, which read oversized on a phone (owner: "too big — ratio it"): the
+   hero bottle is 0.319 of the frame height, so ~10vmin keeps the wordmark's
+   cap-height a similar fraction of the bottle as it is on desktop. */
 @media (max-width:760px){
-  .loader__loadrot{ left:calc(clamp(105px,31vw,235px) + env(safe-area-inset-left,0px)); top:63%; }
-  .loader__loadword,.loader__dots{ font-size:clamp(3.4rem,15vmin,6.6rem); }
+  /* NO scaleY here (owner 2026-07-25 "something's off"): stretching the glyphs
+     non-uniformly thickened the vertical strokes but not the horizontals, so the
+     letterforms were literally misshapen. Presence comes from TRACKING + weight,
+     never from distortion. Optically centred on the bottle (its centre sits at
+     ~47% of the viewport), so the two read as one composition. */
+  /* ── The vertical rule (owner 2026-07-25 "be creative") ──
+     A hairline set to the BOTTLE'S EXACT vertical span (the reel puts the bottle
+     between .3095 and .6285 of a portrait frame — the same fractions placeSpin
+     uses), with a soft mastic-olive light travelling down it. Japanese tategaki
+     vertical rule + the brand's olive accent, and it signals "loading" far more
+     quietly than three pulsing dots. The wordmark becomes a small label beside
+     the rule; the spinning bottle stays the only loud thing on screen.
+     --loadX is shared so the rule and the wordmark can never drift apart. */
+  .loader__load{ --loadX:calc(clamp(104px,30vw,215px) + env(safe-area-inset-left,0px)); }
+  .loader__loadrot{
+    left:var(--loadX); top:47%;
+    transform:translate(-50%,-50%) rotate(-90deg);
+  }
+  .loader__loadword{
+    font-size:clamp(1.35rem,6.4vmin,2.6rem);font-weight:300;
+    letter-spacing:.58em;padding-left:.58em;color:var(--ink);opacity:.9;
+  }
+  .loader__dots{ display:none; }                 /* superseded by the travelling light */
+  .loader__load::before,.loader__load::after{
+    content:"";position:absolute;width:1px;
+    left:calc(var(--loadX) - clamp(26px,7vw,44px));
+    top:30.95%;height:31.9%;                     /* == the bottle's span */
+  }
+  .loader__load::before{ background:currentColor;opacity:.16;color:var(--ink); }
+  .loader__load::after{
+    background:linear-gradient(180deg,transparent 0%,var(--olive) 50%,transparent 100%);
+    background-size:100% 38%;background-repeat:no-repeat;
+    animation:loadRun 2.1s cubic-bezier(.45,0,.55,1) infinite;
+  }
+  @keyframes loadRun{0%{background-position:0 -45%;}100%{background-position:0 145%;}}
+  @media (prefers-reduced-motion:reduce){ .loader__load::after{animation:none;background-position:0 50%;} }
 }
 /* iPHONE landscape: the notch eats the left edge — push the column clear of it. */
 @media (max-width:930px) and (orientation:landscape){
