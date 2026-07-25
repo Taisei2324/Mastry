@@ -21,18 +21,17 @@
 </script>
 <title>MASTRY — Sparkling Water with Mastic · Chios × Japan</title>
 <meta name="description" content="Mastry is sparkling water infused with mastic — the crystal resin of Chios, Greece — carbonated and bottled with Japanese precision. Zero sugar. Three ingredients. Two ancient islands." />
-<link rel="icon" type="image/png" href="images/seal-favicon-64.png" />
-<link rel="apple-touch-icon" href="images/seal-touch-180.png" />
-<link rel="preload" as="font" type="font/woff2" href="fonts/cormorant-var.woff2" crossorigin />
-<link rel="preload" as="font" type="font/woff2" href="fonts/jost-var.woff2" crossorigin />
+<link rel="icon" href="images/icon-32.png" type="image/png" sizes="32x32" />
+<link rel="icon" href="images/icon-64.png" type="image/png" sizes="64x64" />
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <!-- Fonts loaded NON-render-blocking: the hero paints immediately with system
      fallbacks and the web fonts swap in when they arrive (display=swap). A
      render-blocking <link rel="stylesheet"> here freezes first paint until the
      CSS returns — on a slow/flaky font connection that stalls the whole hero. -->
-<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500&display=swap" />
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500&display=swap" /></noscript>
+<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" />
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" /></noscript>
 <script>
 /* Day/night theme boot — runs before the stylesheet so there is no flash.
    No manual toggle on this page, so the theme follows the visitor's LOCAL time
@@ -57,15 +56,42 @@
   document.documentElement.setAttribute('data-theme', t);
 })();
 </script>
+<script>
+/* Language boot — stored choice, else the browser's language; pre-paint so a
+   Japanese visitor never sees an English flash. i18n.js swaps the strings. */
+(function () {
+  var l = null;
+  try { l = localStorage.getItem('mastry-lang'); } catch (e) {}
+  if (l !== 'ja' && l !== 'en') l = ((navigator.language || '').toLowerCase().indexOf('ja') === 0) ? 'ja' : 'en';
+  document.documentElement.setAttribute('data-lang', l);
+  document.documentElement.lang = l;
+})();
+</script>
+<script>
+/* Splash-first loading: queue the bottle loop + its still BEFORE the body
+   parses, so they beat the 505-frame prefetch storm to the network — without
+   this the splash can sit empty (wordmark on bare paper) while frames hog the
+   connection and the bottle arrives too late to be seen. */
+(function () {
+  var t = document.documentElement.getAttribute("data-theme") || "dark";
+  var still = "images/loader-solid-" + t + "-still.webp";
+  var spin  = "images/loader-sheet-" + t + ".webp";
+  [still, spin].forEach(function (href) {
+    var l = document.createElement("link");
+    l.rel = "preload"; l.as = "image"; l.href = href; l.fetchPriority = "high";
+    document.head.appendChild(l);
+  });
+})();
+</script>
 <link rel="stylesheet" href="style.css" />
 <!-- First hero frame, media-matched to the tier the scrubber will pick (portrait
-     phones get the pre-cropped 9:16 slice; everything else the landscape reel) so
-     the opening frame is already in flight before any JS runs. On a slow-net
-     Android the scrubber may drop to the 720 tier of the same shape — the cost of
-     this hint being one tier off is a single ~11-20KB frame, the win every other
-     time is first-paint latency. -->
-<link rel="preload" as="image" href="mobile-hd/0001.webp" media="(max-width:760px) and (orientation:portrait)" />
-<link rel="preload" as="image" href="frames/0001.webp" media="(min-width:761px), (orientation:landscape)" />
+     phones get the physically-trimmed 400x810 render — their only tier, so this
+     hint is always right on phones; everything else the landscape reel) so the
+     opening frame is already in flight before any JS runs. On slow-net desktop
+     the scrubber may drop to 720p — the cost of the hint being one tier off is a
+     single ~20KB frame, the win every other time is first-paint latency. -->
+<link rel="preload" as="image" href="mobile-hd/0001.webp" media="(max-width:760px) and (orientation:portrait), (pointer:coarse) and (max-height:760px)" />
+<link rel="preload" as="image" href="frames/0001.webp" media="(min-width:761px) and (min-height:761px) and (pointer:fine)" />
 </head>
 <body>
 
@@ -73,19 +99,160 @@
 
 <!-- ══ Loader ══ -->
 <div id="loader" aria-hidden="true">
-  <span class="loader__word">MASTRY</span>
+  <div class="loader__spinwrap">
+    <div class="loader__breathe">
+      <canvas id="loaderSpin" width="320" height="480" aria-hidden="true"></canvas>
+    </div>
+  </div>
+  <div class="loader__load" aria-hidden="true">
+    <span class="loader__loadrot"><span class="loader__loadword">LOADING</span><span class="loader__dots"><i>.</i><i>.</i><i>.</i></span></span>
+  </div>
 </div>
+<script>
+/* Splash spin: the bottle turning 360 with the water line bobbing, spinning for
+   as long as the hero reel takes to buffer. The 64-frame turn (frame 0 =
+   label-front, the hero's pose) is a SPRITE SHEET drawn onto a canvas by a
+   rAF driver, so the rotation is ours to command: constant spin while loading,
+   then — when script.js starts the splash→hero fly — a slope-matched cubic
+   ease-out that keeps the bottle turning THROUGH the glide and brings it to
+   rest label-front at the exact moment it docks on the hero. A baked animated
+   WebP can't do this (its rest moment is fixed at bake time; on a slow load the
+   bottle sat frozen for the whole wait). Runs inline so the spin starts on
+   first paint. Canvas, deliberately NOT <video>: iOS Low Power Mode refuses
+   video autoplay. The still background paints instantly while the sheet
+   streams in. */
+(function () {
+  document.documentElement.classList.add("is-loading");   /* scroll locked until the hero reveals (script.js unlocks) */
+  try { if (location.search.indexOf("spintrace") >= 0) window.__spinTrace = []; } catch (e) {}
+  var c = document.getElementById("loaderSpin");
+  if (!c || !c.getContext) return;
+  var ctx = c.getContext("2d");
+  /* PIN the spinning bottle onto the hero bottle's on-screen spot (right of
+     centre) so it spins IN PLACE where the hero bottle will be — the loader then
+     just fades to reveal it, no fly, the bottle never moves. Reel fractions +
+     cover-fit mirror script.js computeFlip; box = this render's bottle inside its
+     320x480 frame.
+     iPHONE (owner 2026-07-25): measure the HERO CANVAS's own box, never
+     window.innerHeight. On iOS Safari the URL bar makes innerHeight disagree with
+     the canvas's real height (and it changes as the bar collapses), so sizing the
+     splash bottle off the window put it at a different size/position than the hero
+     bottle it has to overlay. Measuring the canvas makes the match exact on every
+     device; the visual viewport (then the window) is only a pre-canvas fallback. */
+  function placeSpin() {
+    var wrap = document.querySelector(".loader__spinwrap");
+    if (!wrap) return;
+    var cv = document.getElementById("heroCanvas");
+    var r  = cv && cv.getBoundingClientRect();
+    var vv = window.visualViewport;
+    var aw, ah, ax, ay;
+    if (r && r.width > 1 && r.height > 1) { aw = r.width; ah = r.height; ax = r.left; ay = r.top; }
+    else { aw = (vv && vv.width) || window.innerWidth; ah = (vv && vv.height) || window.innerHeight; ax = 0; ay = 0; }
+    var portrait = ah >= aw;
+    var reel = portrait ? { cx: 0.6300, top: 0.3095, bottom: 0.6285, aspect: 608 / 1080 }
+                        : { cx: 0.5422, top: 0.3095, bottom: 0.6285, aspect: 1920 / 1080 };
+    var areaAspect = aw / ah, sfW, sfH, offX, offY;
+    if (reel.aspect >= areaAspect) { sfH = ah; sfW = sfH * reel.aspect; offY = 0; offX = (aw - sfW) / 2; }
+    else                           { sfW = aw; sfH = sfW / reel.aspect; offX = 0; offY = (ah - sfH) / 2; }
+    var hcx = ax + offX + reel.cx * sfW;
+    var hcy = ay + offY + ((reel.top + reel.bottom) / 2) * sfH;
+    var bh  = (reel.bottom - reel.top) * sfH;                 /* hero bottle screen height */
+    var box = { cx: 0.498, top: 0.100, bottom: 0.908 };       /* bottle box inside the 320x480 render */
+    var Sh = bh / (box.bottom - box.top), Sw = Sh * (2 / 3);
+    wrap.style.position = "fixed"; wrap.style.margin = "0"; wrap.style.transform = "none";
+    wrap.style.width = Sw + "px"; wrap.style.height = Sh + "px";
+    wrap.style.left = (hcx - box.cx * Sw) + "px";
+    wrap.style.top  = (hcy - ((box.top + box.bottom) / 2) * Sh) + "px";
+  }
+  placeSpin();
+  /* iOS: the canvas usually gets its real box a tick or two after first paint, and
+     the URL bar settles shortly after — re-pin for the first couple of seconds. */
+  (function () {
+    var n = 0, t = setInterval(function () { placeSpin(); if (++n > 20) clearInterval(t); }, 100);
+    window.addEventListener("load", placeSpin);
+    if (window.visualViewport) {
+      visualViewport.addEventListener("resize", placeSpin);
+      visualViewport.addEventListener("scroll", placeSpin);
+    }
+  })();
+  window.addEventListener("resize", placeSpin);
+  window.addEventListener("orientationchange", placeSpin);
+  var t = document.documentElement.getAttribute("data-theme") || "dark";
+  c.style.backgroundImage = "url(images/loader-solid-" + t + "-still.webp)";
+  var img = new Image();
+  img.src = "images/loader-sheet-" + t + ".webp";
+  var N = 64, COLS = 8, W = 320, H = 480;
+  var REST_FRAME = 0;                 /* the frame the bottle RESTS on (0..63). Frame 0 = label-front by
+                                         construction — the Blender turntable (2026-07-25) bakes the front
+                                         pose as the sheet's first tile. One turn = 64 frames = 5.625deg
+                                         each; higher = label rotates left. */
+  var TURN_MS = 1920;                 /* one full turn per 1.92s — a steady, continuous spin */
+  var PHASE = REST_FRAME / N;         /* the spin STARTS, every 360deg RETURNS to, and RESTS on frame 0 (front) */
+  var start = performance.now();
+  var landStart = 0, landAt = 0, landFrom = 0, landTurns = 0, landW = 0;
+  var lastFrame = -1, stopped = false;
+  function angleAt(now) {             /* rotation in TURNS since start — continuous forward spin */
+    if (!landAt) return (now - start) / TURN_MS + PHASE;
+    var u = Math.min(1, (now - landStart) / (landAt - landStart));
+    /* cubic Hermite: enters at the constant-spin pace (no speed pop), leaves at
+       zero — the bottle decelerates and rests label-front on landAt */
+    return landFrom + landTurns * (3 - 2 * u) * u * u + landW * ((u - 2) * u + 1) * u;
+  }
+  function draw(now) {
+    if (stopped) return;
+    var f = Math.round(angleAt(now) * N) % N; if (f < 0) f += N;
+    if (f !== lastFrame && img.complete && img.naturalWidth) {
+      lastFrame = f;
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(img, (f % COLS) * W, ((f / COLS) | 0) * H, W, H, 0, 0, W, H);
+      if (window.__spinTrace) __spinTrace.push([Math.round(now), f]);
+    }
+    if (landAt && now >= landAt) { stopped = true; return; }  /* at rest, label-front — hold */
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+  /* script.js calls this at handoff: keep spinning, ease out, and rest label-front
+     `ms` from now. ALWAYS lands on the front (no bail, no freeze). */
+  window.__loaderSpinLand = function (ms) {
+    if (stopped || landAt) return;
+    var now = performance.now();
+    landStart = now; landAt = now + Math.max(200, ms || 0);
+    landFrom = (now - start) / TURN_MS + PHASE;
+    landW = (landAt - now) / TURN_MS;            /* turns the window holds at constant pace */
+    var rest = REST_FRAME / N;                   /* target rest phase — the front pose */
+    var turns = rest - (landFrom - Math.floor(landFrom));
+    if (turns <= 1e-6) turns += 1;               /* already at/just past front — go a full turn forward, never back */
+    if (turns < landW / 2) turns += 1;           /* Hermite needs R >= w/2 to stay forward */
+    while (turns + 1 <= landW) turns += 1;       /* whole extra turns, never faster than the entry pace */
+    landTurns = turns;
+  };
+  window.__loaderSpinStop = function () {         /* HARD guarantee: the resting pose is label-front, wherever the spin was */
+    stopped = true;
+    if (img.complete && img.naturalWidth) {
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(img, (REST_FRAME % COLS) * W, ((REST_FRAME / COLS) | 0) * H, W, H, 0, 0, W, H);
+    }
+  };
+  window.__loaderSpinInfo = function () {   /* debug/verification peek — cheap, no DOM reads */
+    var now = performance.now();
+    return { t: now - start, frame: lastFrame, angle: angleAt(now),
+             landIn: landAt ? landAt - now : null, landTurns: landTurns, stopped: stopped };
+  };
+})();
+</script>
 
 <!-- ══ Nav ══ -->
 <header class="nav" id="nav">
   <a class="nav__logo" href="#top">MASTRY<span class="nav__logo-jp">マストリー</span></a>
   <nav class="nav__links" id="navLinks" aria-label="Main">
-    <a href="#story">Story</a>
-    <a href="#flavours">Flavours</a>
-    <a href="#find">Order</a>
-    <a href="merch.html">Merch</a>
+    <a href="#story" data-i18n="nav.story">Story</a>
+    <a href="#flavours" data-i18n="nav.flavours">Flavours</a>
+    <a href="#find" data-i18n="nav.order">Order</a>
+    <a href="merch.html" data-i18n="nav.merch">Merch</a>
   </nav>
-  <a class="nav__cta" href="#find">Find Mastry</a>
+  <a class="nav__cta" href="#find" data-i18n="nav.find">Find Mastry</a>
+  <button class="nav__lang" id="langToggle" aria-label="Switch language / 言語を切り替える">
+    <span data-lang-opt="en" class="on">EN</span><i>/</i><span data-lang-opt="ja">日本語</span>
+  </button>
   <button class="nav__burger" id="burger" aria-label="Open menu" aria-expanded="false">
     <span></span><span></span>
   </button>
@@ -103,62 +270,137 @@
     <!-- minimalist: nothing over the frames but a faint top scrim (nav legibility) -->
     <div class="cine__scrim" aria-hidden="true"></div>
 
-    <!-- end card: a two-font quote — a flowing italic serif (yin) paired with a
-         letterspaced uppercase sans (yang) — fades in once the bottle arrives -->
-    <div class="cine__end">
-      <div class="cine__end-scrim" aria-hidden="true"></div>
-      <blockquote class="cine__end-title">
-        <span class="cine__end-a">Two worlds,</span>
-        <span class="cine__end-b">one water.</span>
-      </blockquote>
-    </div>
+    <!-- minimalist scroll cue — fades once the journey starts moving -->
+    <div class="cine__hint" aria-hidden="true"><i></i></div>
+
+    <!-- minimalist film credit — the bottom-center brand line from the
+         standalone hero, present for the whole run of the film -->
+    <div class="cine__brand" aria-hidden="true">MASTRY<small>SPARKLING WATER WITH MASTIC</small></div>
   </div>
 </section>
 
-<!-- ══ Essence — the story, one line + the stats, nothing else ══ -->
+<!-- ══ Essence — Certificate of Composition ══
+     The stats reframed as an assay certificate: double-hairline frame, the four
+     numerals as heroes, a botanical specimen plate (Pistacia lentiscus engraving)
+     beside the per-100ml assay, and the Chios ↔ Japan coordinate rule.
+     Composition only — never effect (no health/functional claims, ever). -->
 <section class="essence section" id="story">
-  <p class="essence__line">Mastic from Chios. Water from Japan.<br /><em>Nothing else.</em></p>
-  <ul class="stats" aria-label="What's inside">
-    <li><span class="stats__n">0</span><span class="stats__cap">sugar</span></li>
-    <li><span class="stats__n">0</span><span class="stats__cap">calories</span></li>
-    <li><span class="stats__n">3</span><span class="stats__cap">ingredients</span></li>
-    <li><span class="stats__n">2</span><span class="stats__cap">islands</span></li>
-  </ul>
+  <figure class="cert reveal" aria-labelledby="certCaption">
+    <figcaption class="cert__caption" id="certCaption">分析証明</figcaption>
+
+    <ul class="stats" aria-label="What's inside">
+      <li><span class="stats__n">0</span><span class="stats__cap" data-i18n="stats.sugar">sugar</span><span class="stat__unit">g · 100&nbsp;ml⁻¹</span></li>
+      <li><span class="stats__n">0</span><span class="stats__cap" data-i18n="stats.calories">calories</span><span class="stat__unit">kcal · 100&nbsp;ml⁻¹</span></li>
+      <li><span class="stats__n">3</span><span class="stats__cap" data-i18n="stats.ingredients">ingredients</span><span class="stat__unit" data-i18n="cert.resinLine">H₂O · CO₂ · resin</span></li>
+      <li><span class="stats__n">2</span><span class="stats__cap" data-i18n="stats.islands">islands</span><span class="stat__unit" data-i18n="cert.islandsLine">Chios ↔ Japan</span></li>
+    </ul>
+
+    <div class="cert__mid">
+      <div class="cert__plate">
+        <div class="plate__art" aria-hidden="true">
+          <!-- Pistacia lentiscus, literal: paripinnate leaf (no terminal
+               leaflet — diagnostic), drupe cluster, and the kentos score cut
+               weeping two gold resin tears (one clinging, one falling). -->
+          <svg viewBox="0 0 220 300" focusable="false">
+            <g class="art-stem">
+              <path pathLength="1" d="M88,288 C74,240 82,190 98,150 C110,118 116,82 122,44"/>
+              <path pathLength="1" d="M115,100 C122,101 128,98 132,96"/>
+            </g>
+            <g class="art-leaves">
+              <path pathLength="1" d="M98,150 C82,128 66,108 52,86"/>
+              <path pathLength="1" d="M91.1,140.4 C98.8,137.3 103.4,130.7 102.6,124 C96,125.5 91.4,132.1 91.1,140.4"/>
+              <path pathLength="1" d="M91.1,140.4 C83.1,138.1 75.5,140.3 71.9,146.1 C78,149 85.7,146.7 91.1,140.4"/>
+              <path pathLength="1" d="M80.5,125.7 C88.4,122.3 93.2,115.4 92.6,108.5 C85.9,110.2 81,117.1 80.5,125.7"/>
+              <path pathLength="1" d="M80.5,125.7 C72.2,123.5 64.1,125.8 60.4,131.6 C66.7,134.5 74.7,132.1 80.5,125.7"/>
+              <path pathLength="1" d="M69.9,111 C77.2,108 81.5,101.7 80.8,95.4 C74.6,96.9 70.3,103.1 69.9,111"/>
+              <path pathLength="1" d="M69.9,111 C62.3,108.9 55.1,111 51.7,116.4 C57.4,119.1 64.7,116.9 69.9,111"/>
+              <path pathLength="1" d="M59.4,96.2 C65.4,94 68.8,89.1 68,83.9 C62.9,84.9 59.5,89.8 59.4,96.2"/>
+              <path pathLength="1" d="M59.4,96.2 C53.4,94.2 47.6,95.9 45,100.5 C49.6,102.8 55.4,101.1 59.4,96.2"/>
+            </g>
+            <g class="fruit">
+              <circle pathLength="1" cx="132" cy="96" r="4"/>
+              <circle pathLength="1" cx="140" cy="101" r="3.8"/>
+              <circle pathLength="1" cx="136" cy="108" r="3.6"/>
+            </g>
+            <g class="resin">
+              <path pathLength="1" d="M77,214 L88,209"/>
+              <path pathLength="1" d="M82.5,218 C85.5,222.5 87.5,226.5 87.5,230 C87.5,235 77.5,235 77.5,230 C77.5,226.5 79.5,222.5 82.5,218 Z"/>
+              <path pathLength="1" d="M90,252 C92,255 93.2,257.2 93.2,259 C93.2,262.2 86.8,262.2 86.8,259 C86.8,257.2 88,255 90,252 Z"/>
+            </g>
+          </svg>
+        </div>
+        <p class="plate__fig" data-i18n-html="cert.fig">FIG.&nbsp;1 — <i>Pistacia lentiscus</i>, Chios</p>
+      </div>
+
+      <div class="cert__data">
+        <p class="assay__per"><span aria-hidden="true">—</span>&nbsp;per 100 ml&nbsp;<span aria-hidden="true">—</span></p>
+        <ul class="assay" aria-label="Composition per 100 ml">
+          <li class="assay__row">
+            <span class="assay__k" data-i18n="cert.energy">Energy</span>
+            <span class="assay__lead" aria-hidden="true"></span>
+            <span class="assay__v"><span class="assay__fig">0</span><span class="assay__u">kcal</span></span>
+          </li>
+          <li class="assay__row">
+            <span class="assay__k" data-i18n="cert.protein">Protein</span>
+            <span class="assay__lead" aria-hidden="true"></span>
+            <span class="assay__v"><span class="assay__fig">0</span><span class="assay__u">g</span></span>
+          </li>
+          <li class="assay__row">
+            <span class="assay__k" data-i18n="cert.fat">Fat</span>
+            <span class="assay__lead" aria-hidden="true"></span>
+            <span class="assay__v"><span class="assay__fig">0</span><span class="assay__u">g</span></span>
+          </li>
+          <li class="assay__row">
+            <span class="assay__k" data-i18n="cert.carb">Carbohydrate</span>
+            <span class="assay__lead" aria-hidden="true"></span>
+            <span class="assay__v"><span class="assay__fig">0</span><span class="assay__u">g</span></span>
+          </li>
+          <li class="assay__row assay__row--sub">
+            <span class="assay__k" data-i18n="cert.sugars">of which sugars</span>
+            <span class="assay__lead" aria-hidden="true"></span>
+            <span class="assay__v"><span class="assay__fig">0</span><span class="assay__u">g</span></span>
+          </li>
+          <li class="assay__row">
+            <span class="assay__k" data-i18n="cert.salt">Salt equivalent</span>
+            <span class="assay__lead" aria-hidden="true"></span>
+            <span class="assay__v"><span class="assay__fig">0</span><span class="assay__u">g</span></span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="cert__note"><span data-i18n="cert.abv">0.00% ABV · caffeine-free</span><span aria-hidden="true"> · </span><span data-i18n="cert.note">zeros shown per Japanese food-labelling thresholds (&lt;5 kcal · &lt;0.5 g sugars per 100 ml)</span></p>
+  </figure>
 </section>
 
 <!-- ══ Flavours ══ -->
 <section class="flavours section" id="flavours">
   <div class="flavours__head">
-    <h2 class="section__title reveal">Four waters. <em>One resin.</em></h2>
+    <h2 class="section__title reveal" data-i18n-html="flavours.title">Four waters. <em>One resin.</em></h2>
   </div>
 
   <div class="flavours__stage">
     <div class="flavours__bottlewrap" data-speed="-0.045">
       <div class="flavours__halo" aria-hidden="true"></div>
-      <!-- TWO-STAGE LOAD: these bottle shots (~55-62KB webp each) carry data-src
-           (not src) so they download ZERO bytes while the loading screen has the
-           network — lazy loading isn't enough (slow connections balloon the
-           browser's lazy margin and fetch them during the hero load). script.js
-           swaps src in sequentially once the glide is playing (stage 2). -->
-      <img class="flavours__bottle is-active" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/flavours/original.webp" alt="Mastry Original Mastic bottle" data-flavour="original" decoding="async" />
-      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/flavours/yuzu.webp" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" decoding="async" />
-      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/flavours/ume.webp" alt="Mastry Ume Mastic bottle" data-flavour="ume" decoding="async" />
-      <img class="flavours__bottle" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="images/flavours/hinoki.webp" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" decoding="async" />
+      <img class="flavours__bottle is-active" src="images/flavours/original.webp" alt="Mastry Original Mastic bottle" data-flavour="original" loading="lazy" decoding="async" />
+      <img class="flavours__bottle" src="images/flavours/yuzu.webp" alt="Mastry Yuzu Mastic bottle" data-flavour="yuzu" loading="lazy" decoding="async" />
+      <img class="flavours__bottle" src="images/flavours/ume.webp" alt="Mastry Ume Mastic bottle" data-flavour="ume" loading="lazy" decoding="async" />
+      <img class="flavours__bottle" src="images/flavours/hinoki.webp" alt="Mastry Hinoki Mastic bottle" data-flavour="hinoki" loading="lazy" decoding="async" />
     </div>
 
     <div class="flavours__panel" data-speed="0.03">
       <div class="flavours__list" role="tablist" aria-label="Flavours">
         <button class="flavours__tab is-active" role="tab" aria-selected="true" data-flavour="original">
-          <span class="flavours__no">01</span><span class="flavours__name">Original Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+          <span class="flavours__no">01</span><span class="flavours__name" data-i18n="flavour.original">Original Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
         </button>
         <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="yuzu">
-          <span class="flavours__no">02</span><span class="flavours__name">Yuzu Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+          <span class="flavours__no">02</span><span class="flavours__name" data-i18n="flavour.yuzu">Yuzu Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
         </button>
         <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="ume">
-          <span class="flavours__no">03</span><span class="flavours__name">Ume Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+          <span class="flavours__no">03</span><span class="flavours__name" data-i18n="flavour.ume">Ume Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
         </button>
         <button class="flavours__tab" role="tab" aria-selected="false" data-flavour="hinoki">
-          <span class="flavours__no">04</span><span class="flavours__name">Hinoki Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
+          <span class="flavours__no">04</span><span class="flavours__name" data-i18n="flavour.hinoki">Hinoki Mastic</span><span class="flavours__dot" aria-hidden="true"></span>
         </button>
       </div>
     </div>
@@ -169,50 +411,95 @@
 <section class="order section" id="find">
   <div class="order__inner">
     <div class="order__left reveal--fade" data-speed="0.03">
-      <p class="section__eyebrow">Order — 注文</p>
-      <h2 class="section__title">Order<br /><em>Mastry.</em></h2>
-      <p class="order__sub">Tell us what you'd like and where it's going.
+      <p class="section__eyebrow" data-i18n="order.eyebrow">Order — 注文</p>
+      <h2 class="section__title" data-i18n-html="order.title">Order<br /><em>Mastry.</em></h2>
+      <p class="order__sub" data-i18n="order.sub">Tell us what you'd like and where it's going.
       We'll confirm by email within a day.</p>
       <dl class="order__info">
-        <div><dt>Email</dt><dd>hello@mastry.jp</dd></div>
-        <div><dt>Origin</dt><dd>Chios, Greece × Japan</dd></div>
-        <div><dt>Ships from</dt><dd>Japan · 3–5 business days</dd></div>
+        <div><dt data-i18n="order.email">Email</dt><dd>hello@mastry.jp</dd></div>
+        <div><dt data-i18n="order.origin">Origin</dt><dd data-i18n="order.originVal">Chios, Greece × Japan</dd></div>
+        <div><dt data-i18n="order.ships">Ships from</dt><dd data-i18n="order.shipsVal">Japan · 3–5 business days</dd></div>
       </dl>
     </div>
 
     <form class="order__form reveal--fade" data-speed="-0.035" id="orderForm" novalidate="novalidate">
       <div class="fg">
-        <label for="fname">Full name</label>
-        <input type="text" id="fname" placeholder="Your name" autocomplete="name" required />
+        <label for="fname" data-i18n="form.name">Full name</label>
+        <input type="text" id="fname" placeholder="Your name" data-i18n-ph="form.namePh" autocomplete="name" required />
       </div>
       <div class="fg">
-        <label for="femail">Email</label>
+        <label for="femail" data-i18n="order.email">Email</label>
         <input type="email" id="femail" placeholder="your@email.com" autocomplete="email" required />
       </div>
       <div class="fg-row">
         <div class="fg">
-          <label for="fproduct">Flavour</label>
+          <label for="fproduct" data-i18n="form.flavour">Flavour</label>
           <select id="fproduct" required>
-            <option value="">Select</option>
-            <option>Original Mastic</option>
-            <option>Yuzu Mastic</option>
-            <option>Ume Mastic</option>
-            <option>Hinoki Mastic</option>
+            <option value="" data-i18n="form.select">Select</option>
+            <option data-i18n="flavour.original">Original Mastic</option>
+            <option data-i18n="flavour.yuzu">Yuzu Mastic</option>
+            <option data-i18n="flavour.ume">Ume Mastic</option>
+            <option data-i18n="flavour.hinoki">Hinoki Mastic</option>
           </select>
         </div>
         <div class="fg">
-          <label for="fqty">Quantity</label>
+          <label for="fqty" data-i18n="form.qty">Quantity</label>
           <input type="number" id="fqty" min="1" max="48" value="1" required />
         </div>
       </div>
       <div class="fg">
-        <label for="faddress">Delivery address</label>
-        <textarea id="faddress" rows="3" placeholder="Street, City, Country" required></textarea>
+        <label for="faddress" data-i18n="form.address">Delivery address</label>
+        <textarea id="faddress" rows="3" placeholder="Street, City, Country" data-i18n-ph="form.addressPh" required></textarea>
       </div>
-      <button class="btn btn--solid" type="submit">Place order</button>
-      <p class="order__note">International shipping available worldwide.</p>
-      <p class="order__ok" id="orderOk" hidden>ありがとう — order received. We'll confirm at hello@mastry.jp.</p>
+      <button class="btn btn--solid" type="submit" data-i18n="form.submit">Place order</button>
+      <p class="order__note" data-i18n-html="form.note">International shipping available worldwide.
+      By placing an order you agree to the <a href="legal.html#terms">Terms of Sale</a> ·
+      <a href="care.html#allergens">allergen information</a>.</p>
+      <p class="order__ok" id="orderOk" hidden data-i18n="form.ok">ありがとう — order received. We'll confirm at hello@mastry.jp.</p>
     </form>
+
+    <!-- ══ Order flow — pop-up: accept the terms, review the order, place it.
+         The ACCEPT click is the recorded acknowledgment (click-wrap) — it
+         replaced the inline checkbox; deliberately an acknowledgment, NOT a
+         waiver (blanket liability waivers are void under consumer law). ══ -->
+    <div class="ordm" id="ordModal" hidden role="dialog" aria-modal="true" aria-labelledby="ordmTitle">
+      <div class="ordm__card">
+        <button class="ordm__close" id="ordmClose" aria-label="Close">&times;</button>
+        <div class="ordm__step" id="ordmTerms">
+          <h3 class="ordm__title" id="ordmTitle"><span class="i18n-en">Before you order</span><span class="i18n-ja">ご注文の前に</span></h3>
+          <div class="ordm__body">
+            <p><span class="i18n-en">MASTRY contains mastic — the natural resin known as mastic tears,
+            from <em>Pistacia lentiscus</em>, a tree in the pistachio family (Anacardiaceae).
+            People with a pistachio, cashew, or mango allergy can react to this resin —
+            if that's you, please consult your doctor before drinking. Full details:
+            <a href="care.html#allergens" target="_blank" rel="noopener">allergen information</a>.</span><span class="i18n-ja">MASTRYには、ウルシ科（ピスタチオと同科）の樹木 <em>Pistacia lentiscus</em> から採取される天然樹脂「マスティック（マスティックティアーズ）」が含まれます。ピスタチオ、カシューナッツ、マンゴーにアレルギーのある方は樹脂に反応する可能性があります。該当する方は、飲用前に必ず医師にご相談ください。詳細：<a href="care.html#allergens" target="_blank" rel="noopener">アレルゲン情報</a>。</span></p>
+            <p><span class="i18n-en">By choosing <strong>Accept</strong>, you confirm that you have read the
+            <a href="legal.html#terms" target="_blank" rel="noopener">Terms of Sale</a> and the allergen
+            information, that this product is suitable for your own dietary and allergy needs,
+            and that you are choosing to order and consume it of your own accord.</span><span class="i18n-ja"><strong>同意する</strong>を選択することで、<a href="legal.html#terms" target="_blank" rel="noopener">販売規約</a>およびアレルゲン情報を読んだこと、本製品が自身の食事・アレルギー上の必要に適合することを自ら確認したこと、そして自らの意思で注文・摂取することを選択したことを確認したものとします。</span></p>
+          </div>
+          <div class="ordm__actions">
+            <button type="button" class="btn ordm__ghost" id="ordmDecline"><span class="i18n-en">Decline</span><span class="i18n-ja">同意しない</span></button>
+            <button type="button" class="btn btn--solid" id="ordmAccept"><span class="i18n-en">Accept</span><span class="i18n-ja">同意する</span></button>
+          </div>
+        </div>
+        <div class="ordm__step" id="ordmReview" hidden>
+          <h3 class="ordm__title"><span class="i18n-en">Your order</span><span class="i18n-ja">ご注文内容</span></h3>
+          <dl class="ordm__summary">
+            <div><dt><span class="i18n-en">Flavour</span><span class="i18n-ja">フレーバー</span></dt><dd id="ovFlavour"></dd></div>
+            <div><dt><span class="i18n-en">Quantity</span><span class="i18n-ja">数量</span></dt><dd id="ovQty"></dd></div>
+            <div><dt><span class="i18n-en">Name</span><span class="i18n-ja">お名前</span></dt><dd id="ovName"></dd></div>
+            <div><dt><span class="i18n-en">Email</span><span class="i18n-ja">メール</span></dt><dd id="ovEmail"></dd></div>
+            <div><dt><span class="i18n-en">Delivery address</span><span class="i18n-ja">お届け先</span></dt><dd id="ovAddress"></dd></div>
+          </dl>
+          <p class="ordm__note"><span class="i18n-en">We'll confirm your order by email within one business day.</span><span class="i18n-ja">1営業日以内に確認メールをお送りします。</span></p>
+          <div class="ordm__actions">
+            <button type="button" class="btn ordm__ghost" id="ordmBack"><span class="i18n-en">Back</span><span class="i18n-ja">戻る</span></button>
+            <button type="button" class="btn btn--solid" id="ordmPlace"><span class="i18n-en">Place order</span><span class="i18n-ja">注文を確定する</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -220,18 +507,25 @@
 
 <!-- ══ Footer ══ -->
 <footer class="footer">
+  <img class="footer__art" src="images/footer-panorama.webp" alt="" loading="lazy" decoding="async" />
   <div class="footer__top">
     <a class="footer__logo" href="#top">MASTRY</a>
     <nav class="footer__links" aria-label="Footer">
-      <a href="#story">Story</a>
-      <a href="#flavours">Flavours</a>
-      <a href="#find">Order</a>
-      <a href="merch.html">Merch</a>
+      <a href="#story" data-i18n="nav.story">Story</a>
+      <a href="#flavours" data-i18n="nav.flavours">Flavours</a>
+      <a href="#find" data-i18n="nav.order">Order</a>
+      <a href="merch.html" data-i18n="nav.merch">Merch</a>
     </nav>
   </div>
+  <nav class="footer__legal" aria-label="Legal">
+    <a href="care.html" data-i18n="footer.care">Customer Care</a>
+    <a href="legal.html" data-i18n="footer.legal">Legal</a>
+    <a href="legal.html#tokushoho">特定商取引法に基づく表記</a>
+    <a href="mailto:hello@mastry.jp">hello@mastry.jp</a>
+  </nav>
   <div class="footer__bottom">
-    <p>Mastic from Chios, Greece · Assembled in Japan</p>
-    <p>© 2026 Mastry. Sparkling water with mastic.</p>
+    <p data-i18n="footer.tagline">Mastic from Chios, Greece · Assembled in Japan</p>
+    <p data-i18n="footer.copyright">© 2026 Mastry. Sparkling water with mastic.</p>
   </div>
 </footer>
 

@@ -1,13 +1,3 @@
-/* ── self-hosted variable fonts — zero external dependency (the Google Fonts
-   link proved flaky on some networks: stalls, silently dropped faces).
-   Pairing: Cormorant Garamond (delicate high-contrast serif — the hero's
-   original minimalist voice) × Jost (geometric Bauhaus-precision sans for
-   body/UI — totally different classification, equally quiet). Japanese glyphs
-   (Noto Serif JP) still ride Google with system fallback. ── */
-@font-face{font-family:'Cormorant Garamond';src:url('fonts/cormorant-var.woff2') format('woff2-variations');font-weight:300 700;font-style:normal;font-display:swap;}
-@font-face{font-family:'Cormorant Garamond';src:url('fonts/cormorant-var-italic.woff2') format('woff2-variations');font-weight:300 700;font-style:italic;font-display:swap;}
-@font-face{font-family:'Jost';src:url('fonts/jost-var.woff2') format('woff2-variations');font-weight:100 900;font-style:normal;font-display:swap;}
-
 /* ═══════════════════════════════════════════════════════════
    MASTRY — Sparkling Water with Mastic
    Minimalist editorial · Chios × Japan
@@ -20,44 +10,48 @@
   /* dark "espresso" palette (from fable-minimal-remake). Token names kept, so
      every downstream var() flips to dark at once. --paper is now the espresso
      PAGE (dark); light-on-dark FOREGROUND text uses --ink (parchment). */
-  --paper:#14100C;          /* espresso page/wash */
-  --paper-deep:#1E1812;     /* surface / card */
+  /* SUPER-DARK espresso night (user call 2026-07-23: "the black was better").
+     Page returns to the deep espresso; raised surfaces sit a clear step above
+     it so depth survives, and the warm candle accents stay — they pop harder
+     on black. */
+  --paper:#14100C;          /* espresso page — near-black, warm */
+  --paper-deep:#1E1812;     /* surface / card, a step above paper */
   --ink:#F0E8D8;            /* parchment text ink */
   --ink-soft:#C4B99F;       /* dim parchment */
-  --muted:#9E927A;          /* muted parchment */
-  --hairline:rgba(240,232,216,.14); /* warm hairline */
+  --muted:#A89A7E;          /* muted parchment */
+  --hairline:rgba(232,210,170,.18); /* gilded hairline — the cheap candle cue */
   --olive:#A9B87A;          /* mastic olive, lifted */
   --olive-deep:#97A66B;     /* mastic olive, lifted mid */
   --resin:#E8D9A0;          /* mastic resin, lifted */
-  --resin-milk:#2A2418;     /* mastic surface tint */
-  --dark:#17130E;           /* deep espresso surface */
-  --dark-2:#221B14;         /* raised espresso */
-  --sage:#8FB6C2;           /* mineral blue, lifted */
-  --cream:#E0A458;          /* candle amber */
-  --jp-blue:#8FB6C2;        /* mineral blue — Japan accent */
+  --resin-milk:#241C10;     /* mastic surface tint */
+  --dark:#0E0B08;           /* deepest surface — keeps shadow depth */
+  --dark-2:#1A1410;         /* raised deep surface */
+  --sage:#93AFB5;           /* mineral blue, muted vs the warm paper */
+  --cream:#E4AA5E;          /* candle amber */
+  --jp-blue:#93AFB5;        /* mineral blue — Japan accent */
   --gr-olive:#A9B87A;       /* mastic olive — Greece accent */
   --clay:#C98B5F;           /* clay, lifted */
   --sun:#D9A441;            /* sun, lifted */
-  --creek:#8FB6C2;          /* mineral blue, lifted */
-  --mist:#262019;           /* raised surface — marquee band */
-  --wash-sage:#191410;      /* dark warm wash */
-  --wash-sky:#17130E;       /* dark warm wash — hero top */
+  --creek:#93AFB5;          /* mineral blue, muted */
+  --mist:#221A10;           /* raised surface — marquee band */
+  --wash-sage:#1C1610;      /* warm wash, a step above paper */
+  --wash-sky:#1A1510;       /* warm wash — hero top */
 
   /* candle accents */
-  --amber:#E0A458;
-  --amber-glow:rgba(224,164,88,.35);
-  --amber-soft:rgba(224,164,88,.12);
-  --surface-raised:#262019;
+  --amber:#E4AA5E;
+  --amber-glow:rgba(228,170,94,.5);
+  --amber-soft:rgba(228,170,94,.16);
+  --surface-raised:#241C12;
 
   /* flavour theming (swapped by JS — dark-safe mid-tones) */
-  --fl-wash:#2A2418;
+  --fl-wash:#221A0E;
   --fl-accent:#A9B87A;
-  --fl-deep:#8FB6C2;
+  --fl-deep:#93AFB5;
 
   --nav-h:76px;
   --ease:cubic-bezier(.22,1,.36,1);
   --serif:'Cormorant Garamond',serif;
-  --sans:'Jost',sans-serif;
+  --sans:'Inter',sans-serif;
   --jp:'Noto Serif JP',serif;
 }
 
@@ -115,8 +109,7 @@
 [data-theme="light"] .nav:not(.solid) .nav__logo,
 [data-theme="light"] .nav:not(.solid) .nav__links a:hover,
 [data-theme="light"] .nav:not(.solid) .nav__links a.active,
-[data-theme="light"] .nav:not(.solid) .nav__cta,
-[data-theme="light"] .cine__end-a{color:#F0E8D8;}   /* serif line stays light over the photo; sans stays resin-gold */
+[data-theme="light"] .nav:not(.solid) .nav__cta{color:#F0E8D8;}   /* nav stays light while over the photo */
 [data-theme="light"] .nav:not(.solid) .nav__burger span{background:#F0E8D8;}
 
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
@@ -126,6 +119,16 @@ body{
   background:var(--paper);
   color:var(--ink);
   line-height:1.6;
+}
+/* candle vignette — a soft pool of warm light breathing at the top of the
+   night page; the umber paper alone reads "brown", the glow makes it
+   "candle-lit". Dark theme only; daylight keeps flat rice-paper. */
+:root:not([data-theme="light"]) body{
+  background:
+    radial-gradient(120% 85% at 50% -10%, rgba(228,170,94,.10), transparent 55%),
+    var(--paper);
+}
+body{
   /* `clip`, not `hidden`: hidden forces overflow-y to `auto`, making body a
      scroll container that breaks the cinematic hero's position:sticky pinning. */
   overflow-x:clip;
@@ -149,15 +152,139 @@ input,select,textarea{accent-color:var(--olive);}
 /* ── loader ── */
 #loader{
   position:fixed;inset:0;z-index:999;background:var(--paper);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
-  transition:opacity .7s var(--ease),visibility .7s;
+  transition:opacity .9s var(--ease),visibility .9s;
 }
 #loader.done{opacity:0;visibility:hidden;}
-#loader img{width:min(150px,34vw);mix-blend-mode:multiply;opacity:0;animation:rise 1s var(--ease) .05s forwards;}
-.loader__word{
-  font-family:var(--sans);font-weight:600;font-size:.85rem;letter-spacing:.55em;
-  padding-left:.55em;color:var(--ink);opacity:0;animation:rise 1s var(--ease) .25s forwards;
+/* DISPERSE OUTWARD (owner 2026-07-25): on handoff the splash CONTENTS bloom
+   outward and soften as the paper fades — it disperses to reveal the hero
+   instead of a flat crossfade.
+   CRITICAL: the transform/filter go on the CONTENTS, never on #loader itself —
+   a filter/transform on #loader makes it the containing block for the
+   position:fixed bottle, which snaps it several px at the exact handoff moment
+   (measured 4px left / 13px up) and breaks the "bottle never moves" promise.
+   NOTE: the bloom uses the independent `scale` property, NOT `transform` —
+   placeSpin() writes an INLINE `transform:none` on the wrap to cancel the
+   pre-JS centring fallback, and an inline style beats any stylesheet rule, so a
+   THE BOTTLE NEVER SCALES. It is pinned 1:1 on the hero bottle (verified by
+   silhouette overlay against frames/0001.webp), so any bloom on it makes it
+   visibly larger than the hero bottle at the exact moment they cross-dissolve —
+   which reads as "the sizes don't match". The bottle therefore only fades, in
+   place, at its exact hero size; the OUTWARD DISPERSE is carried by the paper
+   and the wordmark around it. */
+.loader__spinwrap{
+  transform-origin:center center;
+  transition:opacity .9s var(--ease);
 }
+#loader.done .loader__spinwrap{opacity:0;}
+/* impatient exit: same single composite fade, just quicker (script.js matches
+   FAST_FADE to this). Equal specificity + later source order wins the duration. */
+#loader.done--fast{transition:opacity .45s var(--ease),visibility .45s;}
+#loader.done--fast .loader__spinwrap{transition:opacity .45s var(--ease);}
+/* handoff step 1: wordmark + status settle out IN PLACE before the bottle
+   flies, so the eye stays on the bottle. animation:none releases the `rise`
+   forwards-held opacity so the transition has a live 1->0 to run against
+   (the before-change style still includes the animation per spec). */
+#loader.is-leaving .loader__load{               /* the wordmark disperses too — blooms + softens as it settles out */
+  animation:none;opacity:0;transform:scale(1.12);filter:blur(6px);transform-origin:center center;
+  transition:opacity .5s var(--ease),transform .5s var(--ease),filter .5s var(--ease);
+}
+#loader.is-leaving .loader__dots i{animation:none;}
+/* (no bare `#loader img` rule here — a leftover logo rule with
+   mix-blend-mode:multiply once outranked #loaderSpin and multiplied the
+   bottle to BLACK on the dark splash. The spin img styles itself below.) */
+/* Fly wrapper — owns the bottle-box SIZE and carries the splash→hero FLIP
+   transform at dismissal. We transform THIS, never the img: the img's `rise`
+   keyframes hold a forwards fill that would override a transform set on the
+   img itself. transform-origin stays the default 50% 50% — the FLIP algebra in
+   script.js is solved for the centre origin. */
+/* JS (inline placeSpin) pins this onto the hero bottle's on-screen spot and sets
+   left/top/width/height in px every frame it matters. These are only the pre-JS
+   fallback (JS runs on first paint, so they're rarely seen). */
+.loader__spinwrap{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(210px,44vw);aspect-ratio:2/3;}
+.loader__spinwrap.is-flying{
+  /* the glide: translate+scale only, slow with a long soft arrival (expo-out
+     family), NO overshoot — an overshoot would swing past the spot the hero
+     bottle is about to occupy; glass doesn't bounce. JS supplies the measured
+     target transform; this transition plays it. The crossfade overlaps the
+     second half, so the slow glide adds zero lockout. */
+  transition:transform 1.4s cubic-bezier(.16,1,.3,1);
+}
+/* breathe layer — the settle asset comes to REST label-front well before
+   dismissal on slow loads; a bottle holding perfectly still reads as frozen,
+   so this inner layer (NOT the wrapper — the FLIP measures the wrapper's rect,
+   which must exclude this) carries a barely-there swell. Frozen once the
+   handoff starts so the docking measurement and glide are exact. */
+.loader__breathe{width:100%;height:100%;animation:breathe 2.8s ease-in-out infinite alternate;}
+#loader.is-leaving .loader__breathe{animation:none;}
+@keyframes breathe{from{transform:scale(1);}to{transform:scale(1.007);}}
+#loaderSpin{
+  /* bottle spin loop — a CANVAS fed from a 64-frame sprite sheet by the inline
+     head driver (never <video>: iOS can refuse video autoplay and paint a play
+     button). Frames are baked on the matching paper color, so no blending
+     needed. The still background (label-front, same first frame, set inline)
+     paints instantly while the sheet streams in. */
+  width:100%;height:100%;               /* fills .loader__spinwrap, which owns the sizing */
+  background-size:cover;background-position:center;
+  /* NO mask here: it would force a per-frame composite on mobile Safari (the
+     splash jank). The frames are drawn on the exact paper color in RGB, so
+     their edges are invisible without one. */
+  pointer-events:none;user-select:none;-webkit-user-select:none;
+  /* NO width tricks on the img (owner 2026-07-24: dock 1:1 with the hero
+     bottle) — the FLIP's uniform height-match is the whole size story. */
+  opacity:0;animation:rise .45s var(--ease) 0s forwards;   /* on screen fast — the splash may only last ~2.4s */
+}
+/* NOTE: the spin loop is deliberately NOT hidden under prefers-reduced-motion —
+   many Windows machines report it via "animation effects: off", which was
+   hiding the loading screen's centerpiece from real visitors (and the owner). */
+/* Big vertical LOADING on the LEFT edge, reading bottom-to-top, animated dots —
+   a graphic-design counterweight to the bottle pinned right (owner 2026-07-25). */
+.loader__load{
+  position:fixed;inset:0;z-index:2;pointer-events:none;
+  opacity:0;animation:loadfade 1s var(--ease) .3s forwards;
+}
+/* POINT-ANCHORED (owner 2026-07-25): the rotated wordmark is centred on (left,top)
+   regardless of how long the word is, so a bigger LOADING can NEVER drift into the
+   bottle. left/top = the column's visual centre. */
+.loader__loadrot{
+  position:absolute;
+  left:clamp(285px,45vw,530px);            /* column centre X (desktop) — moved right */
+  top:44%;                                  /* column centre Y (desktop) */
+  transform:translate(-50%,-50%) rotate(-90deg);transform-origin:center;
+  display:inline-flex;align-items:baseline;gap:.1em;white-space:nowrap;
+}
+.loader__loadword{
+  font-family:var(--sans);font-weight:800;text-transform:uppercase;
+  font-size:clamp(2.2rem,9vmin,4.6rem);letter-spacing:.14em;line-height:.9;
+  color:var(--ink);
+}
+.loader__dots{
+  font-family:var(--sans);font-weight:800;line-height:.9;color:var(--ink);
+  font-size:clamp(2.2rem,9vmin,4.6rem);letter-spacing:.02em;
+}
+.loader__dots i{font-style:normal;animation:dotpulse 1.4s infinite;}
+.loader__dots i:nth-child(2){animation-delay:.2s;}
+.loader__dots i:nth-child(3){animation-delay:.4s;}
+@keyframes loadfade{from{opacity:0;}to{opacity:1;}}
+/* MOBILE (owner 2026-07-25): vertical LOADING BIGGER and moved DOWN, kept clear of
+   the bottle on the left. */
+@media (max-width:760px){
+  .loader__loadrot{ left:calc(clamp(105px,31vw,235px) + env(safe-area-inset-left,0px)); top:63%; }
+  .loader__loadword,.loader__dots{ font-size:clamp(3.4rem,15vmin,6.6rem); }
+}
+/* iPHONE landscape: the notch eats the left edge — push the column clear of it. */
+@media (max-width:930px) and (orientation:landscape){
+  .loader__loadrot{ left:calc(clamp(200px,35vw,395px) + env(safe-area-inset-left,0px)); top:46%; }
+  .loader__loadword,.loader__dots{ font-size:clamp(1.9rem,11vmin,3.4rem); }
+}
+/* scroll fully locked while the splash is up (script.js lifts it AFTER the
+   fade completes). position:fixed is the iOS belt-and-braces: Safari can
+   ignore overflow:hidden for touch scrolling in the gap before script.js
+   attaches its touchmove blocker; a fixed body physically cannot scroll.
+   Safe because the page is always at scrollY 0 while the class is on. */
+html.is-loading{overflow:hidden;}
+html.is-loading body{position:fixed;inset:0;width:100%;overflow:hidden;touch-action:none;overscroll-behavior:none;}
+@keyframes dotpulse{0%,60%,100%{opacity:.2;}30%{opacity:1;}}
+@media (prefers-reduced-motion: reduce){.loader__dots i{animation:none;}}
 @keyframes rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
 
 /* ── nav ── */
@@ -194,7 +321,29 @@ input,select,textarea{accent-color:var(--olive);}
   background:var(--ink);padding:11px 22px;border-radius:100px;transition:background .3s,transform .3s;
 }
 .nav__cta:hover{background:var(--olive-deep);transform:translateY(-1px);}
-.nav__burger{display:none;background:none;border:0;cursor:pointer;width:34px;height:30px;position:relative;}
+/* ── language switch (EN / 日本語) — lives in the nav, over the hero ── */
+.nav__lang{
+  display:flex;align-items:center;gap:7px;
+  background:none;border:0;cursor:pointer;padding:4px 2px;
+  font-family:var(--sans);font-size:.72rem;font-weight:500;letter-spacing:.14em;
+  color:var(--ink);
+  margin-right:-14px;   /* nudge toward the right edge (owner ask); flex gap
+                           otherwise holds it a full 40px off its neighbour */
+}
+.nav__lang i{font-style:normal;opacity:.35;}
+.nav__lang span{opacity:.42;transition:opacity .25s;}
+.nav__lang span.on{opacity:1;}
+.nav:not(.solid) .nav__lang{color:var(--ink);text-shadow:0 1px 2px rgba(8,12,7,.45);}
+[data-theme="light"] .nav:not(.solid) .nav__lang{color:#F0E8D8;}
+/* Japanese mode: titles set in the JP serif so kana/kanji keep the brand's
+   editorial weight (Cormorant has no Japanese glyphs — without this swap the
+   headings fall back to a system font mid-page) */
+html:lang(ja){--serif:'Noto Serif JP',serif;}
+
+.nav__burger{display:none;background:none;border:0;cursor:pointer;width:34px;height:30px;position:relative;transition:opacity .45s var(--ease);}
+/* the burger stays OUT of the film: invisible while the nav rides transparent
+   over the cinematic hero, fades in with the solid nav once the journey ends */
+.nav:not(.solid) .nav__burger{opacity:0;pointer-events:none;}
 .nav__burger span{
   position:absolute;left:4px;right:4px;height:1.5px;background:var(--ink);transition:transform .35s var(--ease),top .35s;
 }
@@ -243,9 +392,13 @@ input,select,textarea{accent-color:var(--olive);}
 /* height enlarged from 520vh to absorb the underwater "slow zone" (scrubber.js
    SLOW): the extra travel goes to the water frames so everything else keeps its
    original scroll speed. Keep in sync with SLOW.factor/band. */
-.cine{position:relative;height:480vh;background:#0f150e;}  /* track shortened 655->480vh: each scroll covers more of the journey; the exponential pacing is normalised to track length, so the fast->slow shape is unchanged */
+.cine{position:relative;height:666vh;background:#0f150e;}
 .cine__sticky{
-  position:sticky;top:0;height:100svh;overflow:hidden;
+  /* dvh: the pinned stage must fill the REAL viewport at every moment — with
+     svh, the strip iOS frees when its URL bar collapses mid-scroll showed as a
+     bare parchment band under the film ("not full screen"). vh = fallback for
+     browsers without dynamic units. */
+  position:sticky;top:0;height:100vh;height:100dvh;overflow:hidden;
   background:#121a12;                       /* dark base — no white flash before frame 1 */
 }
 #heroCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
@@ -255,42 +408,67 @@ input,select,textarea{accent-color:var(--olive);}
   background:linear-gradient(180deg,rgba(12,17,11,.34) 0%,transparent 16%);
 }
 
-/* end card — the ONLY text on the hero: one italic line that fades + settles up
-   onto the ledge once the bottle has arrived (body.cine-end, toggled by the
-   engine's eased progress). No link — scrolling past the pinned stage lands you
-   in the Flavours section on its own, so a CTA would just duplicate the scroll. */
-.cine__end{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 1s var(--ease);}
-body.cine-end .cine__end{opacity:1;}
-/* bottom-left-biased scrim: seats the line, leaves the rest of the bright
-   golden-hour frame pristine — no heavy black band. */
-.cine__end-scrim{
-  position:absolute;inset:0;
-  background:
-    linear-gradient(to right, rgba(9,13,8,.28) 0%, rgba(9,13,8,0) 44%),
-    linear-gradient(to top,   rgba(9,13,8,.5) 0%, rgba(9,13,8,.26) 18%, rgba(9,13,8,0) 46%);
+/* brand line — the ONLY text on the hero: the standalone hero's minimalist
+   bottom-center credit, a letterspaced serif wordmark over a small sub-line,
+   sitting quietly over the film for its whole run. Fixed parchment (the
+   footage isn't themed); a soft shadow keeps it legible on bright sky frames. */
+.cine__brand{
+  position:absolute;left:50%;bottom:max(6vh,env(safe-area-inset-bottom));
+  transform:translateX(-50%);pointer-events:none;user-select:none;
+  color:#F4EFE6;font-family:Georgia,"Times New Roman",serif;
+  font-size:14px;letter-spacing:.42em;text-indent:.42em;
+  opacity:.85;text-align:center;
+  text-shadow:0 1px 2px rgba(8,12,7,.45),0 2px 24px rgba(8,12,7,.4);
 }
-/* two-font pull-quote — an italic serif (yin: flowing, organic) stacked over a
-   letterspaced uppercase sans (yang: structured, precise). Both sit over the
-   photo on a shared shadow; fades + settles up on body.cine-end. */
-.cine__end-title{
-  position:absolute;left:clamp(20px,6vw,90px);bottom:clamp(72px,13vh,140px);right:clamp(20px,6vw,90px);
-  margin:0;display:flex;flex-direction:column;align-items:flex-start;gap:clamp(6px,1.4vh,16px);
-  text-shadow:0 1px 2px rgba(8,12,7,.45),0 2px 40px rgba(8,12,7,.5);
-  transform:translateY(18px);transition:transform 1s var(--ease);will-change:transform;
+.cine__brand small{
+  display:block;margin-top:.6em;
+  font-size:9px;letter-spacing:.3em;text-indent:.3em;opacity:.6;
 }
-body.cine-end .cine__end-title{transform:none;}
-.cine__end-a{                            /* yin — flowing italic serif */
-  font-family:var(--serif);font-style:italic;font-weight:400;color:var(--ink);
-  font-size:clamp(2.8rem,7.4vw,5.6rem);line-height:.9;letter-spacing:-.015em;
+
+/* scroll-down cue — modern and wordless: a hairline vertical guide with a
+   SUBTLE streak of light dropping down it on a steady, seamless loop, ending
+   in a quiet chevron. No glow theatrics, no text — just consistent downward
+   motion. Lower third, above the brand credit, phone and desktop alike.
+   Fades away the moment the journey starts moving (scroll or auto-glide). */
+.cine__hint{
+  position:absolute;left:50%;
+  bottom:calc(max(6vh,env(safe-area-inset-bottom)) + 84px);
+  transform:translateX(-50%);
+  opacity:.8;
+  transition:opacity .8s var(--ease);pointer-events:none;user-select:none;
 }
-.cine__end-b{                            /* yang — structured letterspaced sans, resin-gold */
-  font-family:var(--sans);font-weight:500;text-transform:uppercase;color:var(--resin);
-  font-size:clamp(.95rem,2.3vw,1.6rem);letter-spacing:.4em;padding-left:.16em;
+/* the guide — a flat hairline; overflow clips the streak's run-in/out */
+.cine__hint i{
+  position:relative;
+  display:block;margin:0 auto;width:1px;height:54px;
+  background:rgba(244,239,230,.16);
+  overflow:hidden;
 }
-/* reduced motion: fade only — skip the settle-up slide */
-@media (prefers-reduced-motion:reduce){
-  .cine__end-title{transform:none!important;transition:none;}
+/* the streak — a soft slip of light, travelling top to bottom at constant
+   speed (linear + symmetric keyframes = no pause, no lurch: consistent) */
+.cine__hint i::before{
+  content:"";position:absolute;left:0;top:0;width:1px;height:22px;
+  background:linear-gradient(transparent,rgba(255,255,255,.85) 55%,transparent);
+  animation:hintStreak 2.4s linear infinite;
 }
+/* chevron below the line (on the container — the line clips its overflow) */
+.cine__hint::after{
+  content:"";position:absolute;left:50%;bottom:-5px;
+  width:6px;height:6px;
+  border-right:1px solid rgba(244,239,230,.5);border-bottom:1px solid rgba(244,239,230,.5);
+  transform:translateX(-50%) rotate(45deg);
+}
+@keyframes hintStreak{
+  0%   {transform:translateY(-22px);opacity:0;}
+  20%  {opacity:1;}
+  80%  {opacity:1;}
+  100% {transform:translateY(54px);opacity:0;}
+}
+/* reduced motion: keep the cue (line + chevron), park the streak */
+@media (prefers-reduced-motion: reduce){
+  .cine__hint i::before{animation:none;opacity:0;}
+}
+body.cine-moving .cine__hint{opacity:0;}
 
 /* Otherwise the hero is pure: nothing over the frames but the faint nav scrim.
    The scrub is scroll-CONTROLLED (not auto-motion), so it stays on under
@@ -384,6 +562,124 @@ body.cine-end .cine__end-title{transform:none;}
 .stats li:nth-child(2) .stats__n{color:var(--sun);}
 .stats li:nth-child(3) .stats__n{color:var(--olive);}
 .stats li:nth-child(4) .stats__n{color:var(--clay);}
+
+/* ═══ CERTIFICATE OF COMPOSITION — the essence as an assay certificate ═══
+   Scientific-minimalist: double hairline frame, specimen plate (currentColor
+   engraving), dotted-leader assay, Chios↔Japan coordinate rule. Mono is a
+   garnish — values, units, coords, captions only, never sentences. All colour
+   from tokens so both themes flip free. */
+.cert{
+  --mono:"SF Mono",ui-monospace,"Cascadia Code",Consolas,monospace;
+  position:relative;max-width:840px;margin:0 auto;
+  padding:clamp(34px,5vw,60px) clamp(20px,5vw,56px);
+  border:1px solid var(--hairline);
+}
+.cert::before{content:"";position:absolute;inset:6px;border:1px solid var(--hairline);pointer-events:none;}
+/* the card itself stays put — its CHILDREN carry the staggered reveal on .in */
+.cert.reveal{opacity:1;transform:none;transition:none;}
+.cert__caption{
+  font-family:var(--sans);font-weight:600;font-size:.62rem;letter-spacing:.34em;
+  text-transform:uppercase;line-height:1.6;color:var(--muted);
+  margin:0 0 clamp(30px,5vw,48px);
+}
+.cert .stats{max-width:660px;margin:0 auto;border-top:0;padding-top:0;gap:18px;}
+.cert .stats__n{font-size:clamp(2.8rem,6vw,4.2rem);font-variant-numeric:tabular-nums;}
+.cert .stats__cap{margin-top:12px;font-size:.62rem;}
+.stat__unit{
+  display:block;margin-top:7px;font-family:var(--mono);
+  font-size:.6rem;letter-spacing:.05em;color:var(--muted);
+}
+
+/* — specimen plate beside the assay — */
+.cert__mid{
+  display:grid;grid-template-columns:minmax(130px,190px) minmax(0,1fr);
+  gap:clamp(26px,6vw,60px);align-items:center;
+  max-width:640px;margin:clamp(36px,6vw,54px) auto 0;
+}
+.plate__art{width:100%;max-width:190px;margin:0 auto;color:var(--ink);}
+.plate__art svg{display:block;width:100%;height:auto;overflow:visible;}
+.plate__art path,.plate__art circle{
+  fill:none;stroke:currentColor;stroke-width:1.35;
+  stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;
+}
+.plate__art .fruit{color:var(--olive);}
+.plate__art .resin{color:var(--sun);}
+.plate__fig{
+  margin-top:14px;font-family:var(--mono);font-size:.6rem;
+  letter-spacing:.12em;color:var(--muted);text-align:center;
+}
+.plate__fig i{font-family:var(--serif);font-style:italic;font-size:1.25em;letter-spacing:.01em;color:var(--ink-soft);}
+
+.cert__data{text-align:left;}
+.assay__per{
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--ink-soft);margin:0 0 14px;text-align:center;
+}
+.assay__per span{font-family:var(--serif);color:var(--muted);}
+.assay{list-style:none;margin:0;}
+.assay__row{display:flex;align-items:baseline;padding:8px 2px;border-top:1px solid var(--hairline);}
+.assay__row:last-child{border-bottom:1px solid var(--hairline);}
+.assay__k{
+  font-family:var(--sans);font-size:.7rem;font-weight:500;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap;
+}
+.assay__row--sub .assay__k{
+  font-family:var(--serif);font-style:italic;font-size:.92rem;text-transform:none;
+  letter-spacing:.01em;font-weight:400;color:var(--muted);padding-left:1.3em;
+}
+.assay__lead{flex:1 1 auto;height:0;margin:0 .7em;border-bottom:1px dotted var(--hairline);transform:translateY(-.18em);}
+.assay__v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.7rem;letter-spacing:.04em;color:var(--ink);white-space:nowrap;}
+.assay__fig{display:inline-block;min-width:1.4em;text-align:right;}
+.assay__u{display:inline-block;min-width:2.6em;text-align:left;margin-left:.45em;color:var(--muted);}
+
+/* — footnote (labelling thresholds — a fact, not a virtue) — */
+.cert__note{
+  max-width:520px;margin:clamp(30px,5vw,44px) auto 0;
+  font-family:var(--sans);font-size:.6rem;line-height:1.7;letter-spacing:.02em;color:var(--muted);
+}
+
+/* — motion: engraving draw-on + staggered certificate (observer adds .in) — */
+@media (prefers-reduced-motion:no-preference){
+  .cert .plate__art path,.cert .plate__art circle{
+    stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.3s var(--ease);
+  }
+  .cert.in .plate__art path,.cert.in .plate__art circle{stroke-dashoffset:0;}
+  .cert .plate__art .art-leaves *{transition-delay:.18s;}
+  .cert .plate__art .resin *{transition-delay:.5s;}
+  .cert .plate__art .fruit *{transition-delay:.7s;}
+
+  .cert__caption,.cert .stats li,.cert__plate,.assay__per,.assay__row,.cert__note{
+    opacity:0;transform:translateY(12px);
+    transition:opacity .8s var(--ease),transform .8s var(--ease);
+  }
+  .cert.in .cert__caption,.cert.in .stats li,.cert.in .cert__plate,.cert.in .assay__per,
+  .cert.in .assay__row,.cert.in .cert__note{opacity:1;transform:none;}
+  .cert.in .cert__caption{transition-delay:.05s;}
+  .cert.in .stats li:nth-child(1){transition-delay:.12s;}
+  .cert.in .stats li:nth-child(2){transition-delay:.18s;}
+  .cert.in .stats li:nth-child(3){transition-delay:.24s;}
+  .cert.in .stats li:nth-child(4){transition-delay:.30s;}
+  .cert.in .cert__plate{transition-delay:.36s;}
+  .cert.in .assay__per{transition-delay:.42s;}
+  .cert.in .assay__row:nth-child(1){transition-delay:.48s;}
+  .cert.in .assay__row:nth-child(2){transition-delay:.54s;}
+  .cert.in .assay__row:nth-child(3){transition-delay:.60s;}
+  .cert.in .assay__row:nth-child(4){transition-delay:.66s;}
+  .cert.in .assay__row:nth-child(5){transition-delay:.72s;}
+  .cert.in .assay__row:nth-child(6){transition-delay:.78s;}
+  .cert.in .cert__note{transition-delay:.86s;}
+}
+
+/* — ≤760px: plate stacks over the assay, stats 2-col, tighter frame — */
+@media (max-width:760px){
+  .cert{padding:clamp(24px,7vw,40px) clamp(16px,6vw,30px);}
+  .cert::before{inset:5px;}
+  .cert .stats{grid-template-columns:repeat(2,1fr);gap:30px 18px;}
+  .cert__mid{grid-template-columns:1fr;gap:26px;}
+  .plate__art{max-width:150px;}
+  .cert__data{max-width:420px;margin:0 auto;width:100%;}
+  .assay__k{letter-spacing:.08em;}
+}
 
 /* ═══ DRIFTLINE — outlined type scrubbed by scroll ═══ */
 .driftline{
@@ -599,14 +895,69 @@ body.cine-end .cine__end-title{transform:none;}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-bottom-color:var(--olive);}
 .fg input::placeholder,.fg textarea::placeholder{color:var(--muted);}
 .order__form .btn{margin-top:8px;align-self:flex-start;}
+/* ── order flow modal — accept the terms, review the order, place it.
+   (replaced the inline consent checkbox; the ACCEPT click is the recorded
+   acknowledgment.) Mirrors the merch lightbox pattern: fixed veil + card. ── */
+.ordm{
+  position:fixed;inset:0;z-index:800;background:rgba(14,11,8,.6);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+}
+.ordm[hidden]{display:none;}
+.ordm__card{
+  position:relative;background:var(--paper);border:1px solid var(--hairline);
+  border-radius:22px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto;
+  padding:clamp(22px,4vw,34px);
+}
+.ordm__close{
+  position:absolute;top:10px;right:14px;background:none;border:0;cursor:pointer;
+  font-size:1.6rem;line-height:1;color:var(--muted);transition:color .2s;
+}
+.ordm__close:hover{color:var(--ink);}
+.ordm__title{font-family:var(--serif);font-weight:500;font-size:1.5rem;margin-bottom:14px;color:var(--ink);}
+.ordm__body p{font-size:.9rem;color:var(--ink-soft);line-height:1.7;margin-bottom:12px;}
+.ordm__body a{color:var(--olive);text-decoration:underline;}
+.ordm__summary{margin:6px 0 14px;}
+.ordm__summary div{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--hairline);font-size:.9rem;}
+.ordm__summary dt{color:var(--muted);flex:none;}
+.ordm__summary dd{color:var(--ink);text-align:right;word-break:break-word;white-space:pre-line;}
+.ordm__note{font-size:.78rem;color:var(--muted);}
+.ordm__actions{display:flex;justify-content:flex-end;gap:12px;margin-top:16px;flex-wrap:wrap;}
+.ordm__ghost{background:transparent;border:1px solid var(--hairline);color:var(--ink-soft);}
+.ordm__ghost:hover{border-color:var(--muted);color:var(--ink);}
 .order__note{font-size:.78rem;letter-spacing:.04em;color:var(--muted);}
 .order__ok{font-family:var(--jp);font-weight:400;font-size:.98rem;color:var(--olive-deep);}
 
 /* ═══ FOOTER ═══ */
 .footer{
-  background:var(--dark);color:rgba(249,245,233,.6);
-  padding:60px clamp(20px,7vw,110px) 36px;position:relative;
+  /* background matches the panorama art's exact green so the art and the
+     footer read as one continuous piece (no CSS scallop edge — the art
+     carries its own seigaiha band) */
+  background:#212C21;color:rgba(249,245,233,.6);
+  padding:0 0 36px;position:relative;
+  /* gilded seam: the footer art's green meets the candle-umber page on an
+     intentional hairline instead of a bare hue boundary */
+  border-top:1px solid rgba(232,210,170,.22);
 }
+/* NIGHT theme only: sink the footer to a deeper green so it settles into the
+   dark page. Daylight keeps #212C21 (matches the panorama art's green band). */
+:root:not([data-theme="light"]) .footer{background:#161E16;}
+/* NIGHT seam: the panorama's bottom green band (#212e23) meets the darker night
+   footer. Overlay a scrim sized to the art (fixed 3:1, full-bleed) that fades
+   transparent→#161E16 across only the art's bottom ~10% solid-green filler,
+   dissolving the hue step into a seamless join. Day needs no scrim (bg matches
+   the art), so this is night-only and leaves the wave crests untouched. */
+:root:not([data-theme="light"]) .footer::before{
+  content:"";position:absolute;left:0;top:0;width:100%;
+  aspect-ratio:1800/600;pointer-events:none;
+  background:linear-gradient(to bottom,transparent 90%,#161E16 100%);
+}
+/* the original footer art — Fuji to the ruins of Chios, full-bleed across the
+   top of the footer, flush against its upper edge */
+.footer__art{
+  display:block;width:100%;height:auto;margin:0 0 44px;
+}
+.footer__top,.footer__bottom{margin-left:clamp(20px,7vw,110px);margin-right:clamp(20px,7vw,110px);}
 .footer__top{
   display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
   padding-bottom:34px;border-bottom:1px solid rgba(249,245,233,.14);
@@ -620,6 +971,27 @@ body.cine-end .cine__end-title{transform:none;}
   text-decoration:none;transition:color .25s;
 }
 .footer__links a:hover{color:var(--ink);}
+/* ── i18n BLOCKS: one chosen language at a time ──
+   Long-form pages (care.html / legal.html) ship BOTH languages as duplicated
+   .i18n-en / .i18n-ja blocks and switch purely on the <html lang> attribute —
+   the same attribute script.js's dictionary switcher sets on index/mobile, so
+   the whole site agrees on one source of truth. Only tagged elements
+   participate — decorative Japanese brand accents (logo kana, eyebrows) carry
+   no tag and never switch. Static default lang="en" = correct no-JS fallback. */
+html[lang="ja"] .i18n-en{display:none!important;}
+html[lang="en"] .i18n-ja{display:none!important;}
+
+/* legal row — customer care / legal / tokushoho / support, on every page */
+.footer__legal{
+  display:flex;gap:22px;flex-wrap:wrap;justify-content:flex-start;
+  margin:20px clamp(20px,7vw,110px) 0;
+  padding-bottom:22px;border-bottom:1px solid rgba(249,245,233,.14);
+}
+.footer__legal a{
+  font-size:.72rem;letter-spacing:.06em;color:rgba(249,245,233,.45);
+  text-decoration:none;transition:color .25s;
+}
+.footer__legal a:hover{color:var(--ink);}
 .footer__bottom{
   display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
   padding-top:26px;font-size:.75rem;letter-spacing:.06em;
@@ -643,13 +1015,26 @@ body.cine-end .cine__end-title{transform:none;}
 @media (max-width:760px){
   .nav__links{
     position:fixed;top:var(--nav-h);left:0;right:0;flex-direction:column;gap:0;
-    background:var(--paper);border-bottom:1px solid var(--hairline);
+    background:var(--paper);
+    /* border only when OPEN — a collapsed max-height:0 panel still paints its
+       border, which read as a stray 1px line under the nav over the hero */
     max-height:0;overflow:hidden;transition:max-height .5s var(--ease);
   }
-  .nav__links.open{max-height:340px;}
+  .nav__links.open{max-height:340px;border-bottom:1px solid var(--hairline);}
   .nav__links a{padding:18px clamp(20px,5vw,64px);border-top:1px solid var(--hairline);font-size:.9rem;}
   .nav__cta{display:none;}
-  .nav__burger{display:block;}
+  .nav__burger{
+    display:block;
+    transition:opacity .45s var(--ease),width .45s var(--ease),margin-left .45s var(--ease);
+  }
+  /* over the hero the burger is hidden — collapse its slot (width + one flex
+     gap) so the EN/日本語 switch rides the RIGHT edge of the film; both ease
+     back when the solid nav brings the burger in. The switch's global -14px
+     nudge (tightens it toward the burger) resets here, or it overshoots past
+     the nav padding to ~6px from the glass. */
+  .nav:not(.solid) .nav__burger{width:0;margin-left:-40px;}
+  .nav__lang{transition:margin-right .45s var(--ease);}
+  .nav:not(.solid) .nav__lang{margin-right:0;}
   .stats{grid-template-columns:repeat(2,1fr);row-gap:40px;}
   .ritual__grid{grid-template-columns:1fr;}
   .find__form{flex-direction:column;}
@@ -668,47 +1053,4 @@ body.cine-end .cine__end-title{transform:none;}
   .flavours__halo::after{animation:none;}
   .reveal--fade{opacity:1;transition:none;}
   .nav.hidden{transform:none;}
-}
-
-/* ═══ CANDLELIT NIGHT 🕯 — only when the clock theme is dark ═══
-   A warm candle ambience laid over the espresso night theme: an amber glow
-   breathing up from below the viewport (the unseen candle), a faint warm
-   vignette pulling the edges in, and a soft halo on the gold end-card line.
-   Two fixed pseudo-layers animating OPACITY ONLY (compositor work — no layout,
-   no paint storms, safe over the hero canvas). Their periods are deliberately
-   incommensurate (7.3s / 4.7s) so the flicker never reads as a loop. The day
-   theme is untouched; reduced-motion keeps the warmth but stills the flame. */
-:root[data-theme="dark"] body::after{
-  content:"";position:fixed;inset:0;z-index:80;pointer-events:none;
-  background:
-    radial-gradient(120% 85% at 50% 118%, var(--amber-glow) 0%, var(--amber-soft) 34%, transparent 62%),
-    radial-gradient(150% 125% at 50% 45%, transparent 60%, rgba(9,6,3,.38) 100%);
-  opacity:.82;
-  animation:candleBreathe 7.3s ease-in-out infinite;
-}
-:root[data-theme="dark"] body::before{
-  content:"";position:fixed;inset:0;z-index:80;pointer-events:none;
-  background:radial-gradient(85% 55% at 50% 112%, rgba(224,164,88,.13) 0%, transparent 55%);
-  opacity:.5;
-  animation:candleWaver 4.7s ease-in-out infinite;
-}
-/* uneven keyframe spacing = organic waver, small amplitude = candle, not strobe */
-@keyframes candleBreathe{
-  0%,100%{opacity:.82} 13%{opacity:.9} 26%{opacity:.76} 39%{opacity:.88}
-  52%{opacity:.8} 64%{opacity:.92} 78%{opacity:.74} 90%{opacity:.86}
-}
-@keyframes candleWaver{
-  0%,100%{opacity:.5} 17%{opacity:.62} 33%{opacity:.42} 49%{opacity:.58}
-  66%{opacity:.38} 83%{opacity:.6}
-}
-/* the gold line of the end-card catches the candle */
-:root[data-theme="dark"] .cine__end-b{
-  text-shadow:0 0 18px var(--amber-glow), 0 0 46px rgba(224,164,88,.18);
-}
-:root[data-theme="dark"] .cine__end-a{
-  text-shadow:0 2px 26px rgba(0,0,0,.4);
-}
-@media (prefers-reduced-motion:reduce){
-  :root[data-theme="dark"] body::after,
-  :root[data-theme="dark"] body::before{animation:none;}
 }

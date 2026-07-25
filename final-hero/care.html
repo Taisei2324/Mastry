@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script>
+/* Language boot — stored choice, else the browser's language; pre-paint so a
+   Japanese visitor never sees an English flash. The page ships BOTH languages
+   as .i18n-en / .i18n-ja blocks; CSS on <html lang> shows exactly one. */
+(function () {
+  var l = null;
+  try { l = localStorage.getItem('mastry-lang'); } catch (e) {}
+  if (l !== 'ja' && l !== 'en') l = ((navigator.language || '').toLowerCase().indexOf('ja') === 0) ? 'ja' : 'en';
+  document.documentElement.lang = l;
+})();
+</script>
+<title>Customer Care — お客様サポート — MASTRY</title>
+<meta name="description" content="MASTRY customer care — ingredients, nutrition, allergen information, product handling, shipping, returns and support. 成分・アレルギー・配送・返品のご案内。" />
+<link rel="icon" href="images/icon-32.png" type="image/png" sizes="32x32" />
+<link rel="icon" href="images/icon-64.png" type="image/png" sizes="64x64" />
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+<style>
+/* ── care-page styles, on the shared palette ── */
+.care{max-width:860px;margin:0 auto;padding-top:calc(var(--nav-h) + clamp(50px,8vw,90px));}
+.care__head{text-align:center;margin-bottom:clamp(40px,6vw,70px);}
+.care__sub{max-width:52ch;margin:0 auto;color:var(--ink-soft);font-size:.98rem;}
+.care section{padding:clamp(26px,4vw,44px) 0;border-top:1px solid var(--hairline);}
+.care section:first-of-type{border-top:0;}
+.care h2{font-family:var(--serif);font-weight:500;font-size:clamp(1.5rem,2.6vw,2rem);margin-bottom:16px;color:var(--ink);}
+.care h3{font-family:var(--serif);font-weight:500;font-size:1.1rem;margin:20px 0 6px;color:var(--ink);}
+.care p,.care li{font-size:.95rem;color:var(--ink-soft);line-height:1.75;}
+.care ul{padding-left:1.2em;margin:8px 0;}
+.care table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.92rem;}
+.care th,.care td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--hairline);color:var(--ink-soft);}
+.care th{font-weight:600;color:var(--ink);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;}
+.care__note{font-size:.82rem;color:var(--muted);margin-top:10px;}
+.care__callout{
+  background:var(--paper-deep);border:1px solid var(--hairline);border-radius:14px;
+  padding:18px 20px;margin:14px 0;
+}
+.care__callout p{margin:0;}
+/* JP text uses the serif JP family inside body copy */
+.i18n-ja{font-family:var(--jp),var(--sans);}
+</style>
+</head>
+<body>
+
+<div id="progress" aria-hidden="true"></div>
+
+<!-- ══ Nav (shared look) ══ -->
+<header class="nav solid" id="nav">
+  <a class="nav__logo" href="index.html">MASTRY<span class="nav__logo-jp">マストリー</span></a>
+  <nav class="nav__links" id="navLinks" aria-label="Main">
+    <a href="index.html#story"><span class="i18n-en">Story</span><span class="i18n-ja">ストーリー</span></a>
+    <a href="index.html#flavours"><span class="i18n-en">Flavours</span><span class="i18n-ja">フレーバー</span></a>
+    <a href="index.html#find"><span class="i18n-en">Order</span><span class="i18n-ja">注文</span></a>
+    <a href="merch.html"><span class="i18n-en">Merch</span><span class="i18n-ja">グッズ</span></a>
+  </nav>
+  <a class="nav__cta" href="index.html#find"><span class="i18n-en">Find Mastry</span><span class="i18n-ja">ご注文はこちら</span></a>
+  <button class="nav__lang" id="langToggle" aria-label="Switch language / 言語を切り替える">
+    <span data-lang-opt="en" class="on">EN</span><i>/</i><span data-lang-opt="ja">日本語</span>
+  </button>
+  <button class="nav__burger" id="burger" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span>
+  </button>
+</header>
+
+<main class="care section">
+  <div class="care__head">
+    <p class="section__eyebrow">Customer Care — お客様サポート</p>
+    <h1 class="section__title"><span class="i18n-en">Everything in the <em>bottle.</em></span><span class="i18n-ja">ボトルの中の<em>すべて。</em></span></h1>
+    <p class="care__sub"><span class="i18n-en">What Mastry is made of, how to enjoy it safely,
+    and how to reach us when you need to.</span><span class="i18n-ja">マストリーの成分、安全なお楽しみ方、そしてお問い合わせ先のご案内です。</span></p>
+  </div>
+
+  <section id="ingredients">
+    <div class="i18n-en">
+      <h2>Ingredients</h2>
+      <p>Every Mastry is built on the same base: carbonated water (water, carbon dioxide)
+      and mastic — the crystal resin of <em>Pistacia lentiscus</em> from Chios, Greece.
+      Nothing artificial, no sweeteners, no preservatives.</p>
+      <table>
+        <tr><th>Flavour</th><th>Ingredients</th></tr>
+        <tr><td>Original Mastic</td><td>Carbonated water, mastic extract</td></tr>
+        <tr><td>Yuzu Mastic</td><td>Carbonated water, mastic extract, natural yuzu flavour</td></tr>
+        <tr><td>Ume Mastic</td><td>Carbonated water, mastic extract, natural ume (Japanese plum) flavour</td></tr>
+        <tr><td>Hinoki Mastic</td><td>Carbonated water, mastic extract, natural hinoki (Japanese cypress) flavour</td></tr>
+      </table>
+    </div>
+    <div class="i18n-ja">
+      <h2>原材料</h2>
+      <p>すべてのマストリーは同じベースでできています：炭酸水（水・二酸化炭素）と、ギリシャ・ヒオス島産の樹木
+      <em>Pistacia lentiscus</em>（マスティックの木）の天然樹脂であるマスティック。
+      人工甘味料・保存料は使用していません。</p>
+      <table>
+        <tr><th>フレーバー</th><th>原材料</th></tr>
+        <tr><td>Original Mastic</td><td>炭酸水、マスティック抽出物</td></tr>
+        <tr><td>Yuzu Mastic</td><td>炭酸水、マスティック抽出物、柚子香料（天然）</td></tr>
+        <tr><td>Ume Mastic</td><td>炭酸水、マスティック抽出物、梅香料（天然）</td></tr>
+        <tr><td>Hinoki Mastic</td><td>炭酸水、マスティック抽出物、檜香料（天然）</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section id="nutrition">
+    <div class="i18n-en">
+      <h2>Nutrition</h2>
+      <p>Per 100&nbsp;ml, all flavours:</p>
+      <table>
+        <tr><th>Energy</th><td>0&nbsp;kcal</td></tr>
+        <tr><th>Protein</th><td>0&nbsp;g</td></tr>
+        <tr><th>Fat</th><td>0&nbsp;g</td></tr>
+        <tr><th>Carbohydrate</th><td>0&nbsp;g</td></tr>
+        <tr><th>— of which sugars</th><td>0&nbsp;g</td></tr>
+        <tr><th>Salt equivalent</th><td>0&nbsp;g</td></tr>
+      </table>
+      <p class="care__note">"Zero" declarations follow Japanese food-labelling thresholds
+      (less than 5&nbsp;kcal and less than 0.5&nbsp;g sugars per 100&nbsp;ml).</p>
+    </div>
+    <div class="i18n-ja">
+      <h2>栄養成分表示</h2>
+      <p>100mlあたり（全フレーバー共通）：</p>
+      <table>
+        <tr><th>エネルギー</th><td>0&nbsp;kcal</td></tr>
+        <tr><th>たんぱく質</th><td>0&nbsp;g</td></tr>
+        <tr><th>脂質</th><td>0&nbsp;g</td></tr>
+        <tr><th>炭水化物</th><td>0&nbsp;g</td></tr>
+        <tr><th>　うち糖類</th><td>0&nbsp;g</td></tr>
+        <tr><th>食塩相当量</th><td>0&nbsp;g</td></tr>
+      </table>
+      <p class="care__note">「ゼロ」表示は食品表示基準の閾値（100mlあたり5kcal未満・糖類0.5g未満）に基づきます。</p>
+    </div>
+  </section>
+
+  <section id="allergens">
+    <div class="i18n-en">
+      <h2>Allergen information</h2>
+      <div class="care__callout">
+        <p>MASTRY contains mastic — the natural resin known as
+        <strong>mastic tears</strong>, tapped from <em>Pistacia lentiscus</em>,
+        a tree in the pistachio family (Anacardiaceae). Because of this family
+        relationship, people with a pistachio, cashew, or mango allergy can
+        react to the resin: if that's you, please consult your doctor before
+        drinking. Mastic is not among Japan's mandated allergens; we disclose
+        it voluntarily. Questions:
+        <a href="mailto:hello@mastry.jp">hello@mastry.jp</a>.</p>
+      </div>
+      <p>Mastry contains none of the allergens Japan requires to be labelled
+      (egg, milk, wheat, buckwheat, peanut, shrimp, crab, walnut) and is produced
+      without gluten, soy, or animal products.</p>
+    </div>
+    <div class="i18n-ja">
+      <h2>アレルギー情報</h2>
+      <div class="care__callout">
+        <p>マストリーには、「マスティックティアーズ（涙）」と呼ばれる天然樹脂 —
+        ウルシ科（ピスタチオと同じ科）の樹木 <em>Pistacia lentiscus</em> から採取される
+        マスティックが含まれています。同じ科に属するため、ピスタチオ、カシューナッツ、
+        マンゴーにアレルギーのある方は樹脂にも反応する可能性があります。該当する方は、
+        飲用前に必ず医師にご相談ください。マスティックは日本の特定原材料等には
+        含まれていませんが、自主的に開示しています。ご不明な点は
+        <a href="mailto:hello@mastry.jp">hello@mastry.jp</a> までお問い合わせください。</p>
+      </div>
+      <p>特定原材料8品目（卵・乳・小麦・そば・落花生・えび・かに・くるみ）は含まれていません。
+      グルテン・大豆・動物性原料も不使用です。</p>
+    </div>
+  </section>
+
+  <section id="product-facts">
+    <div class="i18n-en">
+      <h2>Product facts &amp; safe handling</h2>
+      <ul>
+        <li><strong>Non-alcoholic — 0.00% ABV.</strong> Mastry is sparkling water, not a
+        mastiha liqueur. It contains no alcohol and no caffeine.</li>
+        <li><strong>Pressurised glass bottle.</strong> Do not shake. Do not freeze —
+        a frozen bottle can burst. Open chilled, and point the bottle away from
+        your face when opening.</li>
+        <li><strong>Storage.</strong> Store in a cool, dark place away from direct
+        sunlight. Refrigerate after opening and finish within 24 hours — the
+        bubbles are best the day you open it.</li>
+        <li><strong>Best-before &amp; lot.</strong> The best-before date and lot code
+        are printed on every bottle. If you ever need to reference a bottle,
+        that lot code is what to send us.</li>
+      </ul>
+    </div>
+    <div class="i18n-ja">
+      <h2>製品情報と安全なお取り扱い</h2>
+      <ul>
+        <li><strong>ノンアルコール — 0.00%。</strong>マストリーはマスティハ・リキュールではなく、
+        炭酸水です。アルコール・カフェインは含まれていません。</li>
+        <li><strong>ガラス瓶入り炭酸飲料。</strong>振らないでください。凍らせないでください —
+        凍結すると瓶が破裂するおそれがあります。よく冷やしてから、顔を近づけずに開栓してください。</li>
+        <li><strong>保存方法。</strong>直射日光を避け、冷暗所で保存してください。開栓後は冷蔵し、
+        24時間以内にお飲みください — 炭酸は開けたその日が最もおいしくお楽しみいただけます。</li>
+        <li><strong>賞味期限とロット番号。</strong>すべての瓶に賞味期限とロット番号を記載しています。
+        お問い合わせの際は、瓶のロット番号をお知らせください。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="shipping">
+    <div class="i18n-en">
+      <h2>Shipping &amp; delivery</h2>
+      <ul>
+        <li>All orders ship from Japan. Domestic delivery typically arrives in
+        3–5 business days; international delivery times are estimates and vary
+        by destination and carrier.</li>
+        <li>International orders: customs duties, import taxes, and handling fees
+        are the recipient's responsibility. Whether a food product may be
+        imported is governed by your country's rules — please check local import
+        regulations before ordering.</li>
+        <li>Orders are confirmed by email within one business day. Your contract
+        with us forms when we send that confirmation.</li>
+      </ul>
+    </div>
+    <div class="i18n-ja">
+      <h2>配送について</h2>
+      <ul>
+        <li>すべてのご注文は日本から発送します。国内は通常3〜5営業日でお届けします。
+        海外への配送日数は目安であり、お届け先や配送業者により異なります。</li>
+        <li>海外へのご注文：関税・輸入税・手数料は受取人のご負担となります。食品の輸入可否は
+        各国の規則によりますので、ご注文前にお住まいの国の輸入規制をご確認ください。</li>
+        <li>ご注文は1営業日以内にメールにて確認いたします。当店との契約は、この確認メールの
+        送信をもって成立します。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="returns">
+    <div class="i18n-en">
+      <h2>Returns</h2>
+      <p>Because Mastry is a food product, we cannot accept returns after
+      shipment except when something is wrong: if your order arrives damaged,
+      defective, or incorrect, email a photo of the bottles and the lot code to
+      <a href="mailto:hello@mastry.jp">hello@mastry.jp</a> within 7 days of
+      delivery and we will replace the order or refund it — your choice.
+      Full policy: <a href="legal.html#tokushoho">返品特約 / Returns</a>.</p>
+    </div>
+    <div class="i18n-ja">
+      <h2>返品について</h2>
+      <p>食品のため、発送後のお客様都合による返品はお受けできません。商品に破損・不良・誤配送が
+      あった場合は、商品到着後7日以内に、瓶の写真とロット番号を添えて
+      <a href="mailto:hello@mastry.jp">hello@mastry.jp</a> までご連絡ください。
+      交換または返金（お客様のご希望に応じて）にて対応いたします。
+      詳細：<a href="legal.html#tokushoho">返品特約</a>。</p>
+    </div>
+  </section>
+
+  <section id="support">
+    <div class="i18n-en">
+      <h2>Support</h2>
+      <p>One address for everything — orders, allergen questions, damaged
+      bottles, wholesale: <a href="mailto:hello@mastry.jp">hello@mastry.jp</a>.
+      We reply within 2 business days, usually faster.</p>
+    </div>
+    <div class="i18n-ja">
+      <h2>お問い合わせ</h2>
+      <p>ご注文、アレルギーに関するご質問、破損のご連絡、卸売のご相談 — すべて
+      <a href="mailto:hello@mastry.jp">hello@mastry.jp</a> までどうぞ。
+      2営業日以内（通常はそれより早く）にご返信いたします。</p>
+    </div>
+  </section>
+</main>
+
+<!-- ══ Footer (shared look) ══ -->
+<footer class="footer">
+  <img class="footer__art" src="images/footer-panorama.webp" alt="" loading="lazy" decoding="async" />
+  <div class="footer__top">
+    <a class="footer__logo" href="index.html">MASTRY</a>
+    <nav class="footer__links" aria-label="Footer">
+      <a href="index.html#story"><span class="i18n-en">Story</span><span class="i18n-ja">ストーリー</span></a>
+      <a href="index.html#flavours"><span class="i18n-en">Flavours</span><span class="i18n-ja">フレーバー</span></a>
+      <a href="index.html#find"><span class="i18n-en">Order</span><span class="i18n-ja">注文</span></a>
+      <a href="merch.html"><span class="i18n-en">Merch</span><span class="i18n-ja">グッズ</span></a>
+    </nav>
+  </div>
+  <nav class="footer__legal" aria-label="Legal">
+    <a href="care.html"><span class="i18n-en">Customer Care</span><span class="i18n-ja">カスタマーサポート</span></a>
+    <a href="legal.html"><span class="i18n-en">Legal</span><span class="i18n-ja">法的情報</span></a>
+    <a href="legal.html#tokushoho">特定商取引法に基づく表記</a>
+    <a href="mailto:hello@mastry.jp">hello@mastry.jp</a>
+  </nav>
+  <div class="footer__bottom">
+    <p><span class="i18n-en">Mastic from Chios, Greece · Assembled in Japan</span><span class="i18n-ja">ギリシャ・ヒオス島のマスティック · 日本にて仕上げ</span></p>
+    <p><span class="i18n-en">© 2026 Mastry. Sparkling water with mastic.</span><span class="i18n-ja">© 2026 Mastry. マスティックのスパークリングウォーター。</span></p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var progress = document.getElementById("progress");
+  window.addEventListener("scroll", function () {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    progress.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + "%";
+  }, { passive: true });
+  var burger = document.getElementById("burger");
+  var navLinks = document.getElementById("navLinks");
+  burger.addEventListener("click", function () {
+    var open = navLinks.classList.toggle("open");
+    burger.classList.toggle("open", open);
+    burger.setAttribute("aria-expanded", open);
+  });
+  /* language toggle — this page is pure CSS-block switching on <html lang>;
+     shares the mastry-lang key with the main pages' dictionary switcher */
+  var toggle = document.getElementById("langToggle");
+  function paint(l) {
+    toggle.querySelectorAll("[data-lang-opt]").forEach(function (s) {
+      s.classList.toggle("on", s.getAttribute("data-lang-opt") === l);
+    });
+  }
+  toggle.addEventListener("click", function () {
+    var l = document.documentElement.lang === "ja" ? "en" : "ja";
+    document.documentElement.lang = l;
+    try { localStorage.setItem("mastry-lang", l); } catch (e) {}
+    paint(l);
+  });
+  paint(document.documentElement.lang === "ja" ? "ja" : "en");
+})();
+</script>
+</body>
+</html>

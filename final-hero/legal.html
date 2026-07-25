@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script>
+/* Language boot — stored choice, else the browser's language; pre-paint so a
+   Japanese visitor never sees an English flash. The page ships BOTH languages
+   as .i18n-en / .i18n-ja blocks; CSS on <html lang> shows exactly one. */
+(function () {
+  var l = null;
+  try { l = localStorage.getItem('mastry-lang'); } catch (e) {}
+  if (l !== 'ja' && l !== 'en') l = ((navigator.language || '').toLowerCase().indexOf('ja') === 0) ? 'ja' : 'en';
+  document.documentElement.lang = l;
+})();
+</script>
+<title>Legal — 法的情報 — MASTRY</title>
+<meta name="description" content="MASTRY legal information — 特定商取引法に基づく表記, terms of sale, privacy policy and disclaimers. 販売条件・プライバシーポリシー・免責事項。" />
+<link rel="icon" href="images/icon-32.png" type="image/png" sizes="32x32" />
+<link rel="icon" href="images/icon-64.png" type="image/png" sizes="64x64" />
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+<style>
+/* ── legal-page styles: the brand's typographic family, kept plain ── */
+.legal{max-width:860px;margin:0 auto;padding-top:calc(var(--nav-h) + clamp(50px,8vw,90px));}
+.legal__head{text-align:center;margin-bottom:clamp(40px,6vw,70px);}
+.legal__sub{max-width:56ch;margin:0 auto;color:var(--ink-soft);font-size:.98rem;}
+.legal section{padding:clamp(26px,4vw,44px) 0;border-top:1px solid var(--hairline);}
+.legal section:first-of-type{border-top:0;}
+.legal h2{font-family:var(--serif);font-weight:500;font-size:clamp(1.5rem,2.6vw,2rem);margin-bottom:6px;color:var(--ink);}
+.legal h2 small{display:block;font-family:var(--jp);font-size:.85rem;color:var(--muted);margin-top:4px;}
+.legal h3{font-weight:600;font-size:.95rem;margin:22px 0 6px;color:var(--ink);}
+.legal p,.legal li{font-size:.92rem;color:var(--ink-soft);line-height:1.8;}
+.legal ol,.legal ul{padding-left:1.3em;margin:8px 0;}
+.legal table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.9rem;}
+.legal th,.legal td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--hairline);color:var(--ink-soft);}
+.legal th{width:34%;font-weight:600;color:var(--ink);}
+.legal__updated{font-size:.8rem;color:var(--muted);margin-top:8px;}
+mark.todo{background:rgba(198,165,72,.22);color:var(--ink);padding:0 3px;border-radius:3px;}
+.i18n-ja{font-family:var(--jp),var(--sans);}
+</style>
+</head>
+<body>
+
+<div id="progress" aria-hidden="true"></div>
+
+<!-- ══ Nav (shared look) ══ -->
+<header class="nav solid" id="nav">
+  <a class="nav__logo" href="index.html">MASTRY<span class="nav__logo-jp">マストリー</span></a>
+  <nav class="nav__links" id="navLinks" aria-label="Main">
+    <a href="index.html#story"><span class="i18n-en">Story</span><span class="i18n-ja">ストーリー</span></a>
+    <a href="index.html#flavours"><span class="i18n-en">Flavours</span><span class="i18n-ja">フレーバー</span></a>
+    <a href="index.html#find"><span class="i18n-en">Order</span><span class="i18n-ja">注文</span></a>
+    <a href="merch.html"><span class="i18n-en">Merch</span><span class="i18n-ja">グッズ</span></a>
+  </nav>
+  <a class="nav__cta" href="index.html#find"><span class="i18n-en">Find Mastry</span><span class="i18n-ja">ご注文はこちら</span></a>
+  <button class="nav__lang" id="langToggle" aria-label="Switch language / 言語を切り替える">
+    <span data-lang-opt="en" class="on">EN</span><i>/</i><span data-lang-opt="ja">日本語</span>
+  </button>
+  <button class="nav__burger" id="burger" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span>
+  </button>
+</header>
+
+<main class="legal section">
+  <div class="legal__head">
+    <p class="section__eyebrow">Legal — 法的情報</p>
+    <h1 class="section__title"><span class="i18n-en">The fine <em>print.</em></span><span class="i18n-ja">法的<em>情報。</em></span></h1>
+    <p class="legal__sub"><span class="i18n-en">Statutory seller information, terms of sale, and how we
+    handle your data — written to be read, not skimmed past.</span><span class="i18n-ja">特定商取引法に基づく表記、販売条件、お客様情報の取り扱いについて — 読み飛ばされないための、読める言葉で。</span></p>
+    <p class="legal__updated"><span class="i18n-en">Last updated: 24 July 2026</span><span class="i18n-ja">最終更新日：2026年7月24日</span></p>
+  </div>
+
+  <section id="tokushoho">
+    <div class="i18n-ja">
+      <h2>特定商取引法に基づく表記</h2>
+      <table>
+        <tr><th>販売業者</th><td><mark class="todo">【事業者名】</mark></td></tr>
+        <tr><th>運営責任者</th><td><mark class="todo">【運営責任者の氏名】</mark></td></tr>
+        <tr><th>所在地</th><td><mark class="todo">【所在地】</mark></td></tr>
+        <tr><th>電話番号</th><td><mark class="todo">【電話番号】</mark>（受付時間：<mark class="todo">【営業時間】</mark>）</td></tr>
+        <tr><th>メールアドレス</th><td>hello@mastry.jp</td></tr>
+        <tr><th>販売価格</th><td><mark class="todo">【各商品の税込価格】</mark>。各商品ページに表示します。</td></tr>
+        <tr><th>商品代金以外の必要料金</th><td>送料：<mark class="todo">【送料表】</mark>。海外配送の関税・輸入税・手数料は受取人のご負担です。</td></tr>
+        <tr><th>支払方法</th><td><mark class="todo">【支払方法：銀行振込等】</mark></td></tr>
+        <tr><th>支払時期</th><td>ご注文確認メール送信後、<mark class="todo">【支払期限】</mark>以内にお支払いください。</td></tr>
+        <tr><th>引渡時期</th><td>ご入金確認後、国内は3〜5営業日でお届けします。海外配送の日数は目安です。</td></tr>
+        <tr><th>返品・交換（返品特約）</th><td>食品のため、発送後のお客様都合による返品はお受けできません。商品に破損・不良・誤配送があった場合は、商品到着後7日以内に写真とロット番号を添えて hello@mastry.jp までご連絡ください。交換または返金にて対応します。</td></tr>
+      </table>
+    </div>
+    <div class="i18n-en">
+      <h2>特定商取引法に基づく表記<small>Disclosure under the Act on Specified Commercial Transactions (Japan) — the Japanese text governs</small></h2>
+      <table>
+        <tr><th>Seller</th><td><mark class="todo">【legal entity / seller name】</mark></td></tr>
+        <tr><th>Representative</th><td><mark class="todo">【representative's full name】</mark></td></tr>
+        <tr><th>Address</th><td><mark class="todo">【registered business address】</mark></td></tr>
+        <tr><th>Phone</th><td><mark class="todo">【phone number】</mark> (hours: <mark class="todo">【business hours】</mark>)</td></tr>
+        <tr><th>Email</th><td>hello@mastry.jp</td></tr>
+        <tr><th>Prices</th><td><mark class="todo">【price list including consumption tax】</mark> — shown with each product, inclusive of consumption tax.</td></tr>
+        <tr><th>Fees beyond the price</th><td>Shipping fees as listed (<mark class="todo">【shipping fee table】</mark>); customs duties and import taxes on international orders are the recipient's responsibility.</td></tr>
+        <tr><th>Payment method</th><td><mark class="todo">【payment methods offered】</mark></td></tr>
+        <tr><th>Payment timing</th><td>Due within <mark class="todo">【payment deadline】</mark> of our order-confirmation email.</td></tr>
+        <tr><th>Delivery timing</th><td>Ships after payment confirmation; 3–5 business days domestic, international times are estimates.</td></tr>
+        <tr><th>Returns &amp; exchanges</th><td>As a food product, Mastry cannot be returned after shipment for customer convenience. For damaged, defective, or incorrect deliveries, contact us with a photo and the lot code within 7 days of delivery for replacement or refund.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section id="terms">
+    <div class="i18n-en">
+      <h2>Terms of Sale<small>販売条件</small></h2>
+      <ol>
+        <li><strong>Offer and acceptance.</strong> Submitting an order form is an offer
+        to purchase. A contract forms when we send our order-confirmation email.
+        We may decline orders we cannot fulfil (for example, destinations we
+        cannot ship food to).</li>
+        <li><strong>Prices.</strong> Prices are shown inclusive of Japanese consumption
+        tax. Shipping fees and any customs charges are additional as described in
+        the disclosure above.</li>
+        <li><strong>Delivery and risk.</strong> Risk in the products passes to you when
+        we hand the shipment to the carrier. Delivery dates are estimates, not
+        guarantees.</li>
+        <li><strong>Returns.</strong> As set out in the 返品特約 above: no returns of
+        food products after shipment except for damage, defect, or incorrect
+        delivery, notified with a photo and lot code within 7 days of delivery.</li>
+        <li><strong>Import responsibility.</strong> For international orders, you are
+        responsible for confirming that the products may lawfully be imported to
+        your destination and for any duties or taxes levied there.</li>
+        <li><strong>Force majeure.</strong> We are not liable for delay or failure
+        caused by events beyond our reasonable control.</li>
+        <li id="allergen-ack"><strong>Allergen acknowledgment and voluntary consumption.</strong>
+        MASTRY contains mastic, a natural resin harvested from <em>Pistacia
+        lentiscus</em>, a tree in the pistachio family (Anacardiaceae). People
+        with allergies to pistachio, cashew, mango, or other Anacardiaceae
+        plants may react to this resin. By placing an order, the buyer confirms
+        that they have read the allergen information published on our
+        <a href="care.html#allergens">Care page</a>; that they have considered
+        their own dietary needs and any allergies, consulting a medical
+        professional where appropriate; that the product's suitability for each
+        person who will consume it is the buyer's responsibility to assess; and
+        that any consumption is the buyer's voluntary choice made in light of
+        this disclosure. Nothing in this clause excludes or limits any
+        liability that cannot be excluded or limited under applicable law,
+        including Japan's Consumer Contract Act and Product Liability Act; in
+        all other respects the limitation of liability in these Terms
+        applies.</li>
+        <li><strong>Liability.</strong> To the extent permitted by law, our total
+        liability for any order is limited to the price paid for that order.
+        Nothing in these terms limits liability that cannot be limited under
+        Japanese law.</li>
+        <li><strong>Governing law and jurisdiction.</strong> These terms are governed by
+        the laws of Japan. Any dispute shall be subject to the exclusive
+        jurisdiction of the <mark class="todo">【Tokyo】</mark> District Court as the
+        court of first instance.</li>
+      </ol>
+    </div>
+    <div class="i18n-ja">
+      <h2>販売条件</h2>
+      <ol>
+        <li><strong>申込みと承諾。</strong>注文フォームの送信は購入の申込みです。当店が注文確認
+        メールを送信した時点で売買契約が成立します。食品を配送できない地域へのご注文など、
+        対応できないご注文はお断りする場合があります。</li>
+        <li><strong>価格。</strong>表示価格は日本の消費税込みです。送料および関税等は、上記表記の
+        とおり別途かかります。</li>
+        <li><strong>引渡しと危険負担。</strong>商品の危険負担は、当店が配送業者に商品を引き渡した
+        時点でお客様に移転します。お届け日は目安であり、保証ではありません。</li>
+        <li><strong>返品。</strong>上記返品特約のとおり：食品のため発送後の返品はお受けできません。
+        破損・不良・誤配送の場合は、到着後7日以内に写真とロット番号を添えてご連絡ください。</li>
+        <li><strong>輸入の責任。</strong>海外へのご注文の場合、商品がお届け先の国へ適法に輸入できる
+        ことの確認、および課される関税・税金は、お客様の責任となります。</li>
+        <li><strong>不可抗力。</strong>当店の合理的な支配を超える事由による遅延・不履行について、
+        当店は責任を負いません。</li>
+        <li><strong>アレルゲンの確認および自発的な摂取。</strong>MASTRYには、ウルシ科
+        （ピスタチオと同科）の樹木 <em>Pistacia lentiscus</em> から採取される天然樹脂
+        「マスティック」が含まれます。ピスタチオ、カシューナッツ、マンゴーその他ウルシ科植物に
+        アレルギーのある方は、本樹脂に反応するおそれがあります。注文により、購入者は、当社
+        <a href="care.html#allergens">ケアページ</a>に掲載のアレルゲン情報を読んだこと、
+        自身の食事上の必要およびアレルギーを考慮し必要に応じて医師に相談したこと、本製品を
+        摂取する各人への適合性の確認は購入者の責任であること、ならびに摂取は当該開示を踏まえた
+        購入者自身の自発的な選択であることを確認するものとします。本条のいかなる規定も、
+        日本の消費者契約法および製造物責任法を含む適用法令上、排除または制限することができない
+        責任を排除または制限するものではなく、その他の事項については本規約の責任制限条項が
+        適用されます。</li>
+        <li><strong>責任の制限。</strong>法令の許す範囲で、当店の責任の総額は当該注文の代金額を
+        上限とします。日本法上制限できない責任を制限するものではありません。</li>
+        <li><strong>準拠法・管轄。</strong>本条件は日本法に準拠します。紛争については
+        <mark class="todo">【東京】</mark>地方裁判所を第一審の専属的合意管轄裁判所とします。</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <div class="i18n-en">
+      <h2>Privacy Policy<small>プライバシーポリシー</small></h2>
+      <p>Data controller: <mark class="todo">【the seller named in the disclosure
+      above】</mark>, contactable at hello@mastry.jp.</p>
+      <h3>What we collect</h3>
+      <p>Only what you type into our order and contact forms: your name, email
+      address, delivery address, and the contents of your message or order.
+      This site sets no analytics or advertising cookies. Two preferences
+      (your light/dark theme and your language choice) are stored locally in
+      your browser and never sent to us.</p>
+      <h3>Why we collect it</h3>
+      <p>Solely to fulfil your order, arrange delivery, and respond to your
+      messages. We do not use your data for marketing, we do not sell it, and we
+      do not share it with anyone except the delivery carriers who need your
+      address to deliver your order.</p>
+      <h3>How long we keep it</h3>
+      <p>Order records are kept as long as Japanese commercial and tax law
+      requires, then deleted. Support correspondence is deleted once the matter
+      is resolved.</p>
+      <h3>Your rights</h3>
+      <p>Under Japan's Act on the Protection of Personal Information (APPI), you
+      may request disclosure, correction, or deletion of your personal data at
+      any time by emailing <a href="mailto:hello@mastry.jp">hello@mastry.jp</a>.</p>
+    </div>
+    <div class="i18n-ja">
+      <h2>プライバシーポリシー</h2>
+      <p>個人情報取扱事業者：<mark class="todo">【上記表記の販売業者と同一】</mark>
+      （連絡先：hello@mastry.jp）。</p>
+      <h3>取得する情報</h3>
+      <p>注文・お問い合わせフォームにご入力いただいた情報のみです：お名前、メールアドレス、
+      お届け先住所、メッセージまたはご注文の内容。本サイトは解析用・広告用クッキーを使用して
+      いません。2つの設定（ライト／ダークのテーマと言語の選択）はお使いのブラウザ内にのみ
+      保存され、当店に送信されることはありません。</p>
+      <h3>利用目的</h3>
+      <p>ご注文の処理、配送の手配、お問い合わせへの返信のみに利用します。マーケティングへの
+      利用、第三者への販売は行いません。お届けに必要な範囲で配送業者に住所を提供する場合を
+      除き、第三者への提供は行いません。</p>
+      <h3>保存期間</h3>
+      <p>注文記録は日本の商法・税法が求める期間保存し、その後削除します。お問い合わせの記録は、
+      解決後に削除します。</p>
+      <h3>お客様の権利</h3>
+      <p>個人情報保護法に基づき、ご自身の個人情報の開示・訂正・削除をいつでも請求いただけます。
+      <a href="mailto:hello@mastry.jp">hello@mastry.jp</a> までご連絡ください。</p>
+    </div>
+  </section>
+
+  <section id="disclaimers">
+    <div class="i18n-en">
+      <h2>Disclaimers<small>免責事項</small></h2>
+      <ul>
+        <li>Information on this site is provided for general product information
+        and is not medical or dietary advice. If you have a medical condition or
+        allergy concern, consult your doctor — see our
+        <a href="care.html#allergens">allergen information</a>.</li>
+        <li>Mastry is a beverage. We make no claims about health effects or
+        functional benefits of mastic or any ingredient.</li>
+        <li>Product appearance may vary slightly between production lots; mastic
+        is a natural resin and light sediment is normal.</li>
+        <li>We may update this page as the business or the law changes; the date
+        above reflects the current version.</li>
+      </ul>
+    </div>
+    <div class="i18n-ja">
+      <h2>免責事項</h2>
+      <ul>
+        <li>本サイトの情報は一般的な商品情報の提供を目的としており、医学的・栄養学的助言では
+        ありません。持病やアレルギーのご心配がある方は医師にご相談ください —
+        <a href="care.html#allergens">アレルギー情報</a>もご覧ください。</li>
+        <li>マストリーは飲料です。マスティックおよびいかなる成分についても、健康効果・機能性を
+        主張するものではありません。</li>
+        <li>製造ロットにより外観がわずかに異なる場合があります。マスティックは天然樹脂のため、
+        軽微な沈殿は品質に問題ありません。</li>
+        <li>事業や法令の変更に応じて本ページを更新することがあります。上記の日付が現行版を
+        示します。</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<!-- ══ Footer (shared look) ══ -->
+<footer class="footer">
+  <img class="footer__art" src="images/footer-panorama.webp" alt="" loading="lazy" decoding="async" />
+  <div class="footer__top">
+    <a class="footer__logo" href="index.html">MASTRY</a>
+    <nav class="footer__links" aria-label="Footer">
+      <a href="index.html#story"><span class="i18n-en">Story</span><span class="i18n-ja">ストーリー</span></a>
+      <a href="index.html#flavours"><span class="i18n-en">Flavours</span><span class="i18n-ja">フレーバー</span></a>
+      <a href="index.html#find"><span class="i18n-en">Order</span><span class="i18n-ja">注文</span></a>
+      <a href="merch.html"><span class="i18n-en">Merch</span><span class="i18n-ja">グッズ</span></a>
+    </nav>
+  </div>
+  <nav class="footer__legal" aria-label="Legal">
+    <a href="care.html"><span class="i18n-en">Customer Care</span><span class="i18n-ja">カスタマーサポート</span></a>
+    <a href="legal.html"><span class="i18n-en">Legal</span><span class="i18n-ja">法的情報</span></a>
+    <a href="legal.html#tokushoho">特定商取引法に基づく表記</a>
+    <a href="mailto:hello@mastry.jp">hello@mastry.jp</a>
+  </nav>
+  <div class="footer__bottom">
+    <p><span class="i18n-en">Mastic from Chios, Greece · Assembled in Japan</span><span class="i18n-ja">ギリシャ・ヒオス島のマスティック · 日本にて仕上げ</span></p>
+    <p><span class="i18n-en">© 2026 Mastry. Sparkling water with mastic.</span><span class="i18n-ja">© 2026 Mastry. マスティックのスパークリングウォーター。</span></p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var progress = document.getElementById("progress");
+  window.addEventListener("scroll", function () {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    progress.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + "%";
+  }, { passive: true });
+  var burger = document.getElementById("burger");
+  var navLinks = document.getElementById("navLinks");
+  burger.addEventListener("click", function () {
+    var open = navLinks.classList.toggle("open");
+    burger.classList.toggle("open", open);
+    burger.setAttribute("aria-expanded", open);
+  });
+  /* language toggle — this page is pure CSS-block switching on <html lang>;
+     shares the mastry-lang key with the main pages' dictionary switcher */
+  var toggle = document.getElementById("langToggle");
+  function paint(l) {
+    toggle.querySelectorAll("[data-lang-opt]").forEach(function (s) {
+      s.classList.toggle("on", s.getAttribute("data-lang-opt") === l);
+    });
+  }
+  toggle.addEventListener("click", function () {
+    var l = document.documentElement.lang === "ja" ? "en" : "ja";
+    document.documentElement.lang = l;
+    try { localStorage.setItem("mastry-lang", l); } catch (e) {}
+    paint(l);
+  });
+  paint(document.documentElement.lang === "ja" ? "ja" : "en");
+})();
+</script>
+</body>
+</html>
